@@ -37,13 +37,13 @@ const EVENTO = {
   // y las funciones desde Vercel, así que hay que decirle dónde buscarlas.
   // Pega aquí la URL que te dé Vercel al desplegar, SIN barra final:
   //
-  //     api: "https://hackmethon.vercel.app",
+  //     api: "https://hackmethon-servidor.vercel.app",
   //
   // Y en Vercel pon la variable ORIGENES_PERMITIDOS con el dominio de la
   // portada, o el navegador va a bloquear las peticiones por CORS.
   //
   // Si lo dejas vacío, la API se busca en el mismo sitio que la página.
-  api:       "",
+  api: "https://hackmethon-servidor.vercel.app",
 };
 
 /* ============================================================
