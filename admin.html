@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Equipos registrados · HACK(ME)THON</title>
+<meta name="theme-color" content="#0d0410">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  main{ animation:none; }                      /* el panel no glitchea: aquí se trabaja */
+  .adm{ width:100%; max-width:1100px; margin-inline:auto; padding:24px var(--gut) 60px; }
+  .adm__sum{ display:flex; flex-wrap:wrap; gap:0 2ch; font-size:12.5px; letter-spacing:.1em; color:var(--phos-dim); margin:0 0 18px; }
+  .adm__sum b{ color:var(--phos-hi); font-weight:600; }
+
+  .eq{ border:1px solid var(--rule); margin-bottom:2px; display:grid;
+       grid-template-columns:auto minmax(0,1fr) minmax(0,1fr); gap:0 clamp(14px,2vw,24px);
+       padding:14px clamp(12px,2vw,18px); align-items:start; }
+  @media (max-width:760px){ .eq{ grid-template-columns:auto minmax(0,1fr); } .eq__crew{ grid-column:1 / -1; margin-top:10px; } }
+  .eq canvas{ border:1px solid var(--rule); display:block; image-rendering:pixelated; }
+  .eq__id{ font-size:11px; letter-spacing:.14em; color:var(--phos-dim); margin:0 0 3px; }
+  .eq__name{ font-family:var(--f-mono); font-weight:600; font-size:17px; color:var(--phos-hi);
+             text-shadow:var(--bloom); margin:0 0 6px; word-break:break-word; }
+  .eq__meta{ font-size:12px; color:var(--phos-dim); margin:0; }
+  .eq__meta a{ color:var(--phos); }
+  .eq__crew{ list-style:none; margin:0; padding:0; font-size:12.5px; }
+  .eq__crew li{ display:flex; gap:1ch; padding:2px 0; color:var(--phos-soft); }
+  .eq__crew b{ color:var(--phos-hi); font-weight:500; }
+  .eq__crew .tag{ color:var(--screen); background:var(--phos); padding:0 6px; font-size:10px; letter-spacing:.1em; }
+  .eq__crew .tel{ margin-left:auto; color:var(--phos-dim); font-variant-numeric:tabular-nums; }
+
+  .vacio{ border:1px dashed var(--rule); padding:36px; text-align:center; color:var(--phos-dim); font-size:13px; }
+  .puerta{ max-width:520px; }
+  .puerta .fld > label{ width:16ch; }
+</style>
+</head>
+<body>
+
+<div class="crt" aria-hidden="true"><div class="crt__scan"></div><div class="crt__bloom"></div></div>
+
+<header class="menubar">
+  <a class="menubar__sys" href="index.html">HACK(ME)THON</a>
+  <a class="menubar__go" href="index.html">&#9666; VOLVER A LA PORTADA</a>
+</header>
+
+<main class="adm">
+
+  <!-- puerta -->
+  <section class="panel" id="puerta" style="padding-inline:0">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 99</span>
+      <span class="panel__name">ACCESO RESTRINGIDO</span>
+      <span class="panel__stat">OPERADORES</span>
+    </header>
+    <div class="panel__body">
+      <form class="alta puerta" id="f-puerta">
+        <div class="fld">
+          <label for="f-token">CONTRASEÑA</label>
+          <input id="f-token" type="password" autocomplete="current-password" required>
+        </div>
+        <p class="msg" id="p-msg" role="status"></p>
+        <p class="cta"><button class="key key--go" type="submit">ENTER &middot; ABRIR</button></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- listado -->
+  <section class="panel" id="lista" hidden style="padding-inline:0">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 08</span>
+      <span class="panel__name">EQUIPOS REGISTRADOS</span>
+      <span class="panel__stat" id="l-stat">—</span>
+    </header>
+    <div class="panel__body">
+      <p class="adm__sum" id="l-sum"></p>
+      <div id="l-cuerpo"></div>
+      <p class="cta" style="margin-top:20px">
+        <button class="key" id="b-refresh" type="button">RECARGAR</button>
+        <button class="key" id="b-csv" type="button">DESCARGAR CSV</button>
+        <button class="key" id="b-salir" type="button">CERRAR SESIÓN</button>
+      </p>
+    </div>
+    <footer class="panel__keys"><a href="index.html">PF3=SALIR</a></footer>
+  </section>
+
+</main>
+
+<div class="oia" aria-hidden="true">
+  <span class="oia__cell"><b id="oia-sys"></b></span>
+  <span class="oia__cell">PANEL DE CONTROL</span>
+  <span class="oia__cell oia__pos" id="oia-pos">—</span>
+</div>
+
+<script>
+const TINTAS = [null, "#ff2d95", "#a855f7", "#ffd9ee"];
+const FONDO  = "#0d0410";
+const N      = 12;
+
+/* Si la portada vive en otro dominio que la API, escribe aquí la URL del
+   deploy de Vercel. Vacío = mismo sitio, funcione en la raíz o en /hackmethon/. */
+const API_EXTERNA = "";
+const API = API_EXTERNA
+  ? API_EXTERNA.replace(/\/+$/, "") + "/api"
+  : location.pathname.replace(/[^/]*$/, "") + "api";
+
+const $ = s => document.querySelector(s);
+const puerta = $("#puerta"), lista = $("#lista"), pmsg = $("#p-msg");
+let datos = null;
+
+function avisa(t, err){
+  pmsg.textContent = t ? (err ? ">>> " : "*** ") + t : "";
+  pmsg.className = "msg " + (t ? (err ? "msg--err" : "msg--ok") : "");
+}
+
+function token(){ return sessionStorage.getItem("hmt_token") || ""; }
+
+async function carga(){
+  const r = await fetch(API + "/registros", { headers: { authorization: "Bearer " + token() } });
+  if (r.status === 401){ sessionStorage.removeItem("hmt_token"); throw new Error("TOKEN INCORRECTO."); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.mensaje || ("HTTP " + r.status));
+  return d;
+}
+
+function emblema(cv, codigo){
+  const ctx = cv.getContext("2d"), paso = cv.width / N;
+  ctx.fillStyle = FONDO; ctx.fillRect(0, 0, cv.width, cv.height);
+  for (let i = 0; i < N * N; i++){
+    const v = +codigo[i] || 0;
+    if (!v) continue;
+    ctx.fillStyle = TINTAS[v];
+    ctx.fillRect((i % N) * paso, Math.floor(i / N) * paso, Math.ceil(paso), Math.ceil(paso));
+  }
+}
+
+function pinta(d){
+  datos = d;
+  $("#l-stat").textContent = `${d.registrados} / ${d.cupo}`;
+  $("#l-sum").innerHTML =
+    `REGISTRADOS <b>${d.registrados}</b>` +
+    `<span>CUPO <b>${d.cupo}</b></span>` +
+    `<span>QUEDAN <b>${d.quedan}</b></span>` +
+    `<span>OPERADORES <b>${d.registros.reduce((n, r) => n + r.integrantes.length, 0)}</b></span>`;
+
+  const cuerpo = $("#l-cuerpo");
+  cuerpo.textContent = "";
+  if (!d.registros.length){
+    cuerpo.innerHTML = '<p class="vacio">TODAVÍA NO HAY EQUIPOS REGISTRADOS.</p>';
+    return;
+  }
+
+  for (const r of d.registros){
+    const fila = document.createElement("article");
+    fila.className = "eq";
+
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 84;
+    fila.appendChild(cv);
+
+    const info = document.createElement("div");
+    const fecha = new Date(r.creado).toLocaleString("es-MX",
+      { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    info.innerHTML =
+      `<p class="eq__id">${r.folio} &middot; ${fecha}</p>` +
+      `<p class="eq__name"></p>` +
+      `<p class="eq__meta"><a href="mailto:"></a></p>`;
+    info.querySelector(".eq__name").textContent = r.equipo;
+    const a = info.querySelector("a");
+    a.textContent = r.correo;
+    a.href = "mailto:" + r.correo;
+    fila.appendChild(info);
+
+    const ul = document.createElement("ul");
+    ul.className = "eq__crew";
+    r.integrantes.forEach((i, n) => {
+      const li = document.createElement("li");
+      const b = document.createElement("b");
+      b.textContent = i.nombre;
+      if (n + 1 === r.lider){
+        const tag = document.createElement("span");
+        tag.className = "tag"; tag.textContent = "LÍDER";
+        li.appendChild(tag);
+      }
+      li.appendChild(b);
+      const tel = document.createElement("span");
+      tel.className = "tel"; tel.textContent = i.telefono || "—";
+      li.appendChild(tel);
+      ul.appendChild(li);
+    });
+    fila.appendChild(ul);
+
+    cuerpo.appendChild(fila);
+    emblema(cv, r.emblema);
+  }
+}
+
+async function abre(){
+  try {
+    const d = await carga();
+    puerta.hidden = true;
+    lista.hidden = false;
+    pinta(d);
+    $("#oia-pos").textContent = `${d.registrados}/${String(d.cupo).padStart(3, "0")}`;
+    avisa("");
+  } catch (e) {
+    puerta.hidden = false;
+    lista.hidden = true;
+    avisa(e.message, true);
+  }
+}
+
+$("#f-puerta").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = $("#f-token").value.trim();
+  if (!v) return avisa("ESCRIBE LA CONTRASEÑA.", true);
+  sessionStorage.setItem("hmt_token", v);
+  $("#f-token").value = "";
+  avisa("VERIFICANDO...", false);
+  abre();
+});
+
+$("#b-refresh").addEventListener("click", abre);
+$("#b-salir").addEventListener("click", () => {
+  sessionStorage.removeItem("hmt_token");
+  location.reload();
+});
+
+$("#b-csv").addEventListener("click", () => {
+  if (!datos) return;
+  const esc = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const filas = [["folio","equipo","correo","registrado","integrante","telefono","lider","emblema"]];
+  for (const r of datos.registros){
+    r.integrantes.forEach((i, n) => {
+      filas.push([r.folio, r.equipo, r.correo, r.creado, i.nombre, i.telefono,
+                  n + 1 === r.lider ? "si" : "no", n === 0 ? r.emblema : ""].map(esc));
+    });
+  }
+  // BOM para que Excel abra los acentos bien
+  const blob = new Blob(["﻿" + filas.map(f => f.join(",")).join("\r\n")],
+                        { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "hackmethon-equipos.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+if (token()) abre();
+</script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HACK(ME)THON</title>
+<meta name="description" content="Una amenaza inminente. Seis barreras de seguridad. Tres roles. Un cuarto a oscuras. El hackathon de nuevo ingreso de Startup Chihuahua.">
+<meta property="og:title" content="HACK(ME)THON">
+<meta property="og:description" content="Una amenaza inminente. Seis barreras de seguridad. Tres roles. Un cuarto a oscuras.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0d0410">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="crt" aria-hidden="true">
+  <div class="crt__scan"></div>
+  <div class="crt__sweep"></div>
+  <div class="crt__tear"></div>
+  <div class="crt__bloom"></div>
+</div>
+
+<a class="skip" href="#contenido">Saltar al contenido</a>
+
+<!-- ── barra de menú, estilo panel primario ─────────────── -->
+<header class="menubar">
+  <a class="menubar__sys" href="#top">HACK(ME)THON</a>
+  <nav class="menubar__opts" aria-label="Paneles">
+    <a href="#informe"><b>1</b> INFORME</a>
+    <a href="#barreras"><b>2</b> BARRERAS</a>
+    <a href="#roles"><b>3</b> ROLES</a>
+    <a href="#sala"><b>4</b> SALA</a>
+    <a href="#agenda"><b>5</b> AGENDA</a>
+    <a href="#faq"><b>6</b> AYUDA</a>
+  </nav>
+  <a class="menubar__go" data-cfg-href="registro" href="#registro">REGISTRO ▸</a>
+</header>
+
+<main id="contenido">
+
+  <!-- ── PANTALLA DE ARRANQUE ───────────────────────────── -->
+  <section class="screen" id="top">
+    <div class="screen__rule" aria-hidden="true"></div>
+
+    <p class="ipl" id="ipl">
+      <span class="ipl__line">SISTEMA DE DEFENSA / CHIHUAHUA &middot; TERMINAL 3277 MOD 2</span>
+      <span class="ipl__line">CONEXIÓN ESTABLECIDA &middot; 1200 BAUD</span>
+    </p>
+
+    <h1 class="banner">
+      <span class="sr-only">HACK(ME)THON</span>
+      <span class="banner__row" aria-hidden="true">
+<pre class="banner__blk">█   █  ███   ████ █   █
+█   █ █   █ █     █  █ 
+█████ █████ █     ███  
+█   █ █   █ █     █  █ 
+█   █ █   █  ████ █   █</pre>
+<pre class="banner__blk banner__blk--hi">   ██ █   █ █████ ██   
+  █   ██ ██ █       █  
+  █   █ █ █ ████    █  
+  █   █   █ █       █  
+   ██ █   █ █████ ██   </pre>
+<pre class="banner__blk">█████ █   █  ███  █   █
+  █   █   █ █   █ ██  █
+  █   █████ █   █ █ █ █
+  █   █   █ █   █ █  ██
+  █   █   █  ███  █   █</pre>
+      </span>
+    </h1>
+
+    <p class="alarm" role="status">
+      <span class="alarm__flag">&#9632;</span>
+      THE PINK THREAT
+    </p>
+
+    <p class="lead">
+      Alguien está por lanzar un ataque. Su servidor está en línea y tiene
+      <strong>seis barreras de seguridad</strong>. Ustedes tienen una noche,
+      un cuarto a oscuras y ninguna experiencia previa. Es suficiente.
+    </p>
+
+    <dl class="readout">
+      <div><dt>FECHA</dt><dd data-cfg="fecha">—</dd></div>
+      <div><dt>DURACIÓN</dt><dd data-cfg="duracion">—</dd></div>
+      <div><dt>SEDE</dt><dd data-cfg="sede">—</dd></div>
+      <div><dt>CUPO</dt><dd><span data-cfg="cupo">—</span><span id="quedan"></span></dd></div>
+      <div><dt>ACCESO</dt><dd data-cfg="costo">—</dd></div>
+    </dl>
+
+    <p class="tminus" id="countdown">
+      <span class="tminus__k">T&minus;MENOS</span>
+      <span class="tminus__v"><b id="cd-d">--</b>:<b id="cd-h">--</b>:<b id="cd-m">--</b>:<b id="cd-s">--</b></span>
+      <span class="tminus__u">DD:HH:MM:SS</span>
+    </p>
+
+    <p class="cmd">
+      <span class="cmd__prompt">OPCIÓN&nbsp;===&gt;</span>
+      <span class="cmd__typed" id="typed"></span><span class="cmd__cur" aria-hidden="true">█</span>
+    </p>
+
+    <p class="cta">
+      <a class="key key--go" data-cfg-href="registro" href="#registro">ENTER &middot; UNIRME A LA RESISTENCIA</a>
+      <a class="key" href="#barreras">PF2 &middot; VER LAS BARRERAS</a>
+    </p>
+
+    <p class="note">Para estudiantes de nuevo ingreso de Desarrollo de Software y carreras afines. Cero experiencia requerida.</p>
+  </section>
+
+  <!-- ── PANEL 01 · INFORME ─────────────────────────────── -->
+  <section class="panel" id="informe">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 01</span>
+      <span class="panel__name">INFORME DE SITUACIÓN</span>
+      <span class="panel__stat">CLASIFICADO</span>
+    </header>
+    <div class="panel__body">
+      <h2 class="h2">Nadie sabe programar todavía. Eso no los va a salvar.</h2>
+      <div class="prose">
+        <p>
+          El HACK(ME)THON no es un curso. Es una infiltración. Al entrar al cuarto
+          reciben un reporte: un servidor enemigo está armando un ataque y solo
+          se puede detener desde adentro.
+        </p>
+        <p>
+          Cada capa de seguridad de ese servidor es un reto. Para pasar hay que
+          entender cómo piensa una computadora — y resulta que eso se llama
+          <em>programar</em>. Nadie va a decir la palabra “tutorial” en toda la noche.
+        </p>
+        <p>
+          Trabajan en equipos de tres. Ninguno de los tres puede resolverlo solo,
+          porque a cada quien le tocó una parte distinta del acceso.
+        </p>
+      </div>
+    </div>
+    <footer class="panel__keys">
+      <a href="#top">PF3=SALIR</a><a href="#faq">PF1=AYUDA</a><a href="#barreras">PF8=AVANZAR</a>
+    </footer>
+  </section>
+
+  <!-- ── PANEL 02 · BARRERAS ────────────────────────────── -->
+  <section class="panel" id="barreras">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 02</span>
+      <span class="panel__name">BARRERAS DE SEGURIDAD</span>
+      <span class="panel__stat">6 FASES</span>
+    </header>
+    <div class="panel__body">
+      <h2 class="h2">Las barreras</h2>
+      <p class="section-lead">
+        Las seis barreras son las seis fases del evento y se abren una por una,
+        no todas de golpe. Cada una enseña una idea, y la idea no se explica:
+        se necesita para pasar.
+      </p>
+
+      <dl class="readout score">
+        <div><dt>POR FASE RESUELTA</dt><dd>100 puntos</dd></div>
+        <div><dt>BONIFICACIÓN</dt><dd>Según qué tan rápido la rompan</dd></div>
+        <div><dt>APERTURA</dt><dd>Una fase a la vez, durante la noche</dd></div>
+      </dl>
+
+      <ol class="opts">
+        <li class="opt" style="--i:0">
+          <p class="opt__head">
+            <span class="opt__n">1</span>
+            <span class="opt__name">FIREWALL BOOLEANO</span>
+            <span class="opt__dots" aria-hidden="true"></span>
+            <span class="opt__topic">OPERADORES LÓGICOS</span>
+          </p>
+          <p class="opt__desc">El acceso solo abre si dos condiciones se cumplen y una tercera no. Verdadero, falso, y todo lo que pasa cuando los mezclas.</p>
+        </li>
+        <li class="opt" style="--i:1">
+          <p class="opt__head">
+            <span class="opt__n">2</span>
+            <span class="opt__name">CONTROL DE ACCESO</span>
+            <span class="opt__dots" aria-hidden="true"></span>
+            <span class="opt__topic">CONDICIONALES</span>
+          </p>
+          <p class="opt__desc">El portero del servidor hace preguntas y decide. Ustedes tienen que reescribir sus decisiones sin que se dé cuenta.</p>
+        </li>
+        <li class="opt" style="--i:2">
+          <p class="opt__head">
+            <span class="opt__n">3</span>
+            <span class="opt__name">MURO DE REPETICIÓN</span>
+            <span class="opt__dots" aria-hidden="true"></span>
+            <span class="opt__topic">CICLOS</span>
+          </p>
+          <p class="opt__desc">Diez mil intentos. A mano no da tiempo. Hay que enseñarle a la máquina a hacer lo mismo, muchas veces, sin cansarse.</p>
+        </li>
+        <li class="opt" style="--i:3">
+          <p class="opt__head">
+            <span class="opt__n">4</span>
+            <span class="opt__name">NÚCLEO MODULAR</span>
+            <span class="opt__dots" aria-hidden="true"></span>
+            <span class="opt__topic">FUNCIONES</span>
+          </p>
+          <p class="opt__desc">El código del enemigo está partido en piezas que se llaman entre sí. Encuentren la pieza rota, arréglenla una vez, sirve en todas.</p>
+        </li>
+        <li class="opt" style="--i:4">
+          <p class="opt__head">
+            <span class="opt__n">5</span>
+            <span class="opt__name">BÓVEDA DE CREDENCIALES</span>
+            <span class="opt__dots" aria-hidden="true"></span>
+            <span class="opt__topic">BASES DE DATOS</span>
+          </p>
+          <p class="opt__desc">Miles de registros y uno solo sirve. Preguntarle bien a una base de datos es más rápido que buscar con los ojos.</p>
+        </li>
+        <li class="opt" style="--i:5">
+          <p class="opt__head">
+            <span class="opt__n">6</span>
+            <span class="opt__name">PUENTE DE LANZAMIENTO</span>
+            <span class="opt__dots" aria-hidden="true"></span>
+            <span class="opt__topic">APIS</span>
+          </p>
+          <p class="opt__desc">La última capa habla con el exterior. Mándenle el mensaje correcto y el ataque se cancela. Mándenle el equivocado y se adelanta.</p>
+        </li>
+      </ol>
+    </div>
+    <footer class="panel__keys">
+      <a href="#informe">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#roles">PF8=AVANZAR</a>
+    </footer>
+  </section>
+
+  <!-- ── PANEL 03 · ROLES ───────────────────────────────── -->
+  <section class="panel" id="roles">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 03</span>
+      <span class="panel__name">PERFILES DE ACCESO</span>
+      <span class="panel__stat">3 TERMINALES</span>
+    </header>
+    <div class="panel__body">
+      <h2 class="h2">Nadie ve el problema completo</h2>
+      <p class="section-lead">
+        Al equipo se le asignan tres roles. Cada uno recibe algo que los otros dos
+        no tienen — y le falta algo que solo los otros dos pueden darle. Van a
+        tener que hablarse.
+      </p>
+
+      <div class="roles">
+        <article class="role">
+          <p class="role__id">TERMINAL 01</p>
+          <h3>OPERADOR DE DATOS</h3>
+          <p class="perm perm--ok"><span>CONCEDIDO</span> Consultar la base de datos del enemigo.</p>
+          <p class="perm perm--no"><span>DENEGADO</span> Ver la pantalla. Ejecutar comandos.</p>
+          <p class="role__desc">Tiene las credenciales, los registros, los nombres. Sabe <em>qué</em> hay adentro, pero no dónde escribirlo.</p>
+        </article>
+
+        <article class="role">
+          <p class="role__id">TERMINAL 02</p>
+          <h3>OPERADOR DE TERMINAL</h3>
+          <p class="perm perm--ok"><span>CONCEDIDO</span> Escribir y ejecutar comandos.</p>
+          <p class="perm perm--no"><span>DENEGADO</span> Ver la pantalla. Consultar datos.</p>
+          <p class="role__desc">Las manos del equipo. Teclea a ciegas lo que los otros dos le dictan, y es el único que puede provocar algo.</p>
+        </article>
+
+        <article class="role">
+          <p class="role__id">TERMINAL 03</p>
+          <h3>OPERADOR DE PANTALLA</h3>
+          <p class="perm perm--ok"><span>CONCEDIDO</span> Ver la interfaz del enemigo.</p>
+          <p class="perm perm--no"><span>DENEGADO</span> Teclear. Consultar datos.</p>
+          <p class="role__desc">Los ojos. Describe errores, pistas y cambios en voz alta. Si describe mal, el equipo avanza mal.</p>
+        </article>
+      </div>
+    </div>
+    <footer class="panel__keys">
+      <a href="#barreras">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#sala">PF8=AVANZAR</a>
+    </footer>
+  </section>
+
+  <!-- ── PANEL 04 · SALA ────────────────────────────────── -->
+  <section class="panel" id="sala">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 04</span>
+      <span class="panel__name">CONTROL DE SALA</span>
+      <span class="panel__stat">EN LÍNEA</span>
+    </header>
+    <div class="panel__body">
+      <h2 class="h2">El cuarto reacciona</h2>
+      <div class="room">
+        <div class="prose">
+          <p>
+            Se apagan las luces. El techo queda cubierto de telas moradas y rosas,
+            los reflectores las atraviesan y las paredes están pintadas con algo
+            que brilla en la oscuridad.
+          </p>
+          <p>
+            No es decoración pasiva. Un servidor está escuchando lo que pasa en el
+            evento: cuando un equipo rompe una barrera, cuando quedan quince
+            minutos, cuando alguien está a punto de disparar el ataque. Y responde
+            — cambia las luces, cambia lo que proyectan las paredes, cambia el sonido.
+          </p>
+          <p>
+            Si el cuarto se pone rojo, algo salió mal. Van a saberlo antes de leerlo.
+          </p>
+        </div>
+        <dl class="readout readout--stack">
+          <div><dt>TELAS</dt><dd>Moradas y rosas, techo completo</dd></div>
+          <div><dt>REFLECTORES</dt><dd>Sincronizados al avance</dd></div>
+          <div><dt>PINTURA</dt><dd>Fotoluminiscente, 4 paredes</dd></div>
+          <div><dt>PROYECCIÓN</dt><dd>Estado de la infiltración</dd></div>
+          <div><dt>SERVIDOR</dt><dd>Reaccionando en tiempo real</dd></div>
+          <div><dt>SEDE</dt><dd data-cfg="sede">—</dd></div>
+          <div><dt>COORDENADAS</dt><dd class="coords" data-cfg="coordenadas">—</dd></div>
+        </dl>
+        <p class="maplink"><a data-cfg-href="mapa" href="#" rel="noopener">&#9656; ABRIR EN MAPAS</a></p>
+      </div>
+    </div>
+    <footer class="panel__keys">
+      <a href="#roles">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#agenda">PF8=AVANZAR</a>
+    </footer>
+  </section>
+
+  <!-- ── PANEL 05 · AGENDA ──────────────────────────────── -->
+  <section class="panel" id="agenda">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 05</span>
+      <span class="panel__name">SECUENCIA DE EJECUCIÓN</span>
+      <span class="panel__stat">9 PASOS</span>
+    </header>
+    <div class="panel__body">
+      <h2 class="h2">Cómo se cae el servidor</h2>
+      <p class="section-lead">
+        Cuatro horas seguidas, sin pausas. Una fase nueva se abre cada vez que
+        el reloj lo marca; las anteriores siguen abiertas.
+      </p>
+      <ol class="sched">
+        <li><span class="sched__t">18:00</span><span class="sched__n">BRIEFING</span><span class="sched__d">Se apagan las luces. Llega el reporte de la amenaza.</span></li>
+        <li><span class="sched__t">18:20</span><span class="sched__n">ASIGNACIÓN DE ROLES</span><span class="sched__d">Equipos de tres. Cada quien recibe su acceso y su restricción.</span></li>
+        <li><span class="sched__t">18:40</span><span class="sched__n">ABRE LA FASE 1</span><span class="sched__d">Firewall booleano. Operadores lógicos.</span></li>
+        <li><span class="sched__t">19:00</span><span class="sched__n">ABRE LA FASE 2</span><span class="sched__d">Control de acceso. Condicionales.</span></li>
+        <li><span class="sched__t">19:25</span><span class="sched__n">ABRE LA FASE 3</span><span class="sched__d">Muro de repetición. Ciclos.</span></li>
+        <li><span class="sched__t">19:55</span><span class="sched__n">ABRE LA FASE 4</span><span class="sched__d">Núcleo modular. Funciones.</span></li>
+        <li><span class="sched__t">20:30</span><span class="sched__n">ABRE LA FASE 5</span><span class="sched__d">Bóveda de credenciales. Bases de datos.</span></li>
+        <li><span class="sched__t">21:05</span><span class="sched__n">ABRE LA FASE 6</span><span class="sched__d">Puente de lanzamiento. APIs.</span></li>
+        <li><span class="sched__t">21:40</span><span class="sched__n">MARCADOR FINAL</span><span class="sched__d">Se prenden las luces. Puntajes, reconocimientos y cierre.</span></li>
+      </ol>
+    </div>
+    <footer class="panel__keys">
+      <a href="#sala">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#registro">PF8=AVANZAR</a>
+    </footer>
+  </section>
+
+  <!-- ── PANEL 06 · ALTA DE OPERADORES ─────────────────── -->
+  <section class="panel panel--go" id="registro">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 06</span>
+      <span class="panel__name">ALTA DE OPERADORES</span>
+      <span class="panel__stat">ABIERTO</span>
+    </header>
+    <div class="panel__body">
+      <h2 class="h2">Se necesitan <span data-cfg="cupo">—</span></h2>
+      <p class="section-lead">
+        El registro es por equipo, no individual. Junta a tus tres integrantes
+        antes de llenar esto: no se aceptan equipos incompletos.
+      </p>
+
+      <form class="alta" id="alta" novalidate>
+
+        <p class="trampa" aria-hidden="true">
+          <label for="f-empresa">No llenes esto</label>
+          <input id="f-empresa" name="empresa" type="text" tabindex="-1" autocomplete="off">
+        </p>
+
+        <fieldset class="fs">
+          <legend>&#9656; DATOS DEL EQUIPO</legend>
+          <div class="fld">
+            <label for="f-equipo">NOMBRE DEL EQUIPO</label>
+            <input id="f-equipo" name="equipo" type="text" maxlength="32" required
+                   autocomplete="off" placeholder="LOS SEIS DEDOS">
+          </div>
+          <div class="fld">
+            <label for="f-correo">CORREO DE CONTACTO</label>
+            <input id="f-correo" name="correo" type="email" required
+                   autocomplete="email" placeholder="equipo@ejemplo.com">
+          </div>
+        </fieldset>
+
+        <fieldset class="fs">
+          <legend>&#9656; INTEGRANTES</legend>
+          <p class="fs__hint">Los tres son obligatorios, uno por cada rol. Marca quién es el líder: es a quien le escribimos.</p>
+          <div class="crew" id="crew">
+            <p class="crew__head" aria-hidden="true">
+              <span>LÍDER</span><span>NOMBRE COMPLETO</span><span>TELÉFONO</span>
+            </p>
+          </div>
+        </fieldset>
+
+        <fieldset class="fs">
+          <legend>&#9656; EMBLEMA DEL EQUIPO</legend>
+          <p class="fs__hint">
+            Doce por doce celdas de fósforo. Pinta arrastrando. Con la simetría
+            encendida, lo que dibujas de un lado aparece del otro.
+          </p>
+
+          <div class="emblem">
+            <div class="emblem__main">
+              <div class="palette" role="radiogroup" aria-label="Color de fósforo">
+                <button type="button" class="sw" data-tinta="0" aria-pressed="false"><i></i>APAGADO</button>
+                <button type="button" class="sw" data-tinta="1" aria-pressed="true"><i></i>MAGENTA</button>
+                <button type="button" class="sw" data-tinta="2" aria-pressed="false"><i></i>VIOLETA</button>
+                <button type="button" class="sw" data-tinta="3" aria-pressed="false"><i></i>BRILLO</button>
+              </div>
+
+              <div class="grid" id="grid" aria-label="Cuadrícula del emblema, 12 por 12"></div>
+
+              <div class="emblem__acts">
+                <button type="button" id="b-sim" aria-pressed="true">SIMETRÍA: SÍ</button>
+                <button type="button" id="b-rnd">ALEATORIO</button>
+                <button type="button" id="b-clr">LIMPIAR</button>
+              </div>
+            </div>
+
+            <div class="emblem__side">
+              <p class="emblem__cap">VISTA PREVIA</p>
+              <canvas id="prev" width="200" height="200" aria-label="Vista previa del emblema"></canvas>
+              <p class="emblem__team" id="prev-name">SIN NOMBRE</p>
+              <button type="button" id="b-png" class="key key--sm" hidden>DESCARGAR PNG</button>
+            </div>
+          </div>
+        </fieldset>
+
+        <p class="cmd">
+          <span class="cmd__prompt">OPCIÓN&nbsp;===&gt;</span>
+          <span class="cmd__typed">REGISTRAR</span><span class="cmd__cur" aria-hidden="true">█</span>
+        </p>
+
+        <p class="msg" id="msg" role="status"></p>
+
+        <p class="cta">
+          <button type="submit" class="key key--go">ENTER &middot; ENVIAR REGISTRO</button>
+          <button type="button" class="key" id="b-copy">COPIAR DATOS</button>
+        </p>
+
+        <p class="note">
+          El registro se manda solo y te devuelve un folio. Guarda el PNG del
+          emblema: lo vas a necesitar el día del evento. <span data-cfg="costo">—</span>
+        </p>
+      </form>
+    </div>
+    <footer class="panel__keys">
+      <a href="#agenda">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#faq">PF1=AYUDA</a>
+    </footer>
+  </section>
+
+  <!-- ── PANEL 07 · AYUDA ───────────────────────────────── -->
+  <section class="panel" id="faq">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 07</span>
+      <span class="panel__name">AYUDA EN LÍNEA</span>
+      <span class="panel__stat">7 TEMAS</span>
+    </header>
+    <div class="panel__body">
+      <h2 class="h2">Antes de entrar</h2>
+      <div class="faq">
+        <details>
+          <summary>¿Necesito saber programar?</summary>
+          <p>No. El evento está diseñado para alguien que nunca ha escrito una línea de código. Las barreras están ordenadas de más simple a menos simple, y cada una da lo que necesitas para pasarla.</p>
+        </details>
+        <details>
+          <summary>¿Puedo ir solo, sin equipo?</summary>
+          <p>No. El registro es únicamente por equipos de tres, porque los tres roles del evento se reparten dentro del equipo y ninguno funciona sin los otros dos. Si te falta gente, búscala antes de registrarte: cualquiera de nuevo ingreso cuenta.</p>
+        </details>
+        <details>
+          <summary>¿Qué llevo?</summary>
+          <p>Al menos una laptop por equipo — con dos o tres van más cómodos. Cargador. Nada más. Todo lo demás corre en el navegador.</p>
+        </details>
+        <details>
+          <summary>¿De qué carrera tengo que ser?</summary>
+          <p>Desarrollo de Software, Sistemas, TI o cualquier carrera afín. Está pensado específicamente para primer semestre.</p>
+        </details>
+        <details>
+          <summary>¿Cómo se gana?</summary>
+          <p>Por puntos. Cada fase que rompan les da 100 puntos, más una bonificación según qué tan rápido la resolvieron. Las seis fases se abren una por una durante la noche, así que todos los equipos trabajan sobre la misma al mismo tiempo y la diferencia la hace la velocidad.</p>
+        </details>
+        <details>
+          <summary>¿Hay premio?</summary>
+          <p>El equipo con más puntos al final se lleva el reconocimiento y lo que anunciemos en la sede. Pero todos los equipos terminan las seis fases: nadie se queda atorado toda la noche.</p>
+        </details>
+        <details>
+          <summary>¿Cuánto cuesta?</summary>
+          <p>Nada. El evento no tiene costo alguno: ni inscripción, ni cuota de recuperación, ni nada que llevar más que la laptop.</p>
+        </details>
+      </div>
+    </div>
+    <footer class="panel__keys">
+      <a href="#registro">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a>
+    </footer>
+  </section>
+
+</main>
+
+<footer class="signoff">
+  <p class="signoff__line">HACK(ME)THON &middot; STARTUP CHIHUAHUA &amp; UNDEFINED</p>
+  <p class="signoff__line"><a data-cfg-href="contacto" href="#">CONTACTO ===&gt; ESCRÍBENOS</a></p>
+  <p class="signoff__line signoff__line--dim">FIN DE LA TRANSMISIÓN</p>
+</footer>
+
+<!-- ── área de información del operador (línea 24) ──────── -->
+<div class="oia" aria-hidden="true">
+  <span class="oia__cell oia__sys"><b id="oia-sys">X SYSTEM</b></span>
+  <span class="oia__cell">INSERT</span>
+  <span class="oia__cell oia__panel" id="oia-panel">ARRANQUE</span>
+  <span class="oia__cell oia__pos" id="oia-pos">001/071</span>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
