@@ -94,17 +94,11 @@
   <span class="oia__cell oia__pos" id="oia-pos">—</span>
 </div>
 
+<script src="config.js"></script>
 <script>
 const TINTAS = [null, "#ff2d95", "#a855f7", "#ffd9ee"];
 const FONDO  = "#0d0410";
 const N      = 12;
-
-/* Si la portada vive en otro dominio que la API, escribe aquí la URL del
-   deploy de Vercel. Vacío = mismo sitio, funcione en la raíz o en /hackmethon/. */
-const API_EXTERNA = "";
-const API = API_EXTERNA
-  ? API_EXTERNA.replace(/\/+$/, "") + "/api"
-  : location.pathname.replace(/[^/]*$/, "") + "api";
 
 const $ = s => document.querySelector(s);
 const puerta = $("#puerta"), lista = $("#lista"), pmsg = $("#p-msg");
