@@ -333,22 +333,23 @@ img{ max-width:100%; image-rendering:pixelated; }
 .ipl__line{ display:block; }
 .ipl__line::before{ content:"» "; color:var(--blue-hi); }
 
-.banner{ margin:0 0 clamp(18px,3vw,28px); }
+/* El banner mide 69 columnas monoespaciadas (3 bloques de 23). A
+   0.6em de avance por carácter eso son 41.4em, así que 2.36cqw del
+   ancho disponible lo deja siempre en una sola línea: en móvil el
+   título encoge, no se parte. */
+.banner{ margin:0 0 clamp(18px,3vw,28px); container-type:inline-size; }
 .banner__row{ display:flex; gap:0; justify-content:flex-start; }
 .banner__blk{
   margin:0; font-family:var(--f-mono); font-weight:400;
-  font-size:clamp(8px,2.06vw,19px); line-height:1;
+  font-size:min(19px, 2.36cqw); line-height:1;
   color:var(--phos);
   /* Sombra dura azul desplazada: el registro corrido a dos tintas
-     que hace que el título se lea impreso y no sólo brillante. */
-  text-shadow:3px 3px 0 var(--blue), var(--bloom-2);
+     que hace que el título se lea impreso y no sólo brillante. En em,
+     para que encoja con la letra y no se coma el glifo en móvil. */
+  text-shadow:.16em .16em 0 var(--blue), var(--bloom-2);
   white-space:pre;
 }
 .banner__blk--hi{ color:var(--phos-hi); text-shadow:0 0 6px rgba(255,217,238,.6), 0 0 26px rgba(250,57,186,.4); }
-@media (max-width:620px){
-  .banner__row{ flex-direction:column; align-items:flex-start; }
-  .banner__blk{ font-size:min(23px,6.3vw); }
-}
 
 .alarm{
   display:inline-block; margin:0 0 clamp(20px,3vw,28px);
