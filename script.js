@@ -97,15 +97,29 @@ document.querySelectorAll("[data-cfg-href]").forEach(el => {
     nombre: (s.querySelector(".panel__name")?.textContent || "ARRANQUE").trim(),
   }));
 
+  /* Quien se desplaza es .tubo, no la ventana: el documento está
+     congelado para que el filtro de curvatura caiga sobre algo del
+     tamaño de la pantalla. Si el tubo no estuviera, se lee la ventana
+     y todo esto sigue funcionando igual. */
+  const tubo  = document.querySelector(".tubo");
+  const fuente = tubo || window;
+  const leer = () => tubo
+    ? { y: tubo.scrollTop,
+        alto: tubo.scrollHeight - tubo.clientHeight,
+        vh: tubo.clientHeight }
+    : { y: window.scrollY,
+        alto: document.documentElement.scrollHeight - window.innerHeight,
+        vh: window.innerHeight };
+
   let pendiente = false;
   function actualizar(){
     pendiente = false;
-    const alto = document.documentElement.scrollHeight - window.innerHeight;
-    const avance = alto > 0 ? Math.min(Math.max(window.scrollY / alto, 0), 1) : 0;
+    const { y, alto, vh } = leer();
+    const avance = alto > 0 ? Math.min(Math.max(y / alto, 0), 1) : 0;
     const fila = 1 + Math.round(avance * 23);          // 24 renglones, como el modelo 2
     pos.textContent = `${String(fila).padStart(3, "0")}/024`;
 
-    const medio = window.scrollY + window.innerHeight * 0.4;
+    const medio = y + vh * 0.4;
     let actual = secciones[0];
     for (const s of secciones){
       if (s.el.offsetTop <= medio) actual = s;
@@ -113,7 +127,7 @@ document.querySelectorAll("[data-cfg-href]").forEach(el => {
     if (panel.textContent !== actual.nombre) panel.textContent = actual.nombre;
   }
 
-  window.addEventListener("scroll", () => {
+  fuente.addEventListener("scroll", () => {
     if (pendiente) return;
     pendiente = true;
     requestAnimationFrame(actualizar);
