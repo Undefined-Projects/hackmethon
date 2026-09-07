@@ -33,6 +33,31 @@
   .eq__crew .tel{ margin-left:auto; color:var(--phos-dim); font-variant-numeric:tabular-nums; }
 
   .vacio{ border:1px dashed var(--rule); padding:36px; text-align:center; color:var(--phos-dim); font-size:13px; }
+
+  /* ajuste de cupo */
+  .ajuste{ display:flex; align-items:center; flex-wrap:wrap; gap:1.5ch;
+           border:1px solid var(--rule); padding:12px 16px; margin:0 0 18px; }
+  .ajuste label{ font-size:12px; letter-spacing:.1em; color:var(--phos-dim); }
+  .ajuste input{ width:7ch; font-family:var(--f-mono); font-size:15px; font-weight:600;
+                 color:var(--phos-hi); background:rgba(255,95,176,.07);
+                 border:0; border-bottom:1px solid var(--phos-dim); padding:5px 8px;
+                 text-align:center; font-variant-numeric:tabular-nums; }
+  .ajuste input:focus{ outline:0; background:rgba(255,95,176,.15); border-bottom-color:var(--phos); }
+  .ajuste .nota{ font-size:11.5px; color:var(--phos-dim); }
+  .ajuste .nota.ok{ color:var(--phos-hi); }
+  .ajuste .nota.err{ color:var(--magenta); }
+
+  /* borrar equipo */
+  .eq{ position:relative; }
+  .eq__borrar{ grid-column:1 / -1; display:flex; flex-wrap:wrap; align-items:center;
+               gap:1ch; margin-top:10px; padding-top:10px; border-top:1px solid var(--rule); }
+  .eq__borrar button{ font-family:var(--f-mono); font-size:10.5px; letter-spacing:.1em;
+                      background:transparent; color:var(--phos-dim);
+                      border:1px solid var(--rule); padding:4px 10px; cursor:pointer; }
+  .eq__borrar button:hover{ background:var(--magenta); color:var(--screen); border-color:var(--magenta); }
+  .eq__borrar .aviso{ font-size:11.5px; color:var(--magenta); margin-right:auto; }
+  .eq__borrar button.si{ background:var(--magenta); color:var(--screen); border-color:var(--magenta); font-weight:600; }
+  .eq--fuera{ opacity:.3; pointer-events:none; }
   .puerta{ max-width:520px; }
   .puerta .fld > label{ width:16ch; }
 </style>
@@ -76,6 +101,13 @@
     </header>
     <div class="panel__body">
       <p class="adm__sum" id="l-sum"></p>
+
+      <p class="ajuste">
+        <label for="f-cupo">CUPO DE EQUIPOS</label>
+        <input id="f-cupo" type="number" min="1" max="500" step="1" inputmode="numeric">
+        <button class="key key--sm" id="b-cupo" type="button">GUARDAR</button>
+        <span class="nota" id="cupo-msg"></span>
+      </p>
       <div id="l-cuerpo"></div>
       <p class="cta" style="margin-top:20px">
         <button class="key" id="b-refresh" type="button">RECARGAR</button>
@@ -130,14 +162,19 @@ function emblema(cv, codigo){
   }
 }
 
-function pinta(d){
-  datos = d;
+function resumen(d){
   $("#l-stat").textContent = `${d.registrados} / ${d.cupo}`;
   $("#l-sum").innerHTML =
     `REGISTRADOS <b>${d.registrados}</b>` +
     `<span>CUPO <b>${d.cupo}</b></span>` +
     `<span>QUEDAN <b>${d.quedan}</b></span>` +
-    `<span>OPERADORES <b>${d.registros.reduce((n, r) => n + r.integrantes.length, 0)}</b></span>`;
+    `<span>OPERADORES <b>${(d.registros || datos.registros || []).reduce((n, r) => n + r.integrantes.length, 0)}</b></span>`;
+}
+
+function pinta(d){
+  datos = d;
+  $("#f-cupo").value = d.cupo;
+  resumen(d);
 
   const cuerpo = $("#l-cuerpo");
   cuerpo.textContent = "";
@@ -185,9 +222,111 @@ function pinta(d){
       ul.appendChild(li);
     });
     fila.appendChild(ul);
+    fila.appendChild(zonaBorrar(r, fila));
 
     cuerpo.appendChild(fila);
     emblema(cv, r.emblema);
+  }
+}
+
+/* Borrar es irreversible, así que va en dos pasos y el aviso dice a quién
+   se está borrando. Se cancela solo a los 8 segundos. */
+function zonaBorrar(r, fila){
+  const zona = document.createElement("p");
+  zona.className = "eq__borrar";
+
+  const reposo = () => {
+    zona.textContent = "";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = "BORRAR EQUIPO";
+    b.addEventListener("click", preguntar);
+    zona.appendChild(b);
+  };
+
+  let reloj = null;
+  const preguntar = () => {
+    zona.textContent = "";
+    const aviso = document.createElement("span");
+    aviso.className = "aviso";
+    aviso.textContent = `¿Borrar «${r.equipo}»? No se puede deshacer.`;
+    const si = document.createElement("button");
+    si.type = "button"; si.className = "si"; si.textContent = "SÍ, BORRAR";
+    si.addEventListener("click", () => { clearTimeout(reloj); borrar(); });
+    const no = document.createElement("button");
+    no.type = "button"; no.textContent = "CANCELAR";
+    no.addEventListener("click", () => { clearTimeout(reloj); reposo(); });
+    zona.append(aviso, si, no);
+    reloj = setTimeout(reposo, 8000);
+  };
+
+  const borrar = async () => {
+    zona.textContent = "";
+    const esperando = document.createElement("span");
+    esperando.className = "aviso";
+    esperando.textContent = "Borrando...";
+    zona.appendChild(esperando);
+    try {
+      const resp = await fetch(`${API}/registros?id=${r.id}`, {
+        method: "DELETE",
+        headers: { authorization: "Bearer " + token() },
+      });
+      const d = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(d.mensaje || ("HTTP " + resp.status));
+
+      fila.classList.add("eq--fuera");
+      datos.registros = datos.registros.filter(x => x.id !== r.id);
+      resumen({ cupo: d.cupo, registrados: d.registrados, quedan: d.quedan });
+      $("#f-cupo").value = d.cupo;
+      setTimeout(() => {
+        fila.remove();
+        if (!datos.registros.length)
+          $("#l-cuerpo").innerHTML = '<p class="vacio">TODAVÍA NO HAY EQUIPOS REGISTRADOS.</p>';
+      }, 400);
+    } catch (e) {
+      zona.textContent = "";
+      const err = document.createElement("span");
+      err.className = "aviso";
+      err.textContent = "No se pudo borrar: " + e.message;
+      zona.appendChild(err);
+      setTimeout(reposo, 4000);
+    }
+  };
+
+  reposo();
+  return zona;
+}
+
+/* Cambiar el cupo. Se guarda en la base, no en la variable de entorno,
+   así que aplica de inmediato sin redesplegar. */
+async function guardaCupo(){
+  const campo = $("#f-cupo"), nota = $("#cupo-msg"), boton = $("#b-cupo");
+  const n = Number(campo.value);
+  const di = (t, clase) => { nota.textContent = t; nota.className = "nota " + (clase || ""); };
+
+  if (!Number.isInteger(n) || n < 1 || n > 500)
+    return di("Tiene que ser un entero entre 1 y 500.", "err");
+
+  boton.disabled = true;
+  di("Guardando...");
+  try {
+    const resp = await fetch(API + "/ajustes", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + token() },
+      body: JSON.stringify({ cupo: n }),
+    });
+    const d = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(d.mensaje || ("HTTP " + resp.status));
+
+    resumen({ cupo: d.cupo, registrados: d.registrados, quedan: d.quedan });
+    if (datos) datos.cupo = d.cupo;
+    di(d.cerrado
+      ? `Cupo en ${d.cupo}. Ya hay ${d.registrados} equipos: el registro queda CERRADO.`
+      : `Cupo en ${d.cupo}. Quedan ${d.quedan} lugares.`, "ok");
+  } catch (e) {
+    di("No se pudo guardar: " + e.message, "err");
+  } finally {
+    boton.disabled = false;
   }
 }
 
@@ -217,6 +356,8 @@ $("#f-puerta").addEventListener("submit", e => {
 });
 
 $("#b-refresh").addEventListener("click", abre);
+$("#b-cupo").addEventListener("click", guardaCupo);
+$("#f-cupo").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); guardaCupo(); } });
 $("#b-salir").addEventListener("click", () => {
   sessionStorage.removeItem("hmt_token");
   location.reload();
