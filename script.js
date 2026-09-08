@@ -503,3 +503,35 @@ document.querySelectorAll("[data-cfg-href]").forEach(el => {
     })
     .catch(() => {});
 })();
+
+/* — 7. El título ASCII, siempre de una pieza y dentro del marco —
+   Son 69 columnas monoespaciadas repartidas en tres bloques. El CSS
+   las escala suponiendo 0.6em por carácter, pero █ (U+2588) no viene
+   en la subserie latina de IBM Plex Mono: cada sistema lo presta de
+   otra fuente y el avance real cambia, así que en un teléfono el
+   título podía asomarse por la derecha. Aquí se mide el ancho que de
+   verdad ocupa y se calcula la talla que lo hace caber. */
+(function ajustaBanner(){
+  const banner = document.querySelector(".banner");
+  const fila   = banner && banner.querySelector(".banner__row");
+  if (!fila) return;
+
+  const MAX    = 19;    // misma talla tope que el CSS
+  const REF    = 100;   // talla de medición: da el ancho en em
+  const SOMBRA = 0.16;  // la sombra dura sobresale .16em a la derecha
+  const SALTO  = 3;     // y el desgarro empuja hasta 3px más
+
+  function ajusta(){
+    const hueco = banner.clientWidth - SALTO;
+    banner.style.setProperty("--banner-fs", REF + "px");
+    const ancho = [...fila.children]
+      .reduce((suma, blk) => suma + blk.getBoundingClientRect().width, 0) / REF;
+    banner.style.setProperty("--banner-fs",
+      Math.min(MAX, hueco / (ancho + SOMBRA)) + "px");
+  }
+
+  ajusta();
+  // Las webfonts llegan después del primer trazo y cambian el avance.
+  if (document.fonts) document.fonts.ready.then(ajusta).catch(() => {});
+  addEventListener("resize", ajusta);
+})();

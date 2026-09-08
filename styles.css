@@ -333,15 +333,17 @@ img{ max-width:100%; image-rendering:pixelated; }
 .ipl__line{ display:block; }
 .ipl__line::before{ content:"» "; color:var(--blue-hi); }
 
-/* El banner mide 69 columnas monoespaciadas (3 bloques de 23). A
-   0.6em de avance por carácter eso son 41.4em, así que 2.36cqw del
-   ancho disponible lo deja siempre en una sola línea: en móvil el
-   título encoge, no se parte. */
+/* El banner mide 69 columnas monoespaciadas (3 bloques de 23) y debe
+   caber en una línea: en móvil encoge, no se parte. La talla exacta la
+   pone script.js en --banner-fs, porque el ancho real del glifo █
+   depende de qué fuente lo preste en cada sistema. Este cqw es el
+   respaldo si el script no corre: supone el avance monoespaciado
+   habitual de 0.6em (69 × 0.6 = 41.4em) y deja algo de holgura. */
 .banner{ margin:0 0 clamp(18px,3vw,28px); container-type:inline-size; }
 .banner__row{ display:flex; gap:0; justify-content:flex-start; }
 .banner__blk{
   margin:0; font-family:var(--f-mono); font-weight:400;
-  font-size:min(19px, 2.36cqw); line-height:1;
+  font-size:var(--banner-fs, min(19px, 2.3cqw)); line-height:1;
   color:var(--phos);
   /* Sombra dura azul desplazada: el registro corrido a dos tintas
      que hace que el título se lea impreso y no sólo brillante. En em,
