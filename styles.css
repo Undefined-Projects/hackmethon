@@ -1,7 +1,10 @@
 /* ============================================================
-   HACK(ME)THON — landing
-   Terminal IBM 3277 con fósforo magenta.
-   Marco de 80 columnas, rejilla de caracteres, cero curvas.
+   HACK(ME)THON 2.0 — The Anatomy of a Machine
+   Terminal IBM 3277 con fósforo magenta, ahora conectada a un
+   paciente: la misma pantalla hace de monitor de signos vitales.
+   Marco de 80 columnas, rejilla de caracteres, cero curvas — también
+   en el vidrio: desde la 2.0 la pantalla es plana (el filtro de
+   curvatura costaba ×7 en cuadros por segundo).
    Tema único y deliberado: la página es una pantalla encendida.
    ============================================================ */
 
@@ -28,6 +31,21 @@
   --blue:      #21498e;
   --blue-hi:   #4f86ee;
   --blue-dim:  #2f4a9a;
+
+  /* — la clorofila (nuevo en 2.0) —
+     El tercer cañón: lo que en la máquina está vivo de verdad. Solo lo
+     usan hojas, tallos y raíces; si aparece en texto o en botones deja
+     de leerse como planta. Junto al rosa da el mismo contraste orgánico
+     contra mecánico de la mariposa de referencia. */
+  --clorofila:     #3ddc97;
+  --clorofila-hi:  #b4f5d4;
+  --clorofila-dim: #23805a;
+
+  /* — la alarma (nuevo en 2.0) —
+     El único color fuera del duotono, y solo aparece cuando el
+     paciente se está yendo. Si se usa para otra cosa deja de asustar. */
+  --sangre:    #ff3355;
+  --sangre-hi: #ffc2cc;
 
   --rule:      rgba(250,57,186,.30);
   --rule-blue: rgba(79,134,238,.26);
@@ -61,13 +79,10 @@
   /* Intensidad del glitch. 0 lo apaga, 0.5 lo baja, 2 lo exagera. */
   --glitch: 1;
 
-  /* — la geometría del tubo —
-     --marco es el mueble que rodea la pantalla, --tubo-r cuánto se
-     redondea la esquina del vidrio y --curva escala el viñeteo y el
-     brillo del canto. Con --curva:0 el tubo queda plano. */
+  /* — el mueble —
+     --marco es el borde negro que rodea la pantalla. El vidrio es
+     plano y de esquinas rectas, como el resto de la hoja. */
   --marco:  clamp(11px, 2.1vw, 30px);
-  --tubo-r: clamp(18px, 3.2vw, 48px);
-  --curva:  1;
   --mueble: #030205;
 
   color-scheme: dark;
@@ -90,7 +105,8 @@ html{ scroll-behavior:smooth; }
 .menubar__sys, .menubar__opts, .menubar__go, .alarm, .panel__bar,
 .panel__keys, .key, .opt__n, .opt__name, .opt__topic, .role__id,
 .perm span, .sched__n, .fs legend, .crew__head, .emblem__cap,
-.oia, .tminus__k, .tminus__u, .ipl, .h2, .sw, .emblem__acts button{
+.oia, .tminus__k, .tminus__u, .ipl, .h2, .sw, .emblem__acts button,
+.sub, .monitor__head, .vital dt, .vital small, .fs--consent legend{
   font-family:var(--f-pixel);
   font-weight:400;
 }
@@ -98,10 +114,9 @@ html{ scroll-behavior:smooth; }
 html, body{ height:100%; }
 body{
   margin:0; padding:0;
-  /* El documento ya no se desplaza: se desplaza .tubo. El filtro de
-     curvatura tiene que caer sobre algo del tamaño de la ventana, o
-     el abombado saldría en las orillas del DOCUMENTO — a 7000 px de
-     alto — en vez de en las orillas de la PANTALLA. */
+  /* El documento no se desplaza: se desplaza .tubo, que es la
+     pantalla dentro del mueble. Así el marco y la línea 24 se quedan
+     quietos sin repetir medidas en cada capa. */
   overflow:hidden;
   background:var(--screen);
   color:var(--phos);
@@ -111,7 +126,7 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 
-/* ── el tubo: lo que se curva ─────────────────────────────── */
+/* ── el tubo: la pantalla que se desplaza ─────────────────── */
 .tubo{
   position:fixed; inset:0;
   overflow-y:auto; overflow-x:hidden;
@@ -119,27 +134,17 @@ body{
   /* Todo vive adentro del vidrio: si el contenido llegara al canto se
      metería debajo del mueble y bajo la esquina redondeada. */
   padding:var(--marco) var(--marco) calc(var(--oia) + 8px + var(--marco));
-  /* La barra de desplazamiento saldría curvada y medio tapada por el
-     mueble; en un monitor de 1977 tampoco había. */
+  /* La barra de desplazamiento saldría medio tapada por el mueble;
+     en un monitor de 1977 tampoco había. */
   scrollbar-width:none;
 }
 .tubo::-webkit-scrollbar{ display:none; }
 
-/* El rayado y la línea 24 tienen que quedarse quietos mientras el
-   contenido se desplaza, y aun así curvarse con él. Adentro de .tubo
-   no se puede: el filtro lo vuelve bloque contenedor y position:fixed
-   deja de estar fijo. Así que van en su propia capa, hermana, fija y
-   curvada por separado. */
+/* El rayado y la línea 24 se quedan quietos mientras el contenido
+   se desplaza: van en su propia capa fija, hermana del tubo. */
 .tubo__fijo{
   position:fixed; inset:0; z-index:65; pointer-events:none;
 }
-
-/* La clase la pone tubo.js, y solo si --curva > 0: un filtro activo
-   rasteriza la página en cada cuadro aunque su escala sea 0. */
-.curvo{ filter:url(#barril); }
-
-/* El <svg> con el filtro no debe ocupar lugar ni recibir foco. */
-.filtros{ position:absolute; width:0; height:0; overflow:hidden; }
 img{ max-width:100%; image-rendering:pixelated; }
 ::selection{ background:var(--phos); color:var(--screen); }
 
@@ -149,82 +154,45 @@ img{ max-width:100%; image-rendering:pixelated; }
 }
 
 /* ── el tubo de rayos catódicos ─────────────────────────── */
-/* ── la curvatura ─────────────────────────────────────────
-   El contenido NO se deforma. Un filtro SVG que curvara de verdad
-   la geometría rasteriza el texto y, peor, deja los clics donde
-   está el elemento y no donde se ve: con un formulario de registro
-   en la página eso no se puede pagar. Así que la curva se arma con
-   lo que el ojo realmente usa para leerla — la esquina redondeada,
-   el viñeteo elíptico, el canto encendido y el reflejo del cuarto
-   sobre el cristal. El overflow recorta la sombra del mueble. */
+/* ── las capas fijas ──────────────────────────────────────
+   Todo lo que va encima de la página está fijo y casi siempre quieto,
+   y ninguna capa se mezcla con modos de fusión: una mezcla obliga a
+   recombinar la pantalla entera en cada cuadro en que algo cambia
+   debajo, y aquí siempre algo cambia (el ECG late 60 veces por
+   segundo). Lo que se anima, se anima con transform u opacity. */
 .crt{ position:fixed; inset:0; z-index:60; pointer-events:none; }
 
-/* El mueble va FUERA del tubo y sin filtro: un monitor no se abomba
-   junto con lo que muestra. De paso tapa las esquinas, que es donde
-   el desplazamiento va a buscar origen fuera de la imagen y deja
-   cuña transparente. */
 .gabinete{
   position:fixed; inset:0; z-index:70; pointer-events:none; overflow:hidden;
 }
 
-/* El mueble: una sombra enorme hacia afuera del rectángulo redondeado
-   rellena todo lo que no es pantalla, y de paso recorta el tubo. */
+/* El mueble: una sombra enorme hacia afuera del rectángulo rellena
+   todo lo que no es pantalla. Adentro, solo el canto encendido y una
+   sombra pareja en las orillas: vidrio plano, sin abombado. */
 .gabinete__marco{
   position:absolute; inset:var(--marco);
-  border-radius:var(--tubo-r);
   box-shadow:
     0 0 0 100vmax var(--mueble),
     /* el canto, donde el fósforo se junta contra el cristal */
     inset 0 0 0 1px rgba(250,57,186,.30),
-    inset 0 0 calc(18px * var(--curva)) rgba(250,57,186,.13),
-    /* la pared del tubo cerrándose */
-    inset 0 0 calc(50px * var(--curva))  rgba(0,0,0,.85),
-    inset 0 0 calc(140px * var(--curva)) rgba(0,0,0,.45);
+    inset 0 0 18px rgba(250,57,186,.10),
+    inset 0 0 40px rgba(0,0,0,.55);
 }
-/* El viñeteo va en elipse, no en rectángulo: es lo que hace que las
-   orillas se lean como una superficie que se va yendo de frente. */
-.gabinete__marco::after{
-  content:""; position:absolute; inset:0; border-radius:inherit;
-  background:radial-gradient(112% 104% at 50% 50%,
-    transparent calc(44% / var(--curva)),
-    rgba(0,0,0,calc(.30 * var(--curva))) 74%,
-    rgba(0,0,0,calc(.62 * var(--curva))) 90%,
-    rgba(0,0,0,calc(.90 * var(--curva))) 100%);
-}
-/* La ceja del mueble contra el vidrio. */
-.gabinete__marco::before{
-  content:""; position:absolute; inset:calc(var(--marco) * -1);
-  border-radius:calc(var(--tubo-r) + var(--marco) * .7);
-  box-shadow:
-    inset 0 0 0 1px rgba(250,57,186,.07),
-    inset 0 1px 0 rgba(250,57,186,.05);
-}
-
-/* El cristal: el reflejo del cuarto y el bulbo del centro, que pega
-   más fuerte que las orillas porque está más cerca del cañón. */
-.gabinete__vidrio{
-  position:absolute; inset:var(--marco);
-  border-radius:var(--tubo-r);
-  mix-blend-mode:screen;
-  background:
-    radial-gradient(130% 62% at 22% 4%,  rgba(255,255,255,.06), transparent 52%),
-    radial-gradient(52% 34% at 82% 96%,  rgba(255,255,255,.022), transparent 60%),
-    radial-gradient(76% 66% at 50% 44%,  rgba(250,57,186,.045), transparent 74%);
-}
+/* Las líneas de barrido. Negro con alfa: sobre un fondo oscuro se ve
+   igual que multiplicar y no cuesta nada. */
 .crt__scan{
   position:absolute; inset:0;
   background:repeating-linear-gradient(to bottom,
-    rgba(0,0,0,.42) 0 1px, rgba(0,0,0,.12) 1px 2px, rgba(0,0,0,0) 2px 4px);
-  mix-blend-mode:multiply;
-  -webkit-mask-image:radial-gradient(108% 100% at 50% 50%, #000 58%, rgba(0,0,0,.35) 92%, transparent 100%);
-          mask-image:radial-gradient(108% 100% at 50% 50%, #000 58%, rgba(0,0,0,.35) 92%, transparent 100%);
+    rgba(0,0,0,.34) 0 1px, rgba(0,0,0,.10) 1px 2px, rgba(0,0,0,0) 2px 4px);
 }
+/* El barrido se mueve con transform: no recalcula ni repinta. */
 .crt__sweep{
-  position:absolute; left:0; right:0; height:22vh;
+  position:absolute; left:0; right:0; top:0; height:22vh;
   background:linear-gradient(to bottom, transparent, rgba(250,57,186,.055), transparent);
   animation:sweep 9s linear infinite;
+  will-change:transform;
 }
-@keyframes sweep{ from{ top:-24vh; } to{ top:104vh; } }
+@keyframes sweep{ from{ transform:translateY(-24vh); } to{ transform:translateY(104vh); } }
 
 /* Parpadeo del cañón. Casi imperceptible a propósito: si se nota, es
    una animación; si no se nota, es un monitor encendido. */
@@ -239,8 +207,7 @@ img{ max-width:100%; image-rendering:pixelated; }
   background:
     radial-gradient(70% 46% at 50% 26%, rgba(250,57,186,.05), transparent 72%),
     radial-gradient(58% 40% at 6% 64%, rgba(33,73,142,.13), transparent 74%),
-    radial-gradient(58% 40% at 96% 20%, rgba(33,73,142,.10), transparent 74%),
-    radial-gradient(118% 96% at 50% 50%, transparent 38%, rgba(0,0,0,.9) 100%);
+    radial-gradient(58% 40% at 96% 20%, rgba(33,73,142,.10), transparent 74%);
 }
 
 .skip{
@@ -267,7 +234,6 @@ img{ max-width:100%; image-rendering:pixelated; }
      padding. Sumarlos dejaba la barra 27 px más abajo y el contenido
      se veía correr por encima de ella, en la franja de en medio. */
   position:sticky; top:0; z-index:50;
-  border-radius:var(--tubo-r) var(--tubo-r) 0 0;
   display:flex; align-items:center; gap:10px 18px; flex-wrap:wrap;
   padding:9px var(--gut);
   background:var(--screen); border-bottom:3px solid var(--phos);
@@ -312,7 +278,7 @@ img{ max-width:100%; image-rendering:pixelated; }
   border-right:3px solid var(--screen);
 }
 .screen__rule::after{
-  content:"UNIDAD DE DEFENSA / CHIHUAHUA";
+  content:"UNIDAD DE CIRUGÍA / CHIHUAHUA";
   position:absolute; left:52px; right:56px; top:0; bottom:0;
   display:flex; align-items:center;
   font-family:var(--f-pixel); font-size:11px; letter-spacing:.14em;
@@ -351,6 +317,14 @@ img{ max-width:100%; image-rendering:pixelated; }
   text-shadow:.16em .16em 0 var(--blue), var(--bloom-2);
   white-space:pre;
 }
+/* La enredadera del título (jardin.js). Va dentro de cada bloque para
+   moverse con su glitch; overflow visible para colgar fuera de la letra. */
+.banner__blk{ position:relative; }
+.titulo{ position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
+.titulo .tallo{ transition:stroke-dashoffset 1.3s steps(10), stroke 1.2s linear; }
+.titulo .tallo--0{ stroke-width:2; }
+.titulo .hoja{ filter:drop-shadow(0 0 2px rgba(61,220,151,.55)); }
+.titulo .flor{ filter:drop-shadow(0 0 3px rgba(217,70,239,.7)); }
 .banner__blk--hi{ color:var(--phos-hi); text-shadow:0 0 6px rgba(255,217,238,.6), 0 0 26px rgba(250,57,186,.4); }
 
 .alarm{
@@ -399,21 +373,428 @@ img{ max-width:100%; image-rendering:pixelated; }
 .readout--stack dt::after{ content:none; }
 .readout--stack dd{ padding-left:0; white-space:normal; }
 
-/* ── cuenta regresiva ───────────────────────────────────── */
-.tminus{
-  display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 14px;
-  border:3px solid var(--phos); padding:12px 16px;
-  margin:0 0 clamp(24px,3.5vw,32px);
-  background:linear-gradient(90deg, rgba(33,73,142,.45), rgba(33,73,142,.06) 62%, transparent);
+/* ── subtítulo y epígrafe ──────────────────────────────── */
+.menubar__sys span{ color:var(--blue-hi); }
+.sub{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px;
+  margin:0 0 clamp(14px,2.4vw,22px);
 }
-.tminus__k{ font-size:12px; letter-spacing:.16em; color:var(--phos-dim); }
+.sub__ver{
+  font-size:clamp(20px,3.4vw,30px); line-height:1;
+  color:var(--screen); background-color:var(--phos); background-image:var(--rayas);
+  padding:4px 10px 6px; box-shadow:.14em .14em 0 var(--blue);
+}
+.sub__name{
+  font-size:clamp(16px,3vw,28px); line-height:1.15; letter-spacing:.06em;
+  color:var(--phos-hi); text-shadow:var(--fringe), var(--bloom-2);
+}
+.epigrafe{
+  font-family:var(--f-sans); font-style:italic;
+  font-size:clamp(15px,1.4vw,17px); color:var(--blue-hi);
+  margin:0 0 clamp(20px,3vw,28px); padding-left:14px;
+  border-left:3px solid var(--blue);
+}
+
+/* ── portada: texto y espécimen ─────────────────────────── */
+.hero{
+  display:grid; grid-template-columns:minmax(0,1fr) auto;
+  gap:0 clamp(16px,3vw,32px); align-items:start;
+}
+.hero .lead em{ color:var(--clorofila-hi); font-style:italic; }
+.especimen{
+  position:relative; margin:0 0 clamp(40px,6vw,64px);
+  display:flex; flex-direction:column; align-items:center;
+}
+.especimen__cap{
+  align-self:stretch; text-align:right;
+  font-family:var(--f-pixel); font-size:10px; letter-spacing:.14em; line-height:1.5;
+  color:var(--phos-dim); margin:0 0 6px;
+}
+.especimen__cap span{ color:var(--clorofila-dim); }
+.especimen__px{
+  display:block; image-rendering:pixelated;
+  filter:drop-shadow(0 0 6px rgba(250,57,186,.35));
+  transition:filter 1.2s linear;
+}
+.especimen.mutado .especimen__px{ filter:drop-shadow(0 0 8px rgba(79,134,238,.55)); }
+.especimen__raices{
+  position:absolute; left:0; overflow:visible; pointer-events:none;
+}
+/* El cuadro de abajo tapa la punta de las raíces: parecen enchufadas.
+   En el juego las tapa solo la barra de cabecera: la pantalla del
+   juego es translúcida (OPACIDAD en bypass.js) y deja ver la página. */
+.monitor{ position:relative; z-index:1; background-color:var(--screen); }
+.juego{ position:relative; z-index:1; }
+
+/* ── BYPASS, el minijuego ──────────────────────────────────
+   Encuadrado como el monitor. El canvas es de baja resolución
+   (un pixel del juego = 2 px de pantalla) y se escala pixelado. */
+.juego{
+  border:3px solid var(--phos);
+  margin:0 0 clamp(24px,3.5vw,32px);
+}
+.juego__head{
+  display:flex; align-items:center; gap:12px; margin:0; flex-wrap:wrap;
+  padding:6px 12px; font-family:var(--f-pixel); font-size:11.5px; letter-spacing:.12em;
+  border-bottom:2px solid var(--rule); color:var(--phos-dim);
+  background:var(--screen);
+}
+.juego__tag{ color:var(--screen); background:var(--clorofila); padding:0 6px; }
+.juego__name{ flex:1; white-space:nowrap; color:var(--phos); }
+.juego__marcador{ display:flex; gap:14px; white-space:nowrap; }
+.juego__marcador b{ color:var(--phos-hi); font-weight:400; font-variant-numeric:tabular-nums; text-shadow:var(--bloom); }
+.juego__marcador span b{ color:var(--clorofila-hi); text-shadow:none; }
+.juego__sonido{
+  font-family:var(--f-pixel); font-size:10px; letter-spacing:.12em; cursor:pointer;
+  color:var(--phos-dim); background:transparent; border:1px solid var(--rule); padding:2px 8px;
+}
+.juego__sonido[aria-pressed="true"]{ color:var(--clorofila-hi); border-color:var(--clorofila-dim); }
+.juego__sonido:hover{ background:var(--phos); color:var(--screen); border-color:var(--phos); }
+.juego__pantalla{ position:relative; line-height:0; }
+.juego canvas{
+  display:block; width:100%; image-rendering:pixelated;
+  cursor:pointer; touch-action:manipulation;
+}
+.juego canvas:focus-visible{ outline:2px solid var(--uv); outline-offset:-2px; }
+.juego__msg{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:8px; text-align:center;
+  padding:12px; line-height:1.4; pointer-events:none;
+  background:rgba(10,7,12,.55);
+}
+.juego__msg[hidden]{ display:none; }
+.juego__titulo{
+  margin:0; font-family:var(--f-pixel); font-size:clamp(22px,4vw,34px); letter-spacing:.08em;
+  color:var(--phos-hi); text-shadow:var(--fringe), var(--bloom-2);
+}
+.juego__txt{
+  margin:0; max-width:46ch; font-family:var(--f-sans); font-size:14.5px; color:var(--phos-soft);
+}
+.juego__tecla{
+  margin:4px 0 0; font-family:var(--f-pixel); font-size:11px; letter-spacing:.14em;
+  color:var(--screen); background:var(--phos); background-image:var(--rayas); padding:3px 10px;
+  animation:blink 1.1s steps(1) infinite;
+}
+.juego[data-estado="paro"] .juego__titulo{ color:var(--sangre); text-shadow:0 0 10px rgba(255,51,85,.6); }
+.juego[data-estado="paro"]{ border-color:var(--sangre); }
+/* la furia del gusano: aviso arriba al centro y marco en rojo */
+.juego__furia{
+  position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:2;
+  margin:0; padding:3px 10px; white-space:nowrap; line-height:1.4;
+  font-family:var(--f-pixel); font-size:11px; letter-spacing:.14em;
+  color:var(--screen); background:var(--sangre); background-image:var(--rayas);
+  animation:blink .5s steps(1) infinite; pointer-events:none;
+}
+.juego__furia[hidden]{ display:none; }
+.juego[data-furia]{ border-color:var(--sangre); box-shadow:0 0 18px rgba(255,51,85,.3); }
+.juego[data-furia] .juego__name{ color:var(--sangre); }
+
+/* ── el leaderboard del minijuego ──────────────────────────── */
+.juego__guardar, .juego__tabla{
+  border-top:2px solid var(--rule); background:var(--screen);
+  padding:12px clamp(12px,2vw,16px);
+}
+.juego__guardar[hidden]{ display:none; }
+.juego__guardar-t{
+  margin:0 0 10px; font-family:var(--f-pixel); font-size:11.5px; letter-spacing:.12em; color:var(--phos-dim);
+}
+.juego__guardar-t b{ color:var(--phos-hi); font-weight:400; text-shadow:var(--bloom); }
+.juego__campos{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto; gap:10px 14px; align-items:end; }
+.juego__campo{
+  display:flex; flex-direction:column; gap:4px; min-width:0;
+  font-family:var(--f-pixel); font-size:10px; letter-spacing:.14em; color:var(--phos-dim);
+}
+.juego__campo span{ font-family:var(--f-sans); letter-spacing:0; text-transform:none; font-size:11.5px; }
+.juego__campo input{ width:100%; }
+.juego__campo input[name="alias"]{ text-transform:uppercase; }
+.juego__nota{ margin:8px 0 0; font-family:var(--f-sans); font-size:12px; color:var(--phos-dim); }
+.juego__aviso{ margin:8px 0 0; font-size:12px; letter-spacing:.05em; min-height:1.2em; color:var(--phos-dim); }
+.juego__aviso.ok{ color:var(--clorofila-hi); }
+.juego__aviso.err{ color:var(--sangre); }
+.juego__aviso:empty{ margin:0; min-height:0; }
+@media (max-width:620px){ .juego__campos{ grid-template-columns:1fr; } }
+
+.juego__tabla-cab{ display:flex; align-items:baseline; justify-content:space-between; gap:6px 14px; flex-wrap:wrap; margin:0 0 8px; }
+.juego__tabla-t{
+  margin:0; font-family:var(--f-pixel); font-size:11px; letter-spacing:.14em; color:var(--phos);
+}
+.juego__pag{ margin:0; display:flex; align-items:center; gap:10px; font-family:var(--f-pixel); font-size:10.5px; letter-spacing:.12em; color:var(--phos-dim); }
+.juego__pag[hidden]{ display:none; }
+.juego__pag span{ font-variant-numeric:tabular-nums; color:var(--phos-hi); min-width:5ch; text-align:center; }
+.juego__pag button{
+  font:inherit; letter-spacing:inherit; cursor:pointer;
+  color:var(--phos); background:transparent; border:1px solid var(--rule); padding:2px 8px;
+}
+.juego__pag button:hover:not(:disabled){ background:var(--phos); color:var(--screen); border-color:var(--phos); }
+.juego__pag button:disabled{ opacity:.35; cursor:default; }
+.juego__tabla-t span{ color:var(--clorofila); }
+.juego__top{
+  list-style:none; margin:0; padding:0; font-size:13px;
+  min-height:calc(5 * 1.55em + 5 * 7px);     /* 5 renglones: la tabla no brinca al cambiar de página */
+}
+.juego__top[aria-busy="true"]{ opacity:.5; }
+.juego__top li{
+  display:flex; align-items:baseline; gap:1ch; padding:3px 0;
+  border-bottom:1px solid rgba(250,57,186,.10); min-width:0;
+}
+.juego__top .n{ color:var(--blue-hi); font-variant-numeric:tabular-nums; }
+.juego__top .a{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--phos-soft); }
+.juego__top .p{ color:var(--phos-hi); font-variant-numeric:tabular-nums; text-shadow:var(--bloom); }
+/* los 8 que pasan a la dinámica, en clorofila; el primero con su marca */
+.juego__top li.finalista .n{ color:var(--clorofila); }
+.juego__top li.finalista .a{ color:var(--phos-hi); }
+.juego__top li.primero .a{ color:var(--clorofila-hi); }
+.juego__top li.primero .n::after{ content:" \25B2"; color:var(--clorofila); }
+.juego__top li.mio{ background:rgba(250,57,186,.08); }
+.juego__top li.corte{
+  display:block; text-align:center; padding:5px 0; margin:2px 0;
+  border-bottom:1px dashed var(--clorofila-dim); border-top:0;
+  font-family:var(--f-pixel); font-size:9.5px; letter-spacing:.14em; color:var(--clorofila);
+}
+.juego__top li.vacio{ color:var(--phos-dim); border:0; font-size:12px; letter-spacing:.06em; }
+.juego__premio{
+  margin:10px 0 0; font-family:var(--f-sans); font-size:13.5px; color:var(--phos-soft); line-height:1.5;
+}
+.juego__premio b{
+  font-family:var(--f-pixel); font-weight:400; font-size:10.5px; letter-spacing:.14em;
+  color:var(--screen); background:var(--clorofila); padding:1px 6px; margin-right:6px;
+}
+@media (max-width:520px){
+  .juego__name{ flex-basis:100%; }
+  .juego__txt{ font-size:13.5px; }
+}
+@media (max-width:700px){
+  .hero{ grid-template-columns:1fr; }
+  .especimen{ order:-1; margin-bottom:44px; }
+  .especimen__cap{ text-align:center; }
+}
+
+/* ── monitor de signos vitales ─────────────────────────────
+   Va encuadrado como un panel más: barra de cabecera, cuerpo negro
+   con el trazo, y pie con la cuenta en latidos. El canvas lo pinta
+   script.js; aquí solo se le da lugar. */
+.monitor{
+  border:3px solid var(--phos);
+  margin:0 0 clamp(24px,3.5vw,32px);
+  background:linear-gradient(90deg, rgba(33,73,142,.30), rgba(33,73,142,.04) 62%, transparent);
+}
+.monitor__head{
+  display:flex; align-items:center; gap:12px; margin:0;
+  padding:6px 12px; font-size:11.5px; letter-spacing:.12em;
+  border-bottom:2px solid var(--rule);
+  color:var(--phos-dim);
+}
+.monitor__lead{ color:var(--screen); background:var(--phos); padding:0 6px; }
+.monitor__who{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.monitor__alarm{ color:var(--phos); white-space:nowrap; }
+.monitor__body{
+  display:grid; grid-template-columns:minmax(0,1fr) auto;
+  align-items:stretch;
+}
+.monitor__ecg{
+  display:block; width:100%; height:clamp(110px,16vw,150px);
+  /* La cuadrícula del papel de electrocardiograma, en azul tenue para
+     que el trazo rosa sea lo único que se lea. */
+  background:
+    repeating-linear-gradient(to right, rgba(79,134,238,.10) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(to bottom, rgba(79,134,238,.10) 0 1px, transparent 1px 20px);
+}
+.vitals{
+  margin:0; display:grid; grid-auto-rows:1fr;
+  border-left:2px solid var(--rule); min-width:17ch;
+}
+.vital{
+  display:grid; grid-template-columns:auto 1fr; grid-template-areas:"k k" "v u";
+  align-items:baseline; gap:0 .8ch; padding:6px 12px;
+  border-bottom:1px solid rgba(250,57,186,.12);
+}
+.vital:last-child{ border-bottom:0; }
+.vital dt{ grid-area:k; font-size:10px; letter-spacing:.14em; color:var(--phos-dim); }
+.vital dd{
+  grid-area:v; margin:0; font-size:17px; font-weight:600; line-height:1.15;
+  color:var(--blue-hi); font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.vital small{ grid-area:u; font-size:9.5px; letter-spacing:.1em; color:var(--phos-dim); }
+.vital--fc dd{ font-size:30px; color:var(--phos-hi); text-shadow:var(--bloom-2); }
+.vital__heart{ font-size:.55em; margin-left:.4ch; vertical-align:.35em; color:var(--phos); }
+.vital__heart.late{ animation:late .32s ease-out; }
+@keyframes late{ 0%{ transform:scale(1.5); text-shadow:0 0 10px var(--phos); } 100%{ transform:scale(1); } }
+.vital__heart{ display:inline-block; }
+
+.monitor__foot{
+  display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 14px;
+  margin:0; padding:10px 12px;
+  border-top:2px solid var(--rule);
+}
+.tminus__k{ font-size:11px; letter-spacing:.14em; color:var(--phos-dim); }
 .tminus__v{
-  font-size:clamp(26px,4.6vw,42px); line-height:1; font-weight:600;
+  font-size:clamp(24px,4.2vw,38px); line-height:1; font-weight:600;
   color:var(--phos-hi); letter-spacing:.02em;
   font-variant-numeric:tabular-nums; text-shadow:var(--bloom-2);
 }
-.tminus__v b{ font-weight:600; }
-.tminus__u{ font-size:11px; letter-spacing:.14em; color:var(--phos-dim); margin-left:auto; }
+.tminus__u{ font-size:10.5px; letter-spacing:.12em; color:var(--phos-dim); margin-left:auto; font-variant-numeric:tabular-nums; }
+.tminus__u span{ color:var(--blue-hi); margin-right:.6ch; }
+
+@media (max-width:620px){
+  .monitor__body{ grid-template-columns:1fr; }
+  .vitals{ border-left:0; border-top:2px solid var(--rule); grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-rows:auto; }
+  .vital{ border-bottom:0; border-right:1px solid rgba(250,57,186,.12); padding:6px 8px; }
+  .vital:last-child{ border-right:0; }
+  .vital{ grid-template-columns:minmax(0,1fr); grid-template-areas:"k" "v" "u"; }
+  .vital small{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .vital--fc dd{ font-size:22px; }
+  .vital dd{ font-size:14px; }
+  .tminus__u{ margin-left:0; }
+}
+
+/* — el monitor en chico —
+   Va en la columna del texto, al lado del corazón y encima del juego.
+   Mismo monitor, menos alto: trazo de ~70 px, signos vitales apretados
+   y la cuenta en latidos en una sola línea. */
+.monitor--mini{ margin:0 0 clamp(22px,3.2vw,30px); border-width:2px; }
+.monitor--mini .monitor__head{ padding:4px 10px; font-size:10px; gap:10px; }
+.monitor--mini .monitor__ecg{ height:clamp(64px,7.5vw,80px); }
+.monitor--mini .vitals{ min-width:13ch; }
+.monitor--mini .vital{ padding:3px 10px; }
+.monitor--mini .vital dt{ font-size:9px; }
+.monitor--mini .vital dd{ font-size:13px; }
+.monitor--mini .vital small{ font-size:8.5px; }
+.monitor--mini .vital--fc dd{ font-size:20px; }
+.monitor--mini .monitor__foot{ padding:6px 10px; gap:4px 10px; }
+.monitor--mini .tminus__k{ font-size:9.5px; }
+.monitor--mini .tminus__v{ font-size:clamp(16px,2vw,20px); }
+.monitor--mini .tminus__u{ font-size:9px; }
+.monitor--mini[data-estado="paro"]{ box-shadow:0 0 14px rgba(255,51,85,.35); }
+.hero__txt .lead{ margin-bottom:clamp(16px,2.4vw,22px); }
+
+/* — estados del paciente —
+   bradi: se está quedando dormido; paro: el reflejo está armado.
+   La clase la pone script.js en el monitor y, en paro, también en
+   <body> para teñir el tubo entero. */
+.monitor[data-estado="bradi"] .monitor__alarm{ color:var(--sangre-hi); animation:blink 1.1s steps(1) infinite; }
+.monitor[data-estado="paro"]{ border-color:var(--sangre); box-shadow:0 0 24px rgba(255,51,85,.35); }
+.monitor[data-estado="paro"] .monitor__alarm{
+  color:var(--screen); background:var(--sangre); padding:0 6px;
+  animation:blink .6s steps(1) infinite;
+}
+.monitor[data-estado="paro"] .vital--fc dd{ color:var(--sangre); text-shadow:0 0 8px rgba(255,51,85,.6); }
+.monitor[data-estado="paro"] .monitor__lead{ background:var(--sangre); }
+.monitor[data-estado="vuelta"] .monitor__alarm{ color:var(--phos-hi); text-shadow:var(--bloom); }
+
+body.paro .crt__bloom{
+  background:
+    radial-gradient(80% 60% at 50% 40%, rgba(255,51,85,.12), transparent 70%),
+    linear-gradient(rgba(60,0,12,.35), rgba(60,0,12,.35));
+  animation:alarma 1.2s steps(1) infinite;
+}
+@keyframes alarma{ 50%{ opacity:.55; } }
+body.paro .oia__sys b{ color:var(--sangre); }
+body.paro .especimen__px{
+  filter:grayscale(1) sepia(1) hue-rotate(-50deg) saturate(3) brightness(.55)
+         drop-shadow(0 0 8px rgba(255,51,85,.4));
+}
+
+/* ============================================================
+   EL JARDÍN
+   Lo dibuja jardin.js. Aquí van los colores y cómo aparece cada
+   pieza; el crecimiento de los tallos va en stroke-dashoffset.
+   ============================================================ */
+/* Enredaderas y micelio son <canvas> a resolución 1:1: en retina se
+   ven con pixel doble, que es el look de la terminal. */
+.enredadera, .micelio__lienzo{
+  position:absolute; z-index:0; pointer-events:none; image-rendering:pixelated;
+}
+.planta{ fill:none; }
+.tallo{
+  fill:none; stroke-width:2; stroke-linecap:square; stroke-linejoin:miter;
+  shape-rendering:crispEdges;
+  transition:stroke 1.2s linear;
+}
+/* El tronco y las ramas gruesas son planta; solo las más finas ya
+   son circuito. Así lo que domina a la vista es lo vivo. */
+.tallo--0{ stroke:var(--clorofila); stroke-width:2.5; }
+.tallo--1{ stroke:var(--clorofila); }
+.tallo--2{ stroke:var(--clorofila-dim); }
+.tallo--3{ stroke:var(--blue-dim); stroke-width:1.5; }
+.hifa .tallo{ stroke-width:1.5; }
+.hifa .tallo--0{ stroke:var(--violet); }
+.hifa .tallo--1{ stroke:var(--clorofila-dim); }
+.hifa .tallo--2, .hifa .tallo--3{ stroke:var(--blue-dim); }
+
+.pieza{
+  opacity:0; transform:scale(.2);
+  transform-box:fill-box; transform-origin:center;
+  transition:opacity .35s steps(3), transform .35s steps(3), fill 1.2s linear, stroke 1.2s linear;
+}
+.pieza.on{ opacity:1; transform:none; }
+.hoja{ fill:var(--clorofila); shape-rendering:crispEdges; }
+.hoja:nth-of-type(3n){ fill:var(--clorofila-hi); }
+.hoja:nth-of-type(4n){ fill:var(--clorofila-dim); }
+.via{ fill:var(--screen); stroke:var(--phos); stroke-width:1.4; }
+.via--punta{ fill:var(--phos-dim); stroke:none; }
+.via--raiz{ fill:var(--phos); stroke:var(--phos-hi); }
+.chip{ fill:var(--blue); stroke:var(--blue-hi); stroke-width:1; shape-rendering:crispEdges; }
+.flor__p{ fill:var(--uv); shape-rendering:crispEdges; }
+.flor__c{ fill:var(--phos-hi); shape-rendering:crispEdges; }
+.flor:nth-of-type(2n) .flor__p{ fill:var(--violet); }
+
+/* el pulso de luz que baja por las raíces con cada latido. Sin
+   drop-shadow: una sombra animada se repinta en cada cuadro. */
+.chispa{
+  fill:none; stroke:var(--clorofila-hi); stroke-width:3; stroke-linecap:square;
+  shape-rendering:crispEdges; opacity:0;
+}
+
+/* ── micelio entre paneles ──────────────────────────────── */
+.micelio{
+  width:100%; max-width:var(--wrap); margin-inline:auto;
+  padding-inline:var(--gut); height:var(--rhythm);
+}
+.micelio{ position:relative; }
+
+/* ── marchitarse: con el paciente en paro todo se va a rojo ─ */
+body.paro .tallo{ stroke:rgba(255,51,85,.55); }
+body.paro .hoja{ fill:#5a1626; }
+body.paro .flor{ opacity:.18; }
+body.paro .via{ stroke:var(--sangre); }
+body.paro .chip{ fill:#3a0d18; stroke:var(--sangre); }
+body.paro .chispa{ stroke:var(--sangre-hi); }
+
+/* ── textura de fondo ─────────────────────────────────────
+   La imagen la pone jardin.js; esto la hace desplazarse con el
+   contenido en vez de quedarse pegada al vidrio. */
+.tubo{ background-attachment:local; background-size:520px 520px; }
+
+/* ── láminas de los seis sistemas ───────────────────────── */
+.opt{
+  display:grid; grid-template-columns:56px minmax(0,1fr);
+  column-gap:clamp(12px,2vw,18px); align-items:start;
+}
+.opt > :not(.lamina){ grid-column:2; }
+.lamina{
+  grid-row:1 / span 2; width:56px; height:56px;
+  border:1px solid var(--rule); background:rgba(10,7,12,.6);
+  padding:3px; overflow:visible;
+}
+.lamina *{ vector-effect:non-scaling-stroke; }
+.l-o, .l-c, .l-d{ fill:none; stroke-width:1.6; stroke-linecap:square; }
+.l-o{ stroke:var(--clorofila); }
+.l-c{ stroke:var(--blue-hi); }
+.l-d{ stroke:var(--phos); stroke-width:1; stroke-dasharray:2 2; }
+.l-tenue{ opacity:.55; }
+.l-suelo{ stroke-dasharray:3 3; opacity:.7; }
+.l-h{ fill:var(--clorofila); }
+.l-v circle{ fill:var(--screen); stroke:var(--phos); stroke-width:1.3; }
+.l-f{ fill:var(--uv); }
+.l-p{ fill:var(--phos); }
+.l-k{ fill:var(--blue); stroke:var(--blue-hi); stroke-width:1; }
+.opt:hover .lamina{ border-color:var(--phos); }
+@media (max-width:700px){
+  .opt{ grid-template-columns:44px minmax(0,1fr); }
+  .lamina{ width:44px; height:44px; grid-row:1; }
+  .opt__desc{ grid-column:1 / -1 !important; margin-top:6px !important; }
+  .opt__topic{ padding-left:0; white-space:normal; }
+}
 
 /* ── línea de comando ───────────────────────────────────── */
 .cmd{
@@ -443,7 +824,11 @@ img{ max-width:100%; image-rendering:pixelated; }
 .note{ font-size:12.5px; color:var(--phos-dim); margin:0; max-width:64ch; line-height:1.6; }
 
 /* ── paneles ────────────────────────────────────────────── */
-.panel{ padding-block:0; margin-block:var(--rhythm); }
+.panel{ padding-block:0; margin-block:0; position:relative; }
+/* Lo que antes era margen entre paneles ahora lo ocupa el micelio
+   (jardin.js lo inserta antes de cada panel). */
+.signoff{ margin-top:var(--rhythm); }
+.panel > :not(.enredadera){ position:relative; z-index:1; }
 /* La barra de menú es pegajosa: sin esto un ancla deja el título del
    panel debajo de ella. Se nota más ahora que el contenido arranca
    ya metido dentro del vidrio. */
@@ -528,7 +913,7 @@ img{ max-width:100%; image-rendering:pixelated; }
 .opt__topic{ flex:none; padding-left:1.2ch; color:var(--blue-hi); letter-spacing:.07em; white-space:nowrap; }
 .opt__desc{
   font-family:var(--f-sans); font-size:15px; color:var(--phos-soft);
-  margin:0 0 0 calc(3ch + 1.5ch); max-width:58ch;
+  margin:0; max-width:58ch;
 }
 @media (max-width:700px){
   .opt__head{ flex-wrap:wrap; }
@@ -609,7 +994,40 @@ img{ max-width:100%; image-rendering:pixelated; }
   margin:0; padding:0 14px 16px 14px; max-width:64ch;
 }
 
+/* ── ficha clínica dentro de la historia ────────────────── */
+.ficha{
+  border:2px solid var(--rule); border-left:3px solid var(--blue);
+  padding:4px clamp(12px,2.2vw,18px) 8px;
+}
+.ficha > div:last-child{ border-bottom:0; }
+@media (max-width:560px){
+  .ficha > div, .score > div{ display:block; }
+  .ficha dt, .score dt{ display:block; }
+  .ficha dt::after, .score dt::after{ content:none; }
+  .ficha dd, .score dd{ padding-left:0; text-align:left; }
+}
+
+/* ── consentimiento ─────────────────────────────────────── */
+.consent{
+  display:flex; gap:1.4ch; align-items:flex-start; cursor:pointer;
+  font-family:var(--f-sans); font-size:15px; color:var(--phos-soft); max-width:64ch;
+}
+.consent input{
+  appearance:none; -webkit-appearance:none; margin:0; flex:none;
+  width:3ch; height:1.5em; background:none; border:0; cursor:pointer;
+  font-family:var(--f-mono); font-size:14px; color:var(--phos-dim);
+}
+.consent input::before{ content:"[ ]"; }
+.consent input:checked{ color:var(--phos-hi); text-shadow:var(--bloom); }
+.consent input:checked::before{ content:"[X]"; }
+.consent input[aria-invalid="true"]{ color:var(--magenta); }
+
 /* ── cierre ─────────────────────────────────────────────── */
+.signoff__quote{
+  font-family:var(--f-sans); font-style:italic; letter-spacing:0;
+  font-size:clamp(17px,2vw,22px); line-height:1.4; color:var(--phos-hi);
+  text-shadow:var(--bloom); max-width:34ch; margin:0 0 clamp(18px,3vw,26px);
+}
 .signoff{
   border-top:1px solid var(--rule);
   padding-block:clamp(24px,3.5vw,36px);
@@ -623,7 +1041,6 @@ img{ max-width:100%; image-rendering:pixelated; }
 /* ── área de información del operador (la línea 24) ─────── */
 .oia{
   position:fixed; left:var(--marco); right:var(--marco); bottom:var(--marco); z-index:55;
-  border-radius:0 0 var(--tubo-r) var(--tubo-r);
   height:var(--oia); display:flex; align-items:center; gap:0;
   background:var(--screen); border-top:1px solid var(--phos-dim);
   font-size:11px; letter-spacing:.12em; color:var(--phos-dim);
@@ -648,7 +1065,10 @@ img{ max-width:100%; image-rendering:pixelated; }
   }
   .paint{ opacity:1; }
   .crt__sweep{ display:none; }
+  .pieza{ transition:none; }
+  .chispa{ display:none; }
   .crt__bloom{ animation:none; }
+  body.paro .crt__bloom{ animation:none; }
 }
 
 /* En móvil el nombre del panel se partía en dos renglones peleando con
@@ -799,6 +1219,7 @@ input[aria-invalid="true"]{ border-bottom-color:var(--magenta); background:rgba(
 .sw[data-tinta="1"] i{ background:var(--magenta); }
 .sw[data-tinta="2"] i{ background:var(--violet); }
 .sw[data-tinta="3"] i{ background:var(--phos-hi); }
+.sw[data-tinta="4"] i{ background:var(--clorofila); }
 .sw[aria-pressed="true"]{ color:var(--screen); background:var(--phos); border-color:var(--phos); }
 
 .grid{
@@ -814,6 +1235,7 @@ input[aria-invalid="true"]{ border-bottom-color:var(--magenta); background:rgba(
 .grid button[data-v="1"]{ background:var(--magenta); }
 .grid button[data-v="2"]{ background:var(--violet); }
 .grid button[data-v="3"]{ background:var(--phos-hi); }
+.grid button[data-v="4"]{ background:var(--clorofila); }
 .grid button:hover{ box-shadow:inset 0 0 0 1px var(--phos-hi); }
 .grid button:focus-visible{ outline:2px solid var(--uv); outline-offset:-2px; z-index:1; }
 
@@ -867,3 +1289,65 @@ button.key{ cursor:pointer; }
 input:disabled{ opacity:.55; }
 .grid button:disabled{ cursor:default; }
 #quedan{ color:var(--phos); }
+
+/* ============================================================
+   MODO "PRÓXIMAMENTE"
+   Lo prende el panel (y script.js pone la clase en <html>). Se ve
+   la primera pantalla completa —título, monitor y minijuego—, la
+   historia clínica se asoma recortada y se desvanece, y le sigue el
+   aviso. El resto de la página no existe para el visitante.
+   ============================================================ */
+html:not(.proximamente) .solo-proximo{ display:none !important; }
+html.proximamente .solo-abierto{ display:none !important; }
+
+/* mientras el servidor contesta, lo de abajo espera sin parpadear */
+html.modo-pendiente main > :not(.screen),
+html.modo-pendiente .signoff{ visibility:hidden; }
+
+html.proximamente main > .panel:not(#historia),
+html.proximamente main > .micelio ~ .micelio{ display:none; }
+
+/* La historia se asoma: se recorta a lo alto, pero no a lo ancho, para
+   que las enredaderas de los márgenes se sigan viendo. */
+html.proximamente #historia{
+  max-height:clamp(220px, 32vh, 320px);
+  clip-path:inset(0 -100vw 0 -100vw);
+}
+html.proximamente #historia::after{
+  content:""; position:absolute; z-index:3; pointer-events:none;
+  left:-100vw; right:-100vw; bottom:0; height:75%;
+  background:linear-gradient(to bottom, transparent, var(--screen) 88%);
+}
+
+.proximo{
+  width:100%; max-width:var(--wrap); margin:clamp(8px,2vw,16px) auto 0; padding-inline:var(--gut);
+}
+.proximo .panel__bar{ background-color:var(--sangre); border-color:var(--sangre); }
+.proximo__cuerpo{
+  border:3px solid var(--sangre); border-top:0; background:var(--screen);
+  padding:clamp(28px,5vw,52px) clamp(18px,3vw,32px);
+  text-align:center;
+}
+.proximo__tag{
+  margin:0 0 14px; font-family:var(--f-pixel); font-size:11.5px; letter-spacing:.16em;
+  color:var(--sangre);
+}
+.proximo__t{
+  margin:0 0 16px; font-family:var(--f-pixel); font-weight:400;
+  font-size:clamp(30px,6.5vw,60px); line-height:1.05; letter-spacing:.06em;
+  color:var(--phos-hi); text-shadow:var(--fringe), var(--bloom-2);
+  animation:canales 9.7s steps(1) infinite;
+}
+.proximo__t .cmd__cur{ margin-left:.1em; font-size:.8em; }
+.proximo__txt{
+  margin:0 auto clamp(20px,3vw,28px); max-width:52ch;
+  font-family:var(--f-sans); font-size:16px; line-height:1.6; color:var(--phos-soft);
+}
+.proximo .cta{ justify-content:center; margin:0; }
+
+/* el botón de registro, apagado */
+.key--off{
+  cursor:default; color:var(--phos-dim); border-color:var(--phos-dim);
+  border-style:dashed; background:transparent; box-shadow:none;
+}
+.key--off:hover{ background:transparent; color:var(--phos-dim); }

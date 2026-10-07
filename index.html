@@ -3,21 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HACK(ME)THON</title>
-<meta name="description" content="Una amenaza inminente. Seis barreras de seguridad. Tres roles. Un cuarto a oscuras. El hackathon de nuevo ingreso de Startup Chihuahua.">
-<meta property="og:title" content="HACK(ME)THON">
-<meta property="og:description" content="Una amenaza inminente. Seis barreras de seguridad. Tres roles. Un cuarto a oscuras.">
+<title>HACK(ME)THON 2.0 · The Anatomy of a Machine</title>
+<meta name="description" content="Una máquina viva está infectando la red y no se puede desconectar. Seis sistemas. Tres roles. Un quirófano a oscuras. El hackathon de nuevo ingreso de Startup Chihuahua.">
+<meta property="og:title" content="HACK(ME)THON 2.0 · The Anatomy of a Machine">
+<meta property="og:description" content="El instinto es solo un algoritmo sin documentar. Una máquina viva, seis sistemas, una noche para operarla a corazón abierto.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0a070c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;600&family=Silkscreen:wght@400;700&display=swap">
 <link rel="stylesheet" href="styles.css">
+<!-- Modo "próximamente" sin parpadeo: antes de pintar se pone el último
+     modo conocido —y si no hay ninguno, "próximamente", que es el de
+     fábrica— y se esconde lo que va debajo de la primera pantalla hasta
+     que el servidor confirme (script.js, sección 1½). -->
+<script>
+  (function(r){
+    r.classList.add("modo-pendiente");
+    var visto = null;
+    try { visto = localStorage.getItem("hmt2-modo"); } catch (e) {}
+    if (visto !== "abierto") r.classList.add("proximamente");
+  })(document.documentElement);
+</script>
 </head>
 <body>
 
 <!-- Todo lo que se ve a través del vidrio va aquí adentro: el tubo es
-     el que se curva, y arrastra consigo el rayado y el contenido. -->
+     la pantalla, y es lo que se desplaza. -->
 <div class="tubo">
 
 
@@ -25,16 +37,17 @@
 
 <!-- ── barra de menú, estilo panel primario ─────────────── -->
 <header class="menubar">
-  <a class="menubar__sys" href="#top">HACK(ME)THON</a>
-  <nav class="menubar__opts" aria-label="Paneles">
-    <a href="#informe"><b>1</b> INFORME</a>
-    <a href="#barreras"><b>2</b> BARRERAS</a>
-    <a href="#roles"><b>3</b> ROLES</a>
-    <a href="#sala"><b>4</b> SALA</a>
-    <a href="#agenda"><b>5</b> AGENDA</a>
+  <a class="menubar__sys" href="#top">HACK(ME)THON <span>2.0</span></a>
+  <nav class="menubar__opts solo-abierto" aria-label="Paneles">
+    <a href="#historia"><b>1</b> HISTORIA</a>
+    <a href="#diseccion"><b>2</b> DISECCIÓN</a>
+    <a href="#equipo"><b>3</b> EQUIPO</a>
+    <a href="#quirofano"><b>4</b> QUIRÓFANO</a>
+    <a href="#protocolo"><b>5</b> PROTOCOLO</a>
     <a href="#faq"><b>6</b> AYUDA</a>
   </nav>
-  <a class="menubar__go" data-cfg-href="registro" href="#registro">REGISTRO ▸</a>
+  <a class="menubar__go solo-abierto" data-cfg-href="registro" href="#registro">INGRESO ▸</a>
+  <a class="menubar__go solo-proximo" href="#juego">BYPASS ▸</a>
 </header>
 
 <main id="contenido">
@@ -44,22 +57,22 @@
     <div class="screen__rule" aria-hidden="true"></div>
 
     <p class="ipl" id="ipl">
-      <span class="ipl__line">SISTEMA DE DEFENSA / CHIHUAHUA &middot; TERMINAL 3277 MOD 2</span>
-      <span class="ipl__line">CONEXIÓN ESTABLECIDA &middot; 1200 BAUD</span>
+      <span class="ipl__line">MONITOR DE SIGNOS VITALES &middot; TERMINAL 3277 MOD 2</span>
+      <span class="ipl__line">PACIENTE: DESCONOCIDO &middot; ORIGEN: CULTIVADO</span>
     </p>
 
     <h1 class="banner">
-      <span class="sr-only">HACK(ME)THON</span>
+      <span class="sr-only">HACK(ME)THON 2.0: The Anatomy of a Machine</span>
       <span class="banner__row" aria-hidden="true">
 <pre class="banner__blk">█   █  ███   ████ █   █
-█   █ █   █ █     █  █ 
-█████ █████ █     ███  
-█   █ █   █ █     █  █ 
+█   █ █   █ █     █  █
+█████ █████ █     ███
+█   █ █   █ █     █  █
 █   █ █   █  ████ █   █</pre>
-<pre class="banner__blk banner__blk--hi">   ██ █   █ █████ ██   
-  █   ██ ██ █       █  
-  █   █ █ █ ████    █  
-  █   █   █ █       █  
+<pre class="banner__blk banner__blk--hi">   ██ █   █ █████ ██
+  █   ██ ██ █       █
+  █   █ █ █ ████    █
+  █   █   █ █       █
    ██ █   █ █████ ██   </pre>
 <pre class="banner__blk">█████ █   █  ███  █   █
   █   █   █ █   █ ██  █
@@ -69,30 +82,135 @@
       </span>
     </h1>
 
-    <p class="alarm" role="status">
-      <span class="alarm__flag">&#9632;</span>
-      THE PINK THREAT
+    <p class="sub" aria-hidden="true">
+      <span class="sub__ver">2.0</span>
+      <span class="sub__name">THE ANATOMY OF A MACHINE</span>
     </p>
 
-    <p class="lead">
-      Alguien está por lanzar un ataque. Su servidor está en línea y tiene
-      <strong>seis barreras de seguridad</strong>. Ustedes tienen una noche,
-      un cuarto a oscuras y ninguna experiencia previa. Es suficiente.
-    </p>
+    <div class="hero">
+      <div class="hero__txt">
+        <p class="epigrafe">“El instinto es solo un algoritmo sin documentar”</p>
+
+        <p class="lead">
+          Hay una máquina viva en el centro de la sala. Nadie la ensambló:
+          <em>creció</em>, y sus raíces ya llegaron a la red. No se puede
+          desconectar: si su corazón se detiene, dispara. Ustedes tienen una
+          noche, un quirófano a oscuras y ninguna experiencia previa. Van a
+          tener que <strong>operarla a corazón abierto</strong>.
+        </p>
+
+        <!-- ── el monitor de signos vitales, en chico ─────────
+             Al lado del corazón y encima del juego. El trazo lo dibuja
+             script.js; la cuenta regresiva va en latidos. -->
+        <div class="monitor monitor--mini" id="monitor" data-estado="sinusal">
+          <p class="monitor__head">
+            <span class="monitor__lead">II</span>
+            <span class="monitor__who">PACIENTE 2.0 &middot; ECG</span>
+            <span class="monitor__alarm" id="mon-alarm" role="status">RITMO SINUSAL</span>
+          </p>
+          <div class="monitor__body">
+            <canvas class="monitor__ecg" id="ecg" aria-hidden="true"></canvas>
+            <dl class="vitals">
+              <div class="vital vital--fc">
+                <dt>FC</dt>
+                <dd><b id="v-fc">72</b><span class="vital__heart" aria-hidden="true">&#9829;</span></dd>
+                <small>LPM</small>
+              </div>
+              <div class="vital">
+                <dt>MUTACIÓN</dt>
+                <dd><b id="v-mut">03.1</b></dd>
+                <small>% / H</small>
+              </div>
+              <div class="vital">
+                <dt>NODOS</dt>
+                <dd><b id="v-nod">4 096</b></dd>
+                <small>INFECTADOS</small>
+              </div>
+            </dl>
+          </div>
+          <p class="monitor__foot" id="countdown">
+            <span class="tminus__k">LATIDOS PARA LA INCISIÓN</span>
+            <span class="tminus__v" id="latidos">------</span>
+            <span class="tminus__u"><span id="cd-reloj">--:--:--:--</span> DD:HH:MM:SS</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- El corazón lo pinta jardin.js, pixel por pixel, y le cuelga
+           raíces de circuito que bajan hasta el juego. Late con el monitor. -->
+      <figure class="especimen" aria-hidden="true">
+        <figcaption class="especimen__cap">FIG. 1 &middot; CORAZÓN<br><span>TEJIDO / SILICIO / RAÍZ</span></figcaption>
+        <canvas class="especimen__px"></canvas>
+        <svg class="especimen__raices"></svg>
+      </figure>
+    </div>
+
+    <!-- ── BYPASS: el minijuego ─────────────────────────────
+         Estilo Flappy Bird. Lo maneja bypass.js; las raíces del
+         corazón se enchufan en el borde de arriba de este cuadro. -->
+    <section class="juego" id="juego" aria-labelledby="juego-nombre">
+      <p class="juego__head">
+        <span class="juego__tag">PF5</span>
+        <span class="juego__name" id="juego-nombre">BYPASS &middot; MINIJUEGO</span>
+        <span class="juego__marcador">PUNTOS <b id="j-pts">000</b><span>RÉCORD <b id="j-rec">000</b></span></span>
+        <button type="button" class="juego__sonido" id="j-sonido" aria-pressed="true"
+                title="Activar o silenciar el sonido (tecla M en el juego)">SONIDO: SÍ</button>
+      </p>
+      <div class="juego__pantalla">
+        <canvas id="j-cv" tabindex="0"
+                aria-label="BYPASS. Pulsa espacio, haz clic o toca para latir: mantén el pulso entre las válvulas y esquiva los virus del gusano."></canvas>
+        <p class="juego__furia" id="j-furia" hidden>&#9650; EL GUSANO SE ENFURECE</p>
+        <div class="juego__msg" id="j-msg" role="status">
+          <p class="juego__titulo" id="j-titulo">BYPASS</p>
+          <p class="juego__txt" id="j-txt">El pulso se escapa del corazón. Llévalo entre las válvulas y esquiva los virus que escupe el gusano.</p>
+          <p class="juego__tecla" id="j-tecla">ESPACIO &middot; CLIC &middot; TOCA PARA LATIR</p>
+        </div>
+      </div>
+
+      <!-- Registrar la partida: aparece al morir, si la partida fue
+           oficial (con semilla del servidor). El servidor la vuelve a
+           jugar y cuenta los puntos él. -->
+      <form class="juego__guardar" id="j-form" hidden novalidate>
+        <p class="juego__guardar-t">Registrar <b id="j-form-pts">000</b> en la tabla</p>
+        <p class="trampa" aria-hidden="true">
+          <label for="j-empresa">No llenes esto</label>
+          <input id="j-empresa" name="empresa" type="text" tabindex="-1" autocomplete="off">
+        </p>
+        <div class="juego__campos">
+          <label class="juego__campo">ALIAS PÚBLICO
+            <input name="alias" type="text" maxlength="14" autocomplete="nickname" placeholder="SIN PULSO" required>
+          </label>
+          <label class="juego__campo">CORREO
+            <input name="correo" type="email" maxlength="120" autocomplete="email" placeholder="tu@correo.com" required>
+          </label>
+          <button class="key key--go key--sm" type="submit">ENVIAR</button>
+        </div>
+        <p class="juego__nota">Tu correo no se publica: solo sirve para avisarte si ganas. Se guarda tu mejor partida.</p>
+        <p class="juego__aviso" id="j-form-msg" role="status"></p>
+      </form>
+
+      <div class="juego__tabla">
+        <div class="juego__tabla-cab">
+          <p class="juego__tabla-t">TABLA DE PULSOS <span id="j-cierre"></span></p>
+          <p class="juego__pag" id="j-pag" hidden>
+            <button type="button" id="j-ant" aria-label="Página anterior">&#9666; ANT</button>
+            <span id="j-pagina" aria-live="polite">1 / 1</span>
+            <button type="button" id="j-sig" aria-label="Página siguiente">SIG &#9656;</button>
+          </p>
+        </div>
+        <ol class="juego__top" id="j-top"><li class="vacio">CARGANDO&hellip;</li></ol>
+        <p class="juego__premio"><b>PREMIO</b> <span data-cfg="premio">—</span></p>
+      </div>
+    </section>
+
 
     <dl class="readout">
       <div><dt>FECHA</dt><dd data-cfg="fecha">—</dd></div>
       <div><dt>DURACIÓN</dt><dd data-cfg="duracion">—</dd></div>
-      <div><dt>SEDE</dt><dd data-cfg="sede">—</dd></div>
+      <div><dt>QUIRÓFANO</dt><dd data-cfg="sede">—</dd></div>
       <div><dt>CUPO</dt><dd><span data-cfg="cupo">—</span><span id="quedan"></span></dd></div>
       <div><dt>ACCESO</dt><dd data-cfg="costo">—</dd></div>
     </dl>
-
-    <p class="tminus" id="countdown">
-      <span class="tminus__k">T&minus;MENOS</span>
-      <span class="tminus__v"><b id="cd-d">--</b>:<b id="cd-h">--</b>:<b id="cd-m">--</b>:<b id="cd-s">--</b></span>
-      <span class="tminus__u">DD:HH:MM:SS</span>
-    </p>
 
     <p class="cmd">
       <span class="cmd__prompt">OPCIÓN&nbsp;===&gt;</span>
@@ -100,205 +218,301 @@
     </p>
 
     <p class="cta">
-      <a class="key key--go" data-cfg-href="registro" href="#registro">ENTER &middot; UNIRME A LA RESISTENCIA</a>
-      <a class="key" href="#barreras">PF2 &middot; VER LAS BARRERAS</a>
+      <a class="key key--go solo-abierto" data-cfg-href="registro" href="#registro">ENTER &middot; ENTRAR AL QUIRÓFANO</a>
+      <a class="key solo-abierto" href="#diseccion">PF2 &middot; VER LA DISECCIÓN</a>
+      <span class="key key--off solo-proximo">REGISTRO &middot; PRÓXIMAMENTE</span>
+      <a class="key solo-proximo" href="#juego">PF5 &middot; JUGAR BYPASS</a>
     </p>
 
     <p class="note">Para estudiantes de nuevo ingreso de Desarrollo de Software y carreras afines. Cero experiencia requerida.</p>
   </section>
 
-  <!-- ── PANEL 01 · INFORME ─────────────────────────────── -->
-  <section class="panel" id="informe">
+  <!-- ── PANEL 01 · HISTORIA CLÍNICA ────────────────────── -->
+  <section class="panel" id="historia">
     <header class="panel__bar">
       <span class="panel__id">PANEL 01</span>
-      <span class="panel__name">INFORME DE SITUACIÓN</span>
-      <span class="panel__stat">CLASIFICADO</span>
+      <span class="panel__name">HISTORIA CLÍNICA</span>
+      <span class="panel__stat">CONFIDENCIAL</span>
     </header>
     <div class="panel__body">
-      <h2 class="h2">Nadie sabe programar todavía. Eso no los va a salvar.</h2>
+      <h2 class="h2">No se puede desconectar. Hay que operarlo.</h2>
+      <dl class="readout ficha">
+        <div><dt>PACIENTE</dt><dd>Desconocido</dd></div>
+        <div><dt>ORIGEN</dt><dd>Cultivado, no ensamblado</dd></div>
+        <div><dt>DIAGNÓSTICO</dt><dd>Gusano polimórfico activo</dd></div>
+        <div><dt>CONTAGIO</dt><dd>Red global, en expansión</dd></div>
+        <div><dt>PRONÓSTICO</dt><dd>Reservado</dd></div>
+        <div><dt>PROCEDIMIENTO</dt><dd>Disección en vivo</dd></div>
+      </dl>
       <div class="prose">
         <p>
-          El HACK(ME)THON no es un curso. Es una infiltración. Al entrar al cuarto
-          reciben un reporte: un servidor enemigo está armando un ataque y solo
-          se puede detener desde adentro.
+          El reloj no marca segundos: cuenta latidos de procesamiento. En el
+          centro de la sala, una estructura de silicio y acero palpita bajo las
+          luces de emergencia con un metabolismo propio. Sus conductos respiran,
+          su red neuronal toma decisiones, y desde adentro está inyectando un
+          patógeno digital — un <em>gusano polimórfico</em> que muta, sangra
+          datos y se adapta con la misma ferocidad que un virus en el torrente
+          sanguíneo.
         </p>
         <p>
-          Cada capa de seguridad de ese servidor es un reto. Para pasar hay que
-          entender cómo piensa una computadora — y resulta que eso se llama
+          Nadie la ensambló. Creció como crece una enredadera: sus circuitos
+          echaron raíz, sus cables se ramificaron como las nervaduras de una
+          hoja, y en algún punto entre el silicio y la savia aprendió a querer
+          seguir viva.
+        </p>
+        <p>
+          Desenchufarlo provocaría un paro súbito. Y ese paro detonaría un
+          reflejo post-mortem — un <em>dead man's switch</em> incrustado en su
+          instinto de supervivencia — que ejecutaría el código al instante.
+        </p>
+        <p>
+          La única forma de detenerlo es operarlo a corazón abierto. Diseccionarlo
+          en vivo, sistema por sistema, mientras sigue latiendo. Para eso hay que
+          entender cómo piensa una máquina, y resulta que eso se llama
           <em>programar</em>. Nadie va a decir la palabra “tutorial” en toda la noche.
         </p>
         <p>
-          Trabajan en equipos de tres. Ninguno de los tres puede resolverlo solo,
-          porque a cada quien le tocó una parte distinta del acceso.
+          Trabajan en equipos de tres. Ninguno puede operar solo: a cada quien le
+          tocó una parte distinta del procedimiento.
         </p>
       </div>
     </div>
     <footer class="panel__keys">
-      <a href="#top">PF3=SALIR</a><a href="#faq">PF1=AYUDA</a><a href="#barreras">PF8=AVANZAR</a>
+      <a href="#top">PF3=SALIR</a><a href="#faq">PF1=AYUDA</a><a href="#diseccion">PF8=AVANZAR</a>
     </footer>
   </section>
 
-  <!-- ── PANEL 02 · BARRERAS ────────────────────────────── -->
-  <section class="panel" id="barreras">
+  <!-- ── PRÓXIMAMENTE ─────────────────────────────────────
+       Solo existe en modo "próximamente" (se activa desde el panel):
+       va justo después de la historia clínica, que se asoma recortada,
+       y todo lo demás se esconde. -->
+  <section class="proximo solo-proximo" id="proximo" aria-labelledby="proximo-t">
     <header class="panel__bar">
       <span class="panel__id">PANEL 02</span>
-      <span class="panel__name">BARRERAS DE SEGURIDAD</span>
-      <span class="panel__stat">6 FASES</span>
+      <span class="panel__name">PRÓXIMAMENTE</span>
+      <span class="panel__stat">EN PREPARACIÓN</span>
+    </header>
+    <div class="proximo__cuerpo">
+      <p class="proximo__tag"><span class="alarm__flag">&#9632;</span> EXPEDIENTE EN PREPARACIÓN</p>
+      <h2 class="proximo__t" id="proximo-t">PRÓXIMAMENTE<span class="cmd__cur" aria-hidden="true">█</span></h2>
+      <p class="proximo__txt">
+        La operación todavía no está programada. La historia clínica completa,
+        el equipo quirúrgico, el quirófano y el registro se abren pronto.
+        Mientras tanto, el paciente sigue latiendo.
+      </p>
+      <p class="cta">
+        <a class="key key--go" href="#juego">ENTER &middot; JUGAR BYPASS</a>
+        <a class="key" data-cfg-href="contacto" href="#">PF1 &middot; ESCRÍBENOS</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── PANEL 02 · DISECCIÓN ───────────────────────────── -->
+  <section class="panel" id="diseccion">
+    <header class="panel__bar">
+      <span class="panel__id">PANEL 02</span>
+      <span class="panel__name">PROTOCOLO DE DISECCIÓN</span>
+      <span class="panel__stat">6 SISTEMAS</span>
     </header>
     <div class="panel__body">
-      <h2 class="h2">Las barreras</h2>
+      <h2 class="h2">Seis sistemas, una incisión a la vez</h2>
       <p class="section-lead">
-        Las seis barreras son las seis fases del evento y se abren una por una,
-        no todas de golpe. Cada una enseña una idea, y la idea no se explica:
-        se necesita para pasar.
+        Los seis sistemas son las seis fases del evento y se abren uno por uno,
+        no todos de golpe. Cada uno enseña una idea, y la idea no se explica:
+        se necesita para llegar al siguiente órgano sin arrancarlo de raíz.
       </p>
 
       <dl class="readout score">
-        <div><dt>POR FASE RESUELTA</dt><dd>100 puntos</dd></div>
-        <div><dt>BONIFICACIÓN</dt><dd>Según qué tan rápido la rompan</dd></div>
-        <div><dt>APERTURA</dt><dd>Una fase a la vez, durante la noche</dd></div>
+        <div><dt>POR SISTEMA AISLADO</dt><dd>100 puntos</dd></div>
+        <div><dt>BONIFICACIÓN</dt><dd>Según qué tan rápido lo abran</dd></div>
+        <div><dt>APERTURA</dt><dd>Un sistema a la vez, durante la noche</dd></div>
       </dl>
 
       <ol class="opts">
         <li class="opt" style="--i:0">
+          <svg class="lamina" viewBox="0 0 48 48" aria-hidden="true">
+            <path class="l-c" d="M24 28 L16 20 V12 M24 28 L32 20 V10 M16 20 L10 14 M32 20 L38 14 M24 28 V14"/>
+            <path class="l-o" d="M24 46 V28 M24 40 L18 46 M24 40 L30 46"/>
+            <path class="l-h" d="M24 35 q-8 -6 -11 0 q6 4 11 0z M24 32 q8 -6 11 0 q-6 4 -11 0z"/>
+            <g class="l-v"><circle cx="16" cy="12" r="2.5"/><circle cx="32" cy="10" r="2.5"/><circle cx="10" cy="14" r="2.5"/><circle cx="38" cy="14" r="2.5"/><circle cx="24" cy="14" r="2.5"/></g>
+          </svg>
           <p class="opt__head">
             <span class="opt__n">1</span>
-            <span class="opt__name">FIREWALL BOOLEANO</span>
+            <span class="opt__name">SISTEMA NERVIOSO</span>
             <span class="opt__dots" aria-hidden="true"></span>
             <span class="opt__topic">OPERADORES LÓGICOS</span>
           </p>
-          <p class="opt__desc">El acceso solo abre si dos condiciones se cumplen y una tercera no. Verdadero, falso, y todo lo que pasa cuando los mezclas.</p>
+          <p class="opt__desc">Sus neuronas se ramifican como un árbol, y cada una dispara o no dispara: verdadero o falso. Hay que encontrar qué combinación de señales enciende el impulso, y cuál lo apaga.</p>
         </li>
         <li class="opt" style="--i:1">
+          <svg class="lamina" viewBox="0 0 48 48" aria-hidden="true">
+            <path class="l-o" d="M3 30 H17 M31 30 H42"/>
+            <path class="l-c" d="M18 30 L29 21"/>
+            <g class="l-h"><ellipse cx="7" cy="25" rx="1.6" ry="3.6"/><ellipse cx="7" cy="35" rx="1.6" ry="3.6"/><ellipse cx="12" cy="25" rx="1.6" ry="3.6"/><ellipse cx="12" cy="35" rx="1.6" ry="3.6"/><ellipse cx="35" cy="28" rx="3.6" ry="1.4"/><ellipse cx="35" cy="32" rx="3.6" ry="1.4"/></g>
+            <g class="l-v"><circle cx="17" cy="30" r="2.5"/><circle cx="31" cy="30" r="2.5"/></g>
+            <g class="l-f"><circle cx="44" cy="30" r="3"/></g>
+          </svg>
           <p class="opt__head">
             <span class="opt__n">2</span>
-            <span class="opt__name">CONTROL DE ACCESO</span>
+            <span class="opt__name">ARCO REFLEJO</span>
             <span class="opt__dots" aria-hidden="true"></span>
             <span class="opt__topic">CONDICIONALES</span>
           </p>
-          <p class="opt__desc">El portero del servidor hace preguntas y decide. Ustedes tienen que reescribir sus decisiones sin que se dé cuenta.</p>
+          <p class="opt__desc">Como la mimosa que cierra sus hojas al tocarla: si siente una amenaza, responde. El dead man's switch es un reflejo; reescriban sus decisiones sin que el cuerpo se dé cuenta.</p>
         </li>
         <li class="opt" style="--i:2">
+          <svg class="lamina" viewBox="0 0 48 48" aria-hidden="true">
+            <ellipse class="l-o" cx="24" cy="31" rx="11" ry="13"/>
+            <path class="l-c" d="M15 33 h3 v-6 h4 v6 h4 v-6 h4 v6 h3"/>
+            <path class="l-o" d="M24 18 V7"/>
+            <path class="l-h" d="M24 11 q-9 -5 -11 1 q6 3 11 -1z M24 9 q8 -6 11 -1 q-6 4 -11 1z"/>
+            <path class="l-c" d="M24 44 V47 M19 42 L16 46 M29 42 L32 46"/>
+          </svg>
           <p class="opt__head">
             <span class="opt__n">3</span>
-            <span class="opt__name">MURO DE REPETICIÓN</span>
+            <span class="opt__name">CORAZÓN</span>
             <span class="opt__dots" aria-hidden="true"></span>
             <span class="opt__topic">CICLOS</span>
           </p>
-          <p class="opt__desc">Diez mil intentos. A mano no da tiempo. Hay que enseñarle a la máquina a hacer lo mismo, muchas veces, sin cansarse.</p>
+          <p class="opt__desc">Late como germina una semilla: la misma instrucción, una y otra vez. Hay que meterse al ciclo, contarlo y saber cuándo puede detenerse sin provocar el paro.</p>
         </li>
         <li class="opt" style="--i:3">
+          <svg class="lamina" viewBox="0 0 48 48" aria-hidden="true">
+            <path class="l-o" d="M24 3 C39 12 41 30 24 43 C7 30 9 12 24 3 Z M24 43 V47"/>
+            <path class="l-c" d="M24 7 V41 M24 15 L31 22 M24 15 L17 22 M24 25 L32 33 M24 25 L16 33"/>
+            <rect class="l-k" x="21" y="34" width="6" height="4"/>
+            <g class="l-v"><circle cx="31" cy="22" r="2.2"/><circle cx="17" cy="22" r="2.2"/><circle cx="32" cy="33" r="2.2"/><circle cx="16" cy="33" r="2.2"/></g>
+          </svg>
           <p class="opt__head">
             <span class="opt__n">4</span>
-            <span class="opt__name">NÚCLEO MODULAR</span>
+            <span class="opt__name">ÓRGANOS</span>
             <span class="opt__dots" aria-hidden="true"></span>
             <span class="opt__topic">FUNCIONES</span>
           </p>
-          <p class="opt__desc">El código del enemigo está partido en piezas que se llaman entre sí. Encuentren la pieza rota, arréglenla una vez, sirve en todas.</p>
+          <p class="opt__desc">Cada órgano hace una sola cosa, como cada hoja de una planta, y los demás lo llaman. Encuentren el que está infectado, injértenle la versión sana una vez y sana en todo el cuerpo.</p>
         </li>
         <li class="opt" style="--i:4">
+          <svg class="lamina" viewBox="0 0 48 48" aria-hidden="true">
+            <circle class="l-o" cx="24" cy="24" r="19"/>
+            <circle class="l-o l-tenue" cx="24" cy="24" r="14"/>
+            <circle class="l-c" cx="24" cy="24" r="9"/>
+            <circle class="l-c l-tenue" cx="24" cy="24" r="5"/>
+            <path class="l-o" d="M24 5 L26 9 L24 12"/>
+            <path class="l-c" d="M45 45 L32 32"/>
+            <rect class="l-k" x="28" y="28" width="5" height="5"/>
+            <circle class="l-p" cx="24" cy="24" r="2"/>
+          </svg>
           <p class="opt__head">
             <span class="opt__n">5</span>
-            <span class="opt__name">BÓVEDA DE CREDENCIALES</span>
+            <span class="opt__name">MEMORIA</span>
             <span class="opt__dots" aria-hidden="true"></span>
             <span class="opt__topic">BASES DE DATOS</span>
           </p>
-          <p class="opt__desc">Miles de registros y uno solo sirve. Preguntarle bien a una base de datos es más rápido que buscar con los ojos.</p>
+          <p class="opt__desc">Millones de recuerdos, uno encima de otro, como los anillos de un tronco. En uno solo se esconde el patógeno. Preguntarle bien a la memoria es más rápido que buscar a ciegas.</p>
         </li>
         <li class="opt" style="--i:5">
+          <svg class="lamina" viewBox="0 0 48 48" aria-hidden="true">
+            <path class="l-o l-suelo" d="M5 12 H43"/>
+            <path class="l-o" d="M24 12 V5 M24 12 V20"/>
+            <path class="l-h" d="M24 8 q-7 -4 -9 1 q5 3 9 -1z M24 7 q7 -5 9 0 q-5 3 -9 0z"/>
+            <path class="l-c" d="M24 20 L14 30 V40 M24 20 L34 30 V42 M14 30 L8 36 M24 20 V36"/>
+            <path class="l-d" d="M8 36 L14 40 L24 36 L34 42"/>
+            <g class="l-v"><circle cx="24" cy="20" r="2.2"/><circle cx="14" cy="30" r="2.2"/><circle cx="34" cy="30" r="2.2"/><circle cx="8" cy="36" r="2.2"/><circle cx="14" cy="40" r="2.2"/><circle cx="24" cy="36" r="2.2"/><circle cx="34" cy="42" r="2.2"/></g>
+          </svg>
           <p class="opt__head">
             <span class="opt__n">6</span>
-            <span class="opt__name">PUENTE DE LANZAMIENTO</span>
+            <span class="opt__name">RAÍCES</span>
             <span class="opt__dots" aria-hidden="true"></span>
             <span class="opt__topic">APIS</span>
           </p>
-          <p class="opt__desc">La última capa habla con el exterior. Mándenle el mensaje correcto y el ataque se cancela. Mándenle el equivocado y se adelanta.</p>
+          <p class="opt__desc">Sus raíces se enredan con la red global como micelio, y por ahí viaja el gusano. Mándenle el mensaje correcto y la infección se contiene. Mándenle el equivocado y se esparce como esporas.</p>
         </li>
       </ol>
     </div>
     <footer class="panel__keys">
-      <a href="#informe">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#roles">PF8=AVANZAR</a>
+      <a href="#historia">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#equipo">PF8=AVANZAR</a>
     </footer>
   </section>
 
-  <!-- ── PANEL 03 · ROLES ───────────────────────────────── -->
-  <section class="panel" id="roles">
+  <!-- ── PANEL 03 · EQUIPO QUIRÚRGICO ───────────────────── -->
+  <section class="panel" id="equipo">
     <header class="panel__bar">
       <span class="panel__id">PANEL 03</span>
-      <span class="panel__name">PERFILES DE ACCESO</span>
-      <span class="panel__stat">3 TERMINALES</span>
+      <span class="panel__name">EQUIPO QUIRÚRGICO</span>
+      <span class="panel__stat">3 PUESTOS</span>
     </header>
     <div class="panel__body">
-      <h2 class="h2">Nadie ve el problema completo</h2>
+      <h2 class="h2">Nadie ve al paciente completo</h2>
       <p class="section-lead">
-        Al equipo se le asignan tres roles. Cada uno recibe algo que los otros dos
-        no tienen — y le falta algo que solo los otros dos pueden darle. Van a
-        tener que hablarse.
+        A cada equipo se le asignan tres puestos. Cada uno recibe algo que los
+        otros dos no tienen — y le falta algo que solo los otros dos pueden darle.
+        Van a tener que hablarse.
       </p>
 
       <div class="roles">
         <article class="role">
-          <p class="role__id">TERMINAL 01</p>
-          <h3>OPERADOR DE DATOS</h3>
-          <p class="perm perm--ok"><span>CONCEDIDO</span> Consultar la base de datos del enemigo.</p>
-          <p class="perm perm--no"><span>DENEGADO</span> Ver la pantalla. Ejecutar comandos.</p>
-          <p class="role__desc">Tiene las credenciales, los registros, los nombres. Sabe <em>qué</em> hay adentro, pero no dónde escribirlo.</p>
+          <p class="role__id">PUESTO 01</p>
+          <h3>PATÓLOGO</h3>
+          <p class="perm perm--ok"><span>CONCEDIDO</span> Consultar el historial y la memoria del paciente.</p>
+          <p class="perm perm--no"><span>DENEGADO</span> Ver el monitor. Tocar el teclado.</p>
+          <p class="role__desc">Tiene los expedientes, los registros, las muestras. Sabe <em>qué</em> hay adentro, pero no puede abrir.</p>
         </article>
-
         <article class="role">
-          <p class="role__id">TERMINAL 02</p>
-          <h3>OPERADOR DE TERMINAL</h3>
+          <p class="role__id">PUESTO 02</p>
+          <h3>CIRUJANO</h3>
           <p class="perm perm--ok"><span>CONCEDIDO</span> Escribir y ejecutar comandos.</p>
-          <p class="perm perm--no"><span>DENEGADO</span> Ver la pantalla. Consultar datos.</p>
-          <p class="role__desc">Las manos del equipo. Teclea a ciegas lo que los otros dos le dictan, y es el único que puede provocar algo.</p>
+          <p class="perm perm--no"><span>DENEGADO</span> Ver el monitor. Consultar datos.</p>
+          <p class="role__desc">Las manos del equipo. Opera a ciegas lo que los otros dos le dictan, y es el único que puede cortar.</p>
         </article>
-
         <article class="role">
-          <p class="role__id">TERMINAL 03</p>
-          <h3>OPERADOR DE PANTALLA</h3>
-          <p class="perm perm--ok"><span>CONCEDIDO</span> Ver la interfaz del enemigo.</p>
+          <p class="role__id">PUESTO 03</p>
+          <h3>ANESTESIÓLOGO</h3>
+          <p class="perm perm--ok"><span>CONCEDIDO</span> Ver el monitor de signos vitales.</p>
           <p class="perm perm--no"><span>DENEGADO</span> Teclear. Consultar datos.</p>
-          <p class="role__desc">Los ojos. Describe errores, pistas y cambios en voz alta. Si describe mal, el equipo avanza mal.</p>
+          <p class="role__desc">Los ojos. Lee en voz alta errores, pulsos y alarmas. Si lee mal, el paciente se les va.</p>
         </article>
       </div>
     </div>
     <footer class="panel__keys">
-      <a href="#barreras">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#sala">PF8=AVANZAR</a>
+      <a href="#diseccion">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#quirofano">PF8=AVANZAR</a>
     </footer>
   </section>
 
-  <!-- ── PANEL 04 · SALA ────────────────────────────────── -->
-  <section class="panel" id="sala">
+  <!-- ── PANEL 04 · QUIRÓFANO ───────────────────────────── -->
+  <section class="panel" id="quirofano">
     <header class="panel__bar">
       <span class="panel__id">PANEL 04</span>
-      <span class="panel__name">CONTROL DE SALA</span>
+      <span class="panel__name">CONTROL DE QUIRÓFANO</span>
       <span class="panel__stat">EN LÍNEA</span>
     </header>
     <div class="panel__body">
-      <h2 class="h2">El cuarto reacciona</h2>
+      <h2 class="h2">La sala tiene pulso</h2>
       <div class="room">
         <div class="prose">
           <p>
-            Se apagan las luces. El techo queda cubierto de telas moradas y rosas,
-            los reflectores las atraviesan y las paredes están pintadas con algo
-            que brilla en la oscuridad.
+            Se apagan las luces generales y se encienden las del quirófano.
+            Telas moradas y rosas cuelgan del techo como follaje, los
+            reflectores las atraviesan y las paredes brillan en la oscuridad
+            como tejido bajo luz ultravioleta.
           </p>
           <p>
-            No es decoración pasiva. Un servidor está escuchando lo que pasa en el
-            evento: cuando un equipo rompe una barrera, cuando quedan quince
-            minutos, cuando alguien está a punto de disparar el ataque. Y responde
-            — cambia las luces, cambia lo que proyectan las paredes, cambia el sonido.
+            La sala está conectada al paciente. Un servidor escucha lo que pasa
+            en cada mesa: cuando un equipo abre un sistema, cuando el ritmo se
+            acelera, cuando alguien está a punto de disparar el reflejo. Y
+            responde — cambian las luces, cambia lo que proyectan las paredes,
+            cambia el latido que se escucha.
           </p>
           <p>
-            Si el cuarto se pone rojo, algo salió mal. Van a saberlo antes de leerlo.
+            Si la sala se pone roja, el paciente se está yendo. Van a saberlo
+            antes de leerlo.
           </p>
         </div>
         <dl class="readout readout--stack">
-          <div><dt>TELAS</dt><dd>Moradas y rosas, techo completo</dd></div>
-          <div><dt>REFLECTORES</dt><dd>Sincronizados al avance</dd></div>
+          <div><dt>LÁMPARAS</dt><dd>Cialíticas, una por mesa</dd></div>
+          <div><dt>TELAS</dt><dd>Follaje morado y rosa, techo completo</dd></div>
           <div><dt>PINTURA</dt><dd>Fotoluminiscente, 4 paredes</dd></div>
-          <div><dt>PROYECCIÓN</dt><dd>Estado de la infiltración</dd></div>
-          <div><dt>SERVIDOR</dt><dd>Reaccionando en tiempo real</dd></div>
+          <div><dt>MONITORES</dt><dd>Signos vitales del paciente en vivo</dd></div>
+          <div><dt>SONIDO</dt><dd>El latido de la máquina</dd></div>
           <div><dt>SEDE</dt><dd data-cfg="sede">—</dd></div>
           <div><dt>COORDENADAS</dt><dd class="coords" data-cfg="coordenadas">—</dd></div>
         </dl>
@@ -306,56 +520,56 @@
       </div>
     </div>
     <footer class="panel__keys">
-      <a href="#roles">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#agenda">PF8=AVANZAR</a>
+      <a href="#equipo">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#protocolo">PF8=AVANZAR</a>
     </footer>
   </section>
 
-  <!-- ── PANEL 05 · AGENDA ──────────────────────────────── -->
-  <section class="panel" id="agenda">
+  <!-- ── PANEL 05 · PROTOCOLO OPERATORIO ────────────────── -->
+  <section class="panel" id="protocolo">
     <header class="panel__bar">
       <span class="panel__id">PANEL 05</span>
-      <span class="panel__name">SECUENCIA DE EJECUCIÓN</span>
-      <span class="panel__stat">9 PASOS</span>
+      <span class="panel__name">PROTOCOLO OPERATORIO</span>
+      <span class="panel__stat">9 TIEMPOS</span>
     </header>
     <div class="panel__body">
-      <h2 class="h2">Cómo se cae el servidor</h2>
+      <h2 class="h2">Cómo se opera una máquina</h2>
       <p class="section-lead">
-        Cuatro horas seguidas, sin pausas. Una fase nueva se abre cada vez que
-        el reloj lo marca; las anteriores siguen abiertas.
+        Duración: <span data-cfg="duracion">—</span>, sin pausas. Los tiempos se cuentan desde que
+        se apagan las luces. Un sistema nuevo se abre cada vez que el reloj
+        lo marca; los anteriores siguen abiertos.
       </p>
       <ol class="sched">
-        <li><span class="sched__t">18:00</span><span class="sched__n">BRIEFING</span><span class="sched__d">Se apagan las luces. Llega el reporte de la amenaza.</span></li>
-        <li><span class="sched__t">18:20</span><span class="sched__n">ASIGNACIÓN DE ROLES</span><span class="sched__d">Equipos de tres. Cada quien recibe su acceso y su restricción.</span></li>
-        <li><span class="sched__t">18:40</span><span class="sched__n">ABRE LA FASE 1</span><span class="sched__d">Firewall booleano. Operadores lógicos.</span></li>
-        <li><span class="sched__t">19:00</span><span class="sched__n">ABRE LA FASE 2</span><span class="sched__d">Control de acceso. Condicionales.</span></li>
-        <li><span class="sched__t">19:25</span><span class="sched__n">ABRE LA FASE 3</span><span class="sched__d">Muro de repetición. Ciclos.</span></li>
-        <li><span class="sched__t">19:55</span><span class="sched__n">ABRE LA FASE 4</span><span class="sched__d">Núcleo modular. Funciones.</span></li>
-        <li><span class="sched__t">20:30</span><span class="sched__n">ABRE LA FASE 5</span><span class="sched__d">Bóveda de credenciales. Bases de datos.</span></li>
-        <li><span class="sched__t">21:05</span><span class="sched__n">ABRE LA FASE 6</span><span class="sched__d">Puente de lanzamiento. APIs.</span></li>
-        <li><span class="sched__t">21:40</span><span class="sched__n">MARCADOR FINAL</span><span class="sched__d">Se prenden las luces. Puntajes, reconocimientos y cierre.</span></li>
+        <li><span class="sched__t">H+0:00</span><span class="sched__n">ASEPSIA</span><span class="sched__d">Se apagan las luces. Llega la historia clínica del paciente.</span></li>
+        <li><span class="sched__t">H+0:20</span><span class="sched__n">EQUIPO QUIRÚRGICO</span><span class="sched__d">Equipos de tres. Cada quien recibe su acceso y su restricción.</span></li>
+        <li><span class="sched__t">H+0:40</span><span class="sched__n">INCISIÓN 1</span><span class="sched__d">Sistema nervioso. Operadores lógicos.</span></li>
+        <li><span class="sched__t">H+1:00</span><span class="sched__n">INCISIÓN 2</span><span class="sched__d">Arco reflejo. Condicionales.</span></li>
+        <li><span class="sched__t">H+1:25</span><span class="sched__n">INCISIÓN 3</span><span class="sched__d">Corazón. Ciclos.</span></li>
+        <li><span class="sched__t">H+1:55</span><span class="sched__n">INCISIÓN 4</span><span class="sched__d">Órganos. Funciones.</span></li>
+        <li><span class="sched__t">H+2:30</span><span class="sched__n">INCISIÓN 5</span><span class="sched__d">Memoria. Bases de datos.</span></li>
+        <li><span class="sched__t">H+3:05</span><span class="sched__n">INCISIÓN 6</span><span class="sched__d">Raíces. APIs.</span></li>
+        <li><span class="sched__t">H+3:40</span><span class="sched__n">CIERRE</span><span class="sched__d">Se encienden las luces. Hora oficial del procedimiento, puntajes y reconocimientos.</span></li>
       </ol>
     </div>
     <footer class="panel__keys">
-      <a href="#sala">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#registro">PF8=AVANZAR</a>
+      <a href="#quirofano">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#registro">PF8=AVANZAR</a>
     </footer>
   </section>
 
-  <!-- ── PANEL 06 · ALTA DE OPERADORES ─────────────────── -->
+  <!-- ── PANEL 06 · CONSENTIMIENTO INFORMADO ────────────── -->
   <section class="panel panel--go" id="registro">
     <header class="panel__bar">
       <span class="panel__id">PANEL 06</span>
-      <span class="panel__name">ALTA DE OPERADORES</span>
+      <span class="panel__name">CONSENTIMIENTO INFORMADO</span>
       <span class="panel__stat">ABIERTO</span>
     </header>
     <div class="panel__body">
-      <h2 class="h2">Se necesitan <span data-cfg="cupo">—</span></h2>
+      <h2 class="h2">Cupo: <span data-cfg="cupo">—</span></h2>
       <p class="section-lead">
-        El registro es por equipo, no individual. Junta a tus tres integrantes
-        antes de llenar esto: no se aceptan equipos incompletos.
+        El ingreso es por equipo quirúrgico, no individual. Junta a tus tres
+        integrantes antes de llenar esto: no se opera con el equipo incompleto.
       </p>
 
       <form class="alta" id="alta" novalidate>
-
         <p class="trampa" aria-hidden="true">
           <label for="f-empresa">No llenes esto</label>
           <input id="f-empresa" name="empresa" type="text" tabindex="-1" autocomplete="off">
@@ -366,7 +580,7 @@
           <div class="fld">
             <label for="f-equipo">NOMBRE DEL EQUIPO</label>
             <input id="f-equipo" name="equipo" type="text" maxlength="32" required
-                   autocomplete="off" placeholder="LOS SEIS DEDOS">
+                   autocomplete="off" placeholder="LOS SIN PULSO">
           </div>
           <div class="fld">
             <label for="f-correo">CORREO DE CONTACTO</label>
@@ -377,7 +591,7 @@
 
         <fieldset class="fs">
           <legend>&#9656; INTEGRANTES</legend>
-          <p class="fs__hint">Los tres son obligatorios, uno por cada rol. Marca quién es el líder: es a quien le escribimos.</p>
+          <p class="fs__hint">Los tres son obligatorios, uno por cada puesto. Marca quién es el líder: es a quien le escribimos.</p>
           <div class="crew" id="crew">
             <p class="crew__head" aria-hidden="true">
               <span>LÍDER</span><span>NOMBRE COMPLETO</span><span>TELÉFONO</span>
@@ -386,12 +600,13 @@
         </fieldset>
 
         <fieldset class="fs">
-          <legend>&#9656; EMBLEMA DEL EQUIPO</legend>
+          <legend>&#9656; MARCA DE IDENTIFICACIÓN</legend>
           <p class="fs__hint">
-            Doce por doce celdas de fósforo. Pinta arrastrando. Con la simetría
-            encendida, lo que dibujas de un lado aparece del otro.
+            Doce por doce celdas de fósforo: es la marca con la que su equipo
+            aparece en los monitores de la sala. Pinta arrastrando. Con la
+            simetría encendida, lo que dibujas de un lado aparece del otro.
+            SEMILLA la hace crecer sola.
           </p>
-
           <div class="emblem">
             <div class="emblem__main">
               <div class="palette" role="radiogroup" aria-label="Color de fósforo">
@@ -399,66 +614,78 @@
                 <button type="button" class="sw" data-tinta="1" aria-pressed="true"><i></i>MAGENTA</button>
                 <button type="button" class="sw" data-tinta="2" aria-pressed="false"><i></i>VIOLETA</button>
                 <button type="button" class="sw" data-tinta="3" aria-pressed="false"><i></i>BRILLO</button>
+                <button type="button" class="sw" data-tinta="4" aria-pressed="false"><i></i>CLOROFILA</button>
               </div>
-
-              <div class="grid" id="grid" aria-label="Cuadrícula del emblema, 12 por 12"></div>
-
+              <div class="grid" id="grid" aria-label="Cuadrícula de la marca, 12 por 12"></div>
               <div class="emblem__acts">
                 <button type="button" id="b-sim" aria-pressed="true">SIMETRÍA: SÍ</button>
                 <button type="button" id="b-rnd">ALEATORIO</button>
+                <button type="button" id="b-sem">SEMILLA</button>
                 <button type="button" id="b-clr">LIMPIAR</button>
               </div>
             </div>
-
             <div class="emblem__side">
               <p class="emblem__cap">VISTA PREVIA</p>
-              <canvas id="prev" width="200" height="200" aria-label="Vista previa del emblema"></canvas>
+              <canvas id="prev" width="200" height="200" aria-label="Vista previa de la marca"></canvas>
               <p class="emblem__team" id="prev-name">SIN NOMBRE</p>
               <button type="button" id="b-png" class="key key--sm" hidden>DESCARGAR PNG</button>
             </div>
           </div>
         </fieldset>
 
+        <fieldset class="fs fs--consent">
+          <legend>&#9656; CONSENTIMIENTO</legend>
+          <label class="consent">
+            <input type="checkbox" name="consiento" id="f-consiento">
+            <span>
+              Entendemos que el paciente no puede desconectarse, que lo vamos a
+              operar en vivo y que apagarlo va a sentirse como algo más que
+              apagar una máquina.
+            </span>
+          </label>
+        </fieldset>
+
         <p class="cmd">
           <span class="cmd__prompt">OPCIÓN&nbsp;===&gt;</span>
-          <span class="cmd__typed">REGISTRAR</span><span class="cmd__cur" aria-hidden="true">█</span>
+          <span class="cmd__typed">FIRMAR</span><span class="cmd__cur" aria-hidden="true">█</span>
         </p>
-
         <p class="msg" id="msg" role="status"></p>
-
         <p class="cta">
-          <button type="submit" class="key key--go">ENTER &middot; ENVIAR REGISTRO</button>
+          <button type="submit" class="key key--go">ENTER &middot; FIRMAR E INGRESAR</button>
           <button type="button" class="key" id="b-copy">COPIAR DATOS</button>
         </p>
-
         <p class="note">
-          El registro se manda solo y te devuelve un folio. Guarda el PNG del
-          emblema: lo vas a necesitar el día del evento. <span data-cfg="costo">—</span>
+          El registro se manda solo y te devuelve un folio. Guarda el PNG de
+          la marca: lo vas a necesitar el día del evento. Acceso: <span data-cfg="costo">—</span>.
         </p>
       </form>
     </div>
     <footer class="panel__keys">
-      <a href="#agenda">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#faq">PF1=AYUDA</a>
+      <a href="#protocolo">PF7=ANTERIOR</a><a href="#top">PF3=SALIR</a><a href="#faq">PF1=AYUDA</a>
     </footer>
   </section>
 
-  <!-- ── PANEL 07 · AYUDA ───────────────────────────────── -->
+  <!-- ── PANEL 07 · CONTRAINDICACIONES ──────────────────── -->
   <section class="panel" id="faq">
     <header class="panel__bar">
       <span class="panel__id">PANEL 07</span>
-      <span class="panel__name">AYUDA EN LÍNEA</span>
-      <span class="panel__stat">7 TEMAS</span>
+      <span class="panel__name">CONTRAINDICACIONES</span>
+      <span class="panel__stat">8 TEMAS</span>
     </header>
     <div class="panel__body">
-      <h2 class="h2">Antes de entrar</h2>
+      <h2 class="h2">Antes de entrar al quirófano</h2>
       <div class="faq">
         <details>
           <summary>¿Necesito saber programar?</summary>
-          <p>No. El evento está diseñado para alguien que nunca ha escrito una línea de código. Las barreras están ordenadas de más simple a menos simple, y cada una da lo que necesitas para pasarla.</p>
+          <p>No. El evento está diseñado para alguien que nunca ha escrito una línea de código. Los sistemas están ordenados de más simple a menos simple, y cada uno da lo que necesitas para abrirlo.</p>
         </details>
         <details>
           <summary>¿Puedo ir solo, sin equipo?</summary>
-          <p>No. El registro es únicamente por equipos de tres, porque los tres roles del evento se reparten dentro del equipo y ninguno funciona sin los otros dos. Si te falta gente, búscala antes de registrarte: cualquiera de nuevo ingreso cuenta.</p>
+          <p>No. El registro es únicamente por equipos de tres, porque los tres puestos del quirófano se reparten dentro del equipo y ninguno funciona sin los otros dos. Si te falta gente, búscala antes de registrarte: cualquiera de nuevo ingreso cuenta.</p>
+        </details>
+        <details>
+          <summary>¿Hay sangre de verdad?</summary>
+          <p>No. Toda la anatomía es digital. La sala es oscura y el ambiente es intenso a propósito, pero lo único que se abre en la noche es código.</p>
         </details>
         <details>
           <summary>¿Qué llevo?</summary>
@@ -470,11 +697,11 @@
         </details>
         <details>
           <summary>¿Cómo se gana?</summary>
-          <p>Por puntos. Cada fase que rompan les da 100 puntos, más una bonificación según qué tan rápido la resolvieron. Las seis fases se abren una por una durante la noche, así que todos los equipos trabajan sobre la misma al mismo tiempo y la diferencia la hace la velocidad.</p>
+          <p>Por puntos. Cada sistema que aíslen les da 100 puntos, más una bonificación según qué tan rápido lo hicieron. Los seis sistemas se abren uno por uno durante la noche, así que todos los equipos operan sobre el mismo al mismo tiempo y la diferencia la hace la velocidad.</p>
         </details>
         <details>
           <summary>¿Hay premio?</summary>
-          <p>El equipo con más puntos al final se lleva el reconocimiento y lo que anunciemos en la sede. Pero todos los equipos terminan las seis fases: nadie se queda atorado toda la noche.</p>
+          <p>El equipo con más puntos al final se lleva el reconocimiento y lo que anunciemos en la sede. Pero todos los equipos llegan a los seis sistemas: nadie se queda atorado toda la noche.</p>
         </details>
         <details>
           <summary>¿Cuánto cuesta?</summary>
@@ -490,19 +717,16 @@
 </main>
 
 <footer class="signoff">
-  <p class="signoff__line">HACK(ME)THON &middot; STARTUP CHIHUAHUA &amp; UNDEFINED</p>
+  <p class="signoff__quote">Apagar un sistema se siente exactamente igual que extinguir una vida.</p>
+  <p class="signoff__line">HACK(ME)THON 2.0 &middot; STARTUP CHIHUAHUA &amp; UNDEFINED</p>
   <p class="signoff__line"><a data-cfg-href="contacto" href="#">CONTACTO ===&gt; ESCRÍBENOS</a></p>
-  <p class="signoff__line signoff__line--dim">FIN DE LA TRANSMISIÓN</p>
+  <p class="signoff__line signoff__line--dim">FIN DEL EXPEDIENTE</p>
 </footer>
-
-<!-- ── área de información del operador (línea 24) ──────── -->
 
 </div><!-- /tubo -->
 
-<!-- Capa fija: se curva igual que el contenido, pero no se
-     desplaza con él. No puede ir adentro de .tubo porque un
-     filtro vuelve a su elemento bloque contenedor, y entonces
-     position:fixed deja de estar fijo y se va con el scroll. -->
+<!-- Capa fija: rayado, barrido y línea 24. No se desplaza con
+     el contenido. -->
 <div class="tubo__fijo">
 
 <div class="crt" aria-hidden="true">
@@ -512,43 +736,27 @@
   <div class="crt__bloom"></div>
 </div>
 
+<!-- La línea 24: en vez de X SYSTEM, el pulso del paciente. -->
 <div class="oia" aria-hidden="true">
-  <span class="oia__cell oia__sys"><b id="oia-sys">X SYSTEM</b></span>
-  <span class="oia__cell">INSERT</span>
+  <span class="oia__cell oia__sys"><b id="oia-sys">&#9829; 072</b></span>
+  <span class="oia__cell">MONITOR</span>
   <span class="oia__cell oia__panel" id="oia-panel">ARRANQUE</span>
-  <span class="oia__cell oia__pos" id="oia-pos">001/071</span>
+  <span class="oia__cell oia__pos" id="oia-pos">001/024</span>
 </div>
 
 </div>
 
-<!-- El gabinete NO se curva: es el mueble, no la imagen. -->
+<!-- El gabinete: el mueble alrededor de la pantalla. -->
 <div class="gabinete" aria-hidden="true">
-  <div class="gabinete__vidrio"></div>
   <div class="gabinete__marco"></div>
 </div>
 
-<!-- ── el filtro del tubo ──────────────────────────────────
-     feDisplacementMap toma cada pixel del destino y lo va a buscar
-     al origen corrido segun el color del mapa:
-        destino(x,y) = origen(x + s*(R-.5), y + s*(G-.5))
-     El mapa es un PNG de 128px generado con la formula del abombado
-     (dx = nx*ny^2, dy = ny*nx^2): el corrimiento crece hacia las
-     orillas y depende del OTRO eje, que es lo que pandea las rectas.
-     Va incrustado para que no haya una peticion mas ni un instante
-     en que el filtro exista sin su mapa. La escala la pone tubo.js,
-     porque depende del tamano de la ventana. -->
-<svg class="filtros" aria-hidden="true" focusable="false">
-  <filter id="barril" color-interpolation-filters="sRGB"
-          x="0" y="0" width="100%" height="100%">
-    <feImage href="data:image/png;base64,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"
-             preserveAspectRatio="none" x="0" y="0" width="100%" height="100%" result="mapa"/>
-    <feDisplacementMap id="barril-escala" in="SourceGraphic" in2="mapa"
-             scale="0" xChannelSelector="R" yChannelSelector="G"/>
-  </filter>
-</svg>
-<script src="tubo.js"></script>
 
+<script src="sonido.js"></script>
 <script src="config.js"></script>
 <script src="script.js"></script>
+<script src="jardin.js"></script>
+<script src="bypass-motor.js"></script>
+<script src="bypass.js"></script>
 </body>
 </html>
