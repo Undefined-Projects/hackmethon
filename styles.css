@@ -486,6 +486,16 @@ img{ max-width:100%; image-rendering:pixelated; }
   animation:blink .5s steps(1) infinite; pointer-events:none;
 }
 .juego__furia[hidden]{ display:none; }
+/* el aviso del volteo va abajo, para no taparse con el de la furia
+   (a los 20 puntos llegan los dos juntos) */
+.juego__giro{
+  position:absolute; bottom:10px; left:50%; transform:translateX(-50%); z-index:2;
+  margin:0; padding:3px 10px; white-space:nowrap; line-height:1.4;
+  font-family:var(--f-pixel); font-size:11px; letter-spacing:.14em;
+  color:var(--screen); background:var(--blue-hi); background-image:var(--rayas);
+  animation:blink .35s steps(1) 4; pointer-events:none;
+}
+.juego__giro[hidden]{ display:none; }
 .juego[data-furia]{ border-color:var(--sangre); box-shadow:0 0 18px rgba(255,51,85,.3); }
 .juego[data-furia] .juego__name{ color:var(--sangre); }
 

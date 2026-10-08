@@ -6,7 +6,15 @@
    arriba, y deja detrás un trazo de electrocardiograma. Tiene que
    pasar entre válvulas de circuito y enredadera mientras el gusano,
    en el borde derecho, le escupe virus. Cada 10 válvulas el gusano
-   se enfurece y lanza tres muros de virus.
+   se enfurece y lanza tres muros de virus. Cada 20, el mundo se
+   voltea: la gravedad y el lado se invierten (y a los 40 regresan).
+
+   El volteo es un ESPEJO DEL DIBUJO, no física: el motor sigue igual
+   y la pantalla se refleja de arriba abajo y de izquierda a derecha.
+   Para quien juega es idéntico a invertir la gravedad —el pulso "cae"
+   hacia arriba, el latido lo empuja hacia abajo, el gusano queda a la
+   izquierda y las válvulas llegan desde ahí—, y el servidor, que
+   vuelve a jugar las partidas con el motor, no tiene que saberlo.
 
    La física vive en bypass-motor.js y es determinista. Este archivo
    solo dibuja lo que el motor dice, junta los toques y habla con el
@@ -36,7 +44,7 @@
   const ctx   = cv.getContext("2d");
   const $     = id => document.getElementById(id);
   const msg = $("j-msg"), tit = $("j-titulo"), txt = $("j-txt"), tecla = $("j-tecla");
-  const ptsEl = $("j-pts"), recEl = $("j-rec"), avisoFuria = $("j-furia");
+  const ptsEl = $("j-pts"), recEl = $("j-rec"), avisoFuria = $("j-furia"), avisoGiro = $("j-giro");
   const form = $("j-form"), formPts = $("j-form-pts"), formMsg = $("j-form-msg");
   const topEl = $("j-top"), cierreEl = $("j-cierre");
   const pagEl = $("j-pag"), pagTxt = $("j-pagina"), bAnt = $("j-ant"), bSig = $("j-sig");
@@ -98,6 +106,13 @@
   let rastro = [], chispas = [];
   let destello = 0, sacudida = 0, enParo = 0;
   let plano = null;         // al morir: { y, vel } — el trazo se vuelve línea plana
+
+  /* El volteo: cada GIRO puntos el espejo cambia de lado. `espejo` va de
+     1 (normal) a −1 (invertido) y en medio pasa por 0: la escena se
+     encoge al centro y se abre reflejada, como una tarjeta que gira. */
+  const GIRO = 20, GIRO_DUR = .45;
+  let espejo = 1, espejoDesde = 1, espejoHacia = 1, giroT = 1;
+  let avisoGiroT = 0;
   let latidos = [], latePendiente = false;
   let partida = null;       // { semilla, token?, oficial }
   let siguiente = null;     // la semilla firmada que se usará en la próxima partida
@@ -124,6 +139,8 @@
     e = M.crea(partida.semilla);
     latidos = []; rastro = []; chispas = [];
     destello = sacudida = 0; plano = null;
+    espejo = espejoDesde = espejoHacia = 1; giroT = 1;     // cada partida empieza derecha
+    escondeGiro();
     ptsEl.textContent = pad3(0);
     estado = "jugando";
     caja.dataset.estado = "jugando";
@@ -151,7 +168,9 @@
     switch (ev.tipo){
       case "punto":
         ptsEl.textContent = pad3(e.puntos);
-        if (e.puntos % FURIA.cada) suena("punto"); break;     // en la décima suena la furia
+        if (e.puntos % GIRO === 0) volteaMundo();
+        else if (e.puntos % FURIA.cada) suena("punto");      // en la décima suena la furia
+        break;
       case "disparo":
         suena("disparo"); break;
       case "furia":
@@ -182,8 +201,29 @@
       chispas.push({ x, y, vx: (Math.random() - .5) * 90, vy: -Math.random() * 70,
                      v: .3 + Math.random() * .3, c: color });
   }
+  function volteaMundo(){
+    const invertido = Math.floor(e.puntos / GIRO) % 2 === 1;
+    espejoDesde = espejo;
+    espejoHacia = invertido ? -1 : 1;
+    giroT = quieto ? 1 : 0;
+    if (quieto) espejo = espejoHacia;
+    suena("giro");
+    if (avisoGiro){
+      avisoGiro.textContent = invertido ? "\u25BC GRAVEDAD INVERTIDA" : "\u25B2 GRAVEDAD NORMAL";
+      avisoGiro.hidden = false;
+      avisoGiroT = 1.8;
+    }
+  }
+  function escondeGiro(){ if (avisoGiro) avisoGiro.hidden = true; avisoGiroT = 0; }
+
   function cosmeticos(dt){
     reloj += dt;
+    if (giroT < 1){
+      giroT = Math.min(1, giroT + dt / GIRO_DUR);
+      const k = giroT < .5 ? 2 * giroT * giroT : 1 - 2 * (1 - giroT) ** 2;   // entra y sale suave
+      espejo = espejoDesde + (espejoHacia - espejoDesde) * k;
+    }
+    if (avisoGiroT > 0){ avisoGiroT -= dt; if (avisoGiroT <= 0) escondeGiro(); }
     for (const c of chispas){ c.vy += 300 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.v -= dt; }
     chispas = chispas.filter(c => c.v > 0);
     destello = Math.max(0, destello - dt);
@@ -264,10 +304,16 @@
   /* ── dibujo ────────────────────────────────────────────────── */
   function dibuja(){
     ctx.clearRect(0, 0, W, H);
+    // el velo va antes del espejo: mientras la escena gira, el fondo no se encoge
+    ctx.fillStyle = velo;
+    ctx.fillRect(0, 0, W, H);
     ctx.save();
     if (sacudida > 0) ctx.translate(Math.round((Math.random() - .5) * 4), Math.round((Math.random() - .5) * 3));
-    ctx.fillStyle = velo;
-    ctx.fillRect(-4, -4, W + 8, H + 8);
+    if (espejo !== 1){
+      ctx.translate(W / 2, H / 2);
+      ctx.scale(espejo, espejo);
+      ctx.translate(-W / 2, -H / 2);
+    }
 
     // cuadrícula de papel de ECG, desplazándose
     ctx.fillStyle = "rgba(79,134,238,.12)";

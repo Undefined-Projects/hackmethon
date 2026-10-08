@@ -104,6 +104,9 @@
                        soplo({ dur: .3, vol: .2, f: 2400, f1: 300, q: 1.5, en: .05 });
                        SFX.plano(.55, 1.3); },
     record:    () => arpegio([523, 659, 784, 1047, 1319], .085, { dur: .11, vol: .13 }),
+    giro:      () => { soplo({ dur: .45, vol: .18, f: 300, f1: 3000, q: 3 });
+                       tono({ tipo: "triangle", f0: 220, f1: 880, dur: .22, vol: .16 });
+                       tono({ tipo: "triangle", f0: 880, f1: 220, dur: .22, vol: .16, en: .22 }); },
     registro:  () => arpegio([784, 1047, 1568], .09, { tipo: "triangle", dur: .14, vol: .22 }),
     // el monitor
     plano:     (en = 0, dur = 2.4) => tono({ tipo: "sine", f0: 1000, dur, vol: .16, ataque: .01, sostener: .85, en }),
