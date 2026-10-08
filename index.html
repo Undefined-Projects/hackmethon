@@ -298,8 +298,9 @@
           <em>programar</em>. Nadie va a decir la palabra “tutorial” en toda la noche.
         </p>
         <p>
-          Trabajan en equipos de tres. Ninguno puede operar solo: a cada quien le
-          tocó una parte distinta del procedimiento.
+          <span data-tam="Trabajan en equipos de {n}. Ninguno puede operar solo: a cada quien le tocó una parte distinta del procedimiento."
+                data-tam1="Cada quien opera su propio quirófano: le tocan todas las partes del procedimiento.">Trabajan en equipos de tres. Ninguno puede operar solo: a cada quien le
+          tocó una parte distinta del procedimiento.</span>
         </p>
       </div>
     </div>
@@ -566,7 +567,7 @@
       </p>
       <ol class="sched">
         <li><span class="sched__t">H+0:00</span><span class="sched__n">ASEPSIA</span><span class="sched__d">Se apagan las luces. Llega la historia clínica del paciente.</span></li>
-        <li><span class="sched__t">H+0:20</span><span class="sched__n">EQUIPO QUIRÚRGICO</span><span class="sched__d">Equipos de tres. Cada quien recibe su acceso y su restricción.</span></li>
+        <li><span class="sched__t">H+0:20</span><span class="sched__n">EQUIPO QUIRÚRGICO</span><span class="sched__d"><span data-tam="Equipos de {n}." data-tam1="Una persona por quirófano.">Equipos de tres.</span> Cada quien recibe su acceso y su restricción.</span></li>
         <li><span class="sched__t">H+0:40</span><span class="sched__n">INCISIÓN 1</span><span class="sched__d">Sistema nervioso. Operadores lógicos.</span></li>
         <li><span class="sched__t">H+1:00</span><span class="sched__n">INCISIÓN 2</span><span class="sched__d">Arco reflejo. Condicionales.</span></li>
         <li><span class="sched__t">H+1:25</span><span class="sched__n">INCISIÓN 3</span><span class="sched__d">Corazón. Ciclos.</span></li>
@@ -591,8 +592,9 @@
     <div class="panel__body">
       <h2 class="h2">Cupo: <span data-cfg="cupo">—</span></h2>
       <p class="section-lead">
-        El ingreso es por equipo quirúrgico, no individual. Junta a tus tres
-        integrantes antes de llenar esto: no se opera con el equipo incompleto.
+        <span data-tam="El ingreso es por equipo quirúrgico, no individual. Junta a los {n} integrantes de tu equipo antes de llenar esto: no se opera con el equipo incompleto."
+              data-tam1="El ingreso es individual: cada quien opera su propio quirófano.">El ingreso es por equipo quirúrgico, no individual. Junta a los tres
+        integrantes de tu equipo antes de llenar esto: no se opera con el equipo incompleto.</span>
       </p>
 
       <form class="alta" id="alta" novalidate>
@@ -608,21 +610,16 @@
             <input id="f-equipo" name="equipo" type="text" maxlength="32" required
                    autocomplete="off" placeholder="LOS SIN PULSO">
           </div>
-          <div class="fld">
-            <label for="f-correo">CORREO DE CONTACTO</label>
-            <input id="f-correo" name="correo" type="email" required
-                   autocomplete="email" placeholder="equipo@ejemplo.com">
-          </div>
         </fieldset>
 
         <fieldset class="fs">
           <legend>&#9656; INTEGRANTES</legend>
-          <p class="fs__hint">Los tres son obligatorios, uno por cada puesto. Marca quién es el líder: es a quien le escribimos.</p>
-          <div class="crew" id="crew">
-            <p class="crew__head" aria-hidden="true">
-              <span>LÍDER</span><span>NOMBRE COMPLETO</span><span>TELÉFONO</span>
-            </p>
-          </div>
+          <p class="fs__hint">
+            <span data-tam="Los {n} son obligatorios." data-tam1="">Los tres son obligatorios.</span>
+            Todos los datos se piden por persona; la escuela solo si aplica.
+            Marca quién es el líder: su correo es el de contacto del equipo.
+          </p>
+          <div class="crew" id="crew"></div>
         </fieldset>
 
         <fieldset class="fs">
@@ -660,6 +657,37 @@
         </fieldset>
 
         <fieldset class="fs fs--consent">
+          <legend>&#9656; AVISO DE PRIVACIDAD</legend>
+          <div class="privado">
+            <p class="privado__clave">TUS DATOS NO SE COMPARTEN CON TERCEROS.</p>
+            <p>
+              Los usamos solo para registrar a tu equipo, darte acceso a la sede
+              y escribirte sobre el evento. La CURP sirve para confirmar que cada
+              persona es quien dice ser y que nadie está en dos equipos. No los
+              vendemos, rentamos, prestamos ni compartimos con patrocinadores,
+              escuelas ni ninguna otra organización, y puedes pedir verlos,
+              corregirlos o borrarlos cuando quieras.
+            </p>
+            <p><a href="privacidad.html" target="_blank" rel="noopener">LEER EL AVISO DE PRIVACIDAD COMPLETO ↗</a></p>
+          </div>
+          <label class="consent">
+            <input type="checkbox" name="privacidad" id="f-privacidad">
+            <span>
+              Cada integrante leyó el aviso de privacidad y acepta que sus datos
+              se usen para lo que ahí se describe.
+            </span>
+          </label>
+          <label class="consent" id="tutor" hidden>
+            <input type="checkbox" name="tutor" id="f-tutor">
+            <span>
+              Hay integrantes menores de 18 años: su madre, padre o tutor
+              conoce el evento y autoriza su participación y el uso de sus
+              datos. Podemos pedir esa autorización por escrito.
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset class="fs fs--consent">
           <legend>&#9656; CONSENTIMIENTO</legend>
           <label class="consent">
             <input type="checkbox" name="consiento" id="f-consiento">
@@ -678,7 +706,6 @@
         <p class="msg" id="msg" role="status"></p>
         <p class="cta">
           <button type="submit" class="key key--go">ENTER &middot; FIRMAR E INGRESAR</button>
-          <button type="button" class="key" id="b-copy">COPIAR DATOS</button>
         </p>
         <p class="note">
           El registro se manda solo y te devuelve un folio. Guarda el PNG de
@@ -696,7 +723,7 @@
     <header class="panel__bar">
       <span class="panel__id">PANEL 07</span>
       <span class="panel__name">CONTRAINDICACIONES</span>
-      <span class="panel__stat">8 TEMAS</span>
+      <span class="panel__stat">9 TEMAS</span>
     </header>
     <div class="panel__body">
       <h2 class="h2">Antes de entrar al quirófano</h2>
@@ -707,7 +734,12 @@
         </details>
         <details>
           <summary>¿Puedo ir solo, sin equipo?</summary>
-          <p>No. El registro es únicamente por equipos de tres, porque los tres puestos del quirófano se reparten dentro del equipo y ninguno funciona sin los otros dos. Si te falta gente, búscala antes de registrarte: cualquiera de nuevo ingreso cuenta.</p>
+          <p data-tam="No. El registro es únicamente por equipos de {n}, porque los puestos del quirófano se reparten dentro del equipo y ninguno funciona sin los demás. Si te falta gente, búscala antes de registrarte: cualquiera de nuevo ingreso cuenta."
+             data-tam1="Sí. En esta edición cada persona se registra y opera por su cuenta.">No. El registro es únicamente por equipos de tres, porque los puestos del quirófano se reparten dentro del equipo y ninguno funciona sin los demás. Si te falta gente, búscala antes de registrarte: cualquiera de nuevo ingreso cuenta.</p>
+        </details>
+        <details>
+          <summary>¿Qué hacen con mis datos?</summary>
+          <p>Solo organizar el evento: registrarte, dejarte entrar y escribirte. No se comparten con terceros, nunca. Puedes pedir verlos, corregirlos o borrarlos cuando quieras. Todo está en el <a href="privacidad.html">aviso de privacidad</a>.</p>
         </details>
         <details>
           <summary>¿Hay sangre de verdad?</summary>
@@ -746,6 +778,7 @@
   <p class="signoff__quote">Apagar un sistema se siente exactamente igual que extinguir una vida.</p>
   <p class="signoff__line">HACK(ME)THON 2.0 &middot; STARTUP CHIHUAHUA &amp; UNDEFINED</p>
   <p class="signoff__line"><a data-cfg-href="contacto" href="#">CONTACTO ===&gt; ESCRÍBENOS</a></p>
+  <p class="signoff__line"><a href="privacidad.html">AVISO DE PRIVACIDAD</a></p>
   <p class="signoff__line signoff__line--dim">FIN DEL EXPEDIENTE</p>
 </footer>
 

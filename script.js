@@ -452,35 +452,143 @@ const Monitor = (function monitor(){
 })();
 
 /* — 7. Consentimiento informado: integrantes, marca y envío —
-       Sin backend a propósito. El envío abre el correo del organizador
-       con la ficha ya escrita, y "COPIAR DATOS" deja lo mismo en el
-       portapapeles por si prefieren pegarlo en WhatsApp. — */
+       El registro va al servidor (/api/registro), que es el que valida de
+       verdad. Cuántos integrantes lleva cada equipo lo decide el panel de
+       administración y llega con /api/cupo; mientras tanto se usa el
+       último conocido o EVENTO.integrantes. Por persona se pide nombre,
+       correo, CURP, escuela (opcional), edad y teléfono. — */
 (function alta(){
   const form = document.getElementById("alta");
   if (!form) return;
 
   const N          = 12;                                   // celdas por lado
-  const INTEGRANTES = 3;                                   // uno por rol
   const FONDO      = "#0d0410";
   const TINTAS     = [null, "#ff2d95", "#a855f7", "#ffd9ee", "#3ddc97"];
+  const EDAD       = { min: 12, max: 99, mayor: 18 };
 
-  /* ---- integrantes ---- */
-  const crew = document.getElementById("crew");
-  for (let i = 1; i <= INTEGRANTES; i++){
-    const fila = document.createElement("p");
-    fila.className = "crew__row";
-    fila.innerHTML = `
-      <label class="crew__lead">
-        <input type="radio" name="lider" value="${i}" ${i === 1 ? "checked" : ""}
-               aria-label="Marcar al integrante ${i} como líder">
-        <span>0${i}</span>
-      </label>
-      <input type="text" name="nombre${i}" maxlength="60" autocomplete="off"
-             placeholder="NOMBRE COMPLETO" aria-label="Nombre del integrante ${i}">
-      <input type="tel" name="tel${i}" maxlength="20" autocomplete="off"
-             placeholder="614 000 0000" aria-label="Teléfono del integrante ${i}">`;
-    crew.appendChild(fila);
+  /* ---- cuántos por equipo ---- */
+  const tamanoValido = n => Number.isInteger(n) && n >= 1 && n <= 6;
+  let INTEGRANTES = tamanoValido(EVENTO.integrantes) ? EVENTO.integrantes : 3;
+  try {
+    const visto = Number(localStorage.getItem("hmt2-tamano"));
+    if (tamanoValido(visto)) INTEGRANTES = visto;
+  } catch {}
+
+  // Los textos que dicen cuántos son: data-tam lleva la plantilla con {n}
+  // y data-tam1 la versión para una sola persona.
+  const PALABRA = ["", "uno", "dos", "tres", "cuatro", "cinco", "seis"];
+  function textosTamano(n){
+    document.querySelectorAll("[data-tam]").forEach(el => {
+      const t = n === 1 && el.hasAttribute("data-tam1") ? el.dataset.tam1 : el.dataset.tam;
+      el.textContent = t.replace("{n}", PALABRA[n]);
+      el.hidden = !el.textContent;
+    });
   }
+
+  /* ---- integrantes: una ficha por persona ---- */
+  const crew = document.getElementById("crew");
+  const CAMPOS = [
+    { k: "nombre",  t: "NOMBRE COMPLETO", tipo: "text",   max: 80, ph: "NOMBRE Y APELLIDOS", ancho: true, auto: "name" },
+    { k: "correo",  t: "CORREO",          tipo: "email",  max: 120, ph: "tu@correo.com", ancho: true, auto: "email" },
+    { k: "curp",    t: "CURP",            tipo: "text",   max: 18, ph: "18 CARACTERES" },
+    { k: "edad",    t: "EDAD",            tipo: "number", ph: "18", medio: true },
+    { k: "tel",     t: "TELÉFONO",        tipo: "tel",    max: 16, ph: "10 DÍGITOS", medio: true, auto: "tel" },
+    { k: "escuela", t: "ESCUELA (SI APLICA)", tipo: "text", max: 80, ph: "OPCIONAL", ancho: true },
+  ];
+  function armaCrew(n){
+    // lo ya escrito se conserva si el número cambia
+    const antes = {};
+    crew.querySelectorAll("input").forEach(i => { antes[i.name] = i.type === "radio" ? i.checked : i.value; });
+    crew.textContent = "";
+    for (let i = 1; i <= n; i++){
+      const f = document.createElement("fieldset");
+      f.className = "crew__ficha";
+      f.innerHTML = `
+        <legend class="crew__top">
+          <span class="crew__num">INTEGRANTE 0${i}</span>
+          <label class="crew__lead" ${n === 1 ? "hidden" : ""}>
+            <input type="radio" name="lider" value="${i}" ${i === 1 ? "checked" : ""}
+                   aria-label="Marcar al integrante ${i} como líder">
+            <span>LÍDER</span>
+          </label>
+        </legend>
+        <div class="crew__campos">${CAMPOS.map(c => `
+          <label class="crew__campo${c.ancho ? " crew__campo--ancho" : ""}${c.medio ? " crew__campo--medio" : ""}">
+            <span>${c.t}</span>
+            <input type="${c.tipo}" name="${c.k}${i}" ${c.max ? `maxlength="${c.max}"` : `min="${EDAD.min}" max="${EDAD.max}" inputmode="numeric"`}
+                   autocomplete="${c.auto && i === 1 ? c.auto : "off"}" placeholder="${c.ph}"
+                   ${c.k === "curp" ? 'autocapitalize="characters" spellcheck="false"' : ""}>
+          </label>`).join("")}
+        </div>`;
+      crew.appendChild(f);
+    }
+    crew.querySelectorAll("input").forEach(i => {
+      if (!(i.name in antes)) return;
+      if (i.type === "radio") i.checked = antes[i.name]; else i.value = antes[i.name];
+    });
+    if (!crew.querySelector('input[name="lider"]:checked')) crew.querySelector('input[name="lider"]').checked = true;
+    if (form.elements.lider) form.elements.lider.value ||= "1";
+    INTEGRANTES = n;
+    textosTamano(n);
+    revisaTutor();
+  }
+
+  /* ---- CURP: formato, dígito verificador y fecha (igual que el servidor) ---- */
+  const ENTIDADES = "AS BC BS CC CL CM CS CH DF DG GT GR HG JC MC MN MS NT NL OC PL QT QR SP SL SR TC TS TL VZ YN ZS NE".split(" ");
+  const FORMATO_CURP = /^[A-Z][AEIOUX][A-Z]{2}(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[HMX]([A-Z]{2})[B-DF-HJ-NP-TV-Z]{3}([A-Z\d])(\d)$/;
+  const DIC_CURP = "0123456789ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+  const limpiaCurp = v => String(v || "").toUpperCase().replace(/\s+/g, "");
+  function nacimiento(curp){
+    const m = FORMATO_CURP.exec(curp);
+    if (!m) return null;
+    const anio = (/\d/.test(m[5]) ? 1900 : 2000) + Number(m[1]);
+    const f = new Date(Date.UTC(anio, Number(m[2]) - 1, Number(m[3])));
+    return f.getUTCMonth() === Number(m[2]) - 1 ? f : null;
+  }
+  function curpValida(curp){
+    const m = FORMATO_CURP.exec(curp);
+    if (!m || !ENTIDADES.includes(m[4]) || !nacimiento(curp)) return false;
+    let suma = 0;
+    for (let i = 0; i < 17; i++) suma += DIC_CURP.indexOf(curp[i]) * (18 - i);
+    return (10 - (suma % 10)) % 10 === Number(curp[17]);
+  }
+  function edadDe(curp){
+    const f = nacimiento(curp), hoy = new Date();
+    if (!f) return null;
+    let e = hoy.getUTCFullYear() - f.getUTCFullYear();
+    if (hoy.getUTCMonth() < f.getUTCMonth() || (hoy.getUTCMonth() === f.getUTCMonth() && hoy.getUTCDate() < f.getUTCDate())) e--;
+    return e;
+  }
+  const limpiaTel = v => {
+    let d = String(v || "").replace(/\D/g, "");
+    if (d.length === 12 && d.startsWith("52")) d = d.slice(2);
+    return d.length === 10 ? d : null;
+  };
+
+  // Con una CURP válida, la edad se llena sola (y se puede corregir).
+  crew.addEventListener("change", e => {
+    const m = /^curp(\d)$/.exec(e.target.name);
+    if (m){
+      e.target.value = limpiaCurp(e.target.value);
+      const campo = form.elements["edad" + m[1]];
+      if (curpValida(e.target.value) && !campo.value) campo.value = edadDe(e.target.value);
+    }
+    revisaTutor();
+  });
+  crew.addEventListener("input", e => { if (/^edad\d$/.test(e.target.name)) revisaTutor(); });
+
+  // Con algún menor de edad aparece la casilla de la autorización del tutor.
+  const tutor = document.getElementById("tutor");
+  function hayMenores(){
+    for (let i = 1; i <= INTEGRANTES; i++){
+      const v = (form.elements["edad" + i]?.value || "").trim();
+      if (v && Number(v) < EDAD.mayor) return true;
+    }
+    return false;
+  }
+  function revisaTutor(){ if (tutor) tutor.hidden = !hayMenores(); }
+
+  armaCrew(INTEGRANTES);
 
   /* ---- cuadrícula del emblema ---- */
   const grid   = document.getElementById("grid");
@@ -714,65 +822,68 @@ const Monitor = (function monitor(){
 
   const val = n => (form.elements[n]?.value || "").trim();
 
+  // Marca el campo, lo enfoca y devuelve el mensaje.
+  function falla(nombre, texto){
+    const el = form.elements[nombre];
+    el.setAttribute("aria-invalid", "true");
+    el.focus();
+    return texto;
+  }
   function revisa(){
     [...form.querySelectorAll("input")].forEach(i => i.removeAttribute("aria-invalid"));
-    if (!val("equipo")){
-      form.elements.equipo.setAttribute("aria-invalid", "true");
-      form.elements.equipo.focus();
-      return "FALTA EL NOMBRE DEL EQUIPO.";
-    }
-    const correo = val("correo");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)){
-      form.elements.correo.setAttribute("aria-invalid", "true");
-      form.elements.correo.focus();
-      return "EL CORREO DE CONTACTO NO ES VÁLIDO.";
-    }
-    // No se aceptan equipos incompletos: los tres nombres son obligatorios.
+    if (!val("equipo")) return falla("equipo", "FALTA EL NOMBRE DEL EQUIPO.");
+    const curps = [], correos = [];
     for (let i = 1; i <= INTEGRANTES; i++){
-      if (!val("nombre" + i)){
-        form.elements["nombre" + i].setAttribute("aria-invalid", "true");
-        form.elements["nombre" + i].focus();
-        return `FALTA EL NOMBRE DEL INTEGRANTE 0${i}. EL EQUIPO DEBE IR COMPLETO.`;
-      }
+      const q = `INTEGRANTE 0${i}:`;
+      if (val("nombre" + i).split(/\s+/).filter(Boolean).length < 2)
+        return falla("nombre" + i, `${q} ESCRIBE EL NOMBRE COMPLETO.`);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val("correo" + i)))
+        return falla("correo" + i, `${q} EL CORREO NO ES VÁLIDO.`);
+      const curp = limpiaCurp(val("curp" + i));
+      if (!curpValida(curp)) return falla("curp" + i, `${q} LA CURP NO ES VÁLIDA. REVÍSALA LETRA POR LETRA.`);
+      const edad = Number(val("edad" + i));
+      if (!val("edad" + i) || !Number.isInteger(edad) || edad < EDAD.min || edad > EDAD.max)
+        return falla("edad" + i, `${q} LA EDAD DEBE IR DE ${EDAD.min} A ${EDAD.max} AÑOS.`);
+      if (Math.abs(edadDe(curp) - edad) > 1)
+        return falla("edad" + i, `${q} LA EDAD NO COINCIDE CON LA CURP.`);
+      if (!limpiaTel(val("tel" + i)))
+        return falla("tel" + i, `${q} EL TELÉFONO DEBE TENER 10 DÍGITOS.`);
+      if (curps.includes(curp)) return falla("curp" + i, `${q} ESA CURP YA LA PUSISTE EN OTRO INTEGRANTE.`);
+      if (correos.includes(val("correo" + i).toLowerCase()))
+        return falla("correo" + i, `${q} ESE CORREO YA LO PUSISTE EN OTRO INTEGRANTE.`);
+      curps.push(curp); correos.push(val("correo" + i).toLowerCase());
     }
-    // Del teléfono basta el del líder: es a quien se le escribe.
-    const lider = +(form.elements.lider.value || 1);
-    if (!val("tel" + lider)){
-      form.elements["tel" + lider].setAttribute("aria-invalid", "true");
-      form.elements["tel" + lider].focus();
-      return "FALTA EL TELÉFONO DEL LÍDER.";
-    }
+    if (!form.elements.privacidad.checked)
+      return falla("privacidad", "FALTA ACEPTAR EL AVISO DE PRIVACIDAD.");
+    if (hayMenores() && !form.elements.tutor.checked)
+      return falla("tutor", "HAY MENORES DE EDAD: FALTA CONFIRMAR LA AUTORIZACIÓN DE SU TUTOR.");
     const firma = form.elements.consiento;
-    if (firma && !firma.checked){
-      firma.setAttribute("aria-invalid", "true");
-      firma.focus();
-      return "FALTA FIRMAR EL CONSENTIMIENTO.";
-    }
+    if (firma && !firma.checked) return falla("consiento", "FALTA FIRMAR EL CONSENTIMIENTO.");
     return null;
   }
 
+  // La ficha del correo de respaldo. La CURP no va: un correo viaja por
+  // muchos servidores. Se pide después, al confirmar.
   function ficha(){
-    const lider = +(form.elements.lider.value || 1);
+    const lider = +(form.elements.lider?.value || 1);
     const filas = [];
     for (let i = 1; i <= INTEGRANTES; i++){
-      const n = val("nombre" + i);
-      const t = val("tel" + i) || "sin teléfono";
-      filas.push(`  0${i} ${i === lider ? "[LÍDER]" : "       "} ${n} — ${t}`);
+      filas.push(`  0${i} ${i === lider ? "[LÍDER]" : "       "} ${val("nombre" + i)} — ${val("edad" + i)} años — ${val("tel" + i)} — ${val("correo" + i)}`
+        + (val("escuela" + i) ? `\n             ${val("escuela" + i)}` : ""));
     }
     return [
       "REGISTRO HACK(ME)THON 2.0",
       "=========================",
       `EQUIPO ......... ${val("equipo")}`,
-      `CORREO ......... ${val("correo")}`,
       "",
       "INTEGRANTES:",
       ...filas,
       "",
+      "(La CURP no va en este correo: nos la pasan cuando les confirmemos.)",
+      `Aceptamos el aviso de privacidad.${hayMenores() ? " Los menores tienen autorización de su tutor." : ""}`,
+      "",
       `MARCA (${N}x${N}, 0=apagado 1=magenta 2=violeta 3=brillo 4=clorofila):`,
       lienzo.join(""),
-      "",
-      `EVENTO ......... ${EVENTO.fecha}, ${EVENTO.duracion}`,
-      `SEDE ........... ${EVENTO.sede}`,
     ].join("\n");
   }
 
@@ -782,19 +893,23 @@ const Monitor = (function monitor(){
   const boton = form.querySelector('button[type="submit"]');
 
   function paquete(){
-    const lider = +(form.elements.lider.value || 1);
+    const lider = +(form.elements.lider?.value || 1);
     const integrantes = [];
     for (let i = 1; i <= INTEGRANTES; i++){
-      integrantes.push({ nombre: val("nombre" + i), telefono: val("tel" + i) });
+      integrantes.push({
+        nombre: val("nombre" + i), correo: val("correo" + i), curp: limpiaCurp(val("curp" + i)),
+        escuela: val("escuela" + i), edad: Number(val("edad" + i)), telefono: val("tel" + i),
+      });
     }
     return {
-      equipo: val("equipo"), correo: val("correo"), lider, integrantes,
+      equipo: val("equipo"), lider, integrantes,
+      privacidad: form.elements.privacidad.checked, tutor: !!form.elements.tutor?.checked,
       emblema: lienzo.join(""), empresa: val("empresa"),
     };
   }
 
   function bloquea(){
-    form.querySelectorAll("input, .grid button, #b-copy, #b-sim, #b-rnd, #b-sem, #b-clr, .sw")
+    form.querySelectorAll("input, .grid button, #b-sim, #b-rnd, #b-sem, #b-clr, .sw")
         .forEach(el => { el.disabled = true; });
     boton.disabled = true;
     // El PNG se deja vivo: el emblema es suyo y se lo pueden llevar.
@@ -829,7 +944,7 @@ const Monitor = (function monitor(){
 
       if (r.ok){
         bloquea();
-        avisa(`REGISTRO ACEPTADO. FOLIO ${datos.folio}. TE ESCRIBIMOS AL CORREO DEL EQUIPO.`, false);
+        avisa(`REGISTRO ACEPTADO. FOLIO ${datos.folio}. LE ESCRIBIMOS AL CORREO DEL LÍDER.`, false);
         pintaCupo(datos.quedan);
         return;
       }
@@ -848,17 +963,6 @@ const Monitor = (function monitor(){
     }
   });
 
-  document.getElementById("b-copy").addEventListener("click", async () => {
-    const error = revisa();
-    if (error) return avisa(error, true);
-    try {
-      await navigator.clipboard.writeText(ficha());
-      avisa("FICHA COPIADA AL PORTAPAPELES.", false);
-    } catch {
-      avisa("EL NAVEGADOR NO DEJÓ COPIAR. USA ENVIAR REGISTRO.", true);
-    }
-  });
-
   /* Lugares restantes. Si no hay API se queda callado: la portada
      funciona igual sin este dato. */
   const spanQuedan = document.getElementById("quedan");
@@ -869,6 +973,10 @@ const Monitor = (function monitor(){
   }
   ESTADO
     .then(d => {
+      if (d && tamanoValido(d.tamano)){
+        try { localStorage.setItem("hmt2-tamano", String(d.tamano)); } catch {}
+        if (d.tamano !== INTEGRANTES) armaCrew(d.tamano);
+      }
       if (!d || d.quedan == null) return;
       pintaCupo(d.quedan);
       if (d.quedan === 0){

@@ -1191,13 +1191,26 @@ input:focus-visible{ outline:2px solid var(--uv); outline-offset:1px; }
 input[aria-invalid="true"]{ border-bottom-color:var(--magenta); background:rgba(250,57,186,.16); }
 
 /* ── integrantes ────────────────────────────────────────── */
-.crew{ display:grid; gap:6px; }
-.crew__head, .crew__row{
-  display:grid; grid-template-columns:9ch minmax(0,1.35fr) minmax(0,1fr);
-  gap:0 1.5ch; align-items:center; margin:0;
+/* Una ficha por persona: cabecera con el número y el líder, y una
+   rejilla de seis campos que en el teléfono se vuelve una columna. */
+.crew{ display:grid; gap:14px; }
+.crew__ficha{ border:1px solid var(--rule); padding:10px 12px 12px; margin:0; }
+.crew__top{ display:flex; align-items:center; gap:2ch; margin-bottom:8px; }
+.crew__num{ font-size:12px; letter-spacing:.14em; color:var(--phos); }
+.crew__campos{
+  display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:10px 1.5ch;
 }
-.crew__head{ font-size:10.5px; letter-spacing:.14em; color:var(--phos-dim); padding-bottom:2px; }
-.crew__row{ padding:3px 0; }
+.crew__campo{ display:flex; flex-direction:column; gap:3px; grid-column:span 2; min-width:0; }
+.crew__campo--ancho{ grid-column:span 3; }
+.crew__campo > span{ font-size:10.5px; letter-spacing:.12em; color:var(--phos-dim); }
+.crew__campo input{ width:100%; box-sizing:border-box; }
+input[name^="curp"]{ text-transform:uppercase; }
+input[type="number"]{
+  font-family:var(--f-mono); font-size:14px; color:var(--phos-hi);
+  background:rgba(250,57,186,.07); border:0; border-bottom:1px solid var(--phos-dim);
+  padding:7px 9px; caret-color:var(--magenta); -moz-appearance:textfield;
+}
+input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; }
 .crew__lead{ display:flex; align-items:center; gap:.8ch; cursor:pointer; }
 .crew__lead input{
   appearance:none; -webkit-appearance:none; margin:0;
@@ -1208,11 +1221,24 @@ input[aria-invalid="true"]{ border-bottom-color:var(--magenta); background:rgba(
 .crew__lead input:checked{ color:var(--phos-hi); text-shadow:var(--bloom); }
 .crew__lead input:checked::before{ content:"[X]"; }
 .crew__lead span{ font-size:11px; letter-spacing:.1em; color:var(--phos-dim); }
-.crew__n{ font-size:11px; color:var(--phos-dim); }
 @media (max-width:640px){
-  .crew__head{ display:none; }
-  .crew__row{ grid-template-columns:1fr; gap:5px; border-bottom:1px solid var(--rule); padding-bottom:12px; }
+  .crew__campos{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .crew__campo, .crew__campo--ancho{ grid-column:1 / -1; }
+  .crew__campo--medio{ grid-column:span 1; }
 }
+
+/* ── aviso de privacidad en el formulario ───────────────── */
+.privado{
+  font-family:var(--f-sans); font-size:14px; color:var(--phos-soft);
+  max-width:64ch; margin:0 0 14px;
+}
+.privado p{ margin:0 0 .7em; }
+.privado__clave{
+  font-family:var(--f-mono); font-size:13px; letter-spacing:.08em;
+  color:var(--clorofila-hi); border-left:3px solid var(--clorofila); padding-left:1.2ch;
+}
+.privado a{ color:var(--blue-hi); font-family:var(--f-mono); font-size:12px; letter-spacing:.08em; }
+.fs--consent .consent + .consent{ margin-top:12px; }
 
 /* ── editor de emblema ──────────────────────────────────── */
 .emblem{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:clamp(16px,3vw,30px); align-items:start; }
@@ -1449,3 +1475,4 @@ html.juego-completo .gabinete{ display:none; }
 html.juego-completo main,
 html.juego-completo .h2,
 html.juego-completo .banner__blk{ animation:none; transform:none; }
+.consent[hidden]{ display:none; }

@@ -32,6 +32,10 @@
   .eq__crew b{ color:var(--phos-hi); font-weight:500; }
   .eq__crew .tag{ color:var(--screen); background:var(--phos); padding:0 6px; font-size:10px; letter-spacing:.1em; }
   .eq__crew .tel{ margin-left:auto; color:var(--phos-dim); font-variant-numeric:tabular-nums; }
+  .eq__crew li{ flex-wrap:wrap; }
+  .eq__crew .det{ flex-basis:100%; font-size:11.5px; color:var(--phos-dim); padding-left:.2ch; }
+  .eq__crew .det a{ color:var(--blue-hi); }
+  .eq__meta .marca{ font-size:11px; color:var(--phos-dim); }
 
   .vacio{ border:1px dashed var(--rule); padding:36px; text-align:center; color:var(--phos-dim); font-size:13px; }
 
@@ -133,6 +137,15 @@
         <input id="f-cupo" type="number" min="0" max="500" step="1" inputmode="numeric">
         <button class="key key--sm" id="b-cupo" type="button">GUARDAR</button>
         <span class="nota" id="cupo-msg">0 = sin límite.</span>
+      </p>
+
+      <!-- Integrantes por equipo: lo lee el formulario de la portada. Los
+           equipos ya registrados se quedan como están. -->
+      <p class="ajuste">
+        <label for="f-tamano">INTEGRANTES POR EQUIPO</label>
+        <input id="f-tamano" type="number" min="1" max="6" step="1" inputmode="numeric">
+        <button class="key key--sm" id="b-tamano" type="button">GUARDAR</button>
+        <span class="nota" id="tamano-msg">De 1 a 6. No cambia a los equipos ya registrados.</span>
       </p>
 
       <!-- Modo próximamente: la portada solo enseña la primera pantalla
@@ -294,6 +307,7 @@ async function cambiaModo(){
 function pinta(d){
   datos = d;
   $("#f-cupo").value = d.cupo;
+  if (d.tamano) $("#f-tamano").value = d.tamano;
   pintaModo(d.proximamente);
   resumen(d);
 
@@ -318,7 +332,11 @@ function pinta(d){
     info.innerHTML =
       `<p class="eq__id">${r.folio} &middot; ${fecha}</p>` +
       `<p class="eq__name"></p>` +
-      `<p class="eq__meta"><a href="mailto:"></a></p>`;
+      `<p class="eq__meta"><a href="mailto:"></a></p>` +
+      `<p class="eq__meta marca"></p>`;
+    info.querySelector(".marca").textContent =
+      (r.privacidad ? "AVISO DE PRIVACIDAD ACEPTADO" : "SIN ACEPTACIÓN DEL AVISO (REGISTRO ANTIGUO)") +
+      (r.tutor ? " · CON MENORES: AUTORIZACIÓN DE TUTOR CONFIRMADA" : "");
     info.querySelector(".eq__name").textContent = r.equipo;
     const a = info.querySelector("a");
     a.textContent = r.correo;
@@ -340,6 +358,16 @@ function pinta(d){
       const tel = document.createElement("span");
       tel.className = "tel"; tel.textContent = i.telefono || "—";
       li.appendChild(tel);
+      // los datos de la 2.0 (los registros viejos solo traen nombre y teléfono)
+      if (i.curp){
+        const det = document.createElement("span");
+        det.className = "det";
+        det.append(`${i.edad} AÑOS${i.edad < 18 ? " (MENOR)" : ""} · ${i.curp}${i.escuela ? " · " + i.escuela : ""} · `);
+        const c = document.createElement("a");
+        c.href = "mailto:" + i.correo; c.textContent = i.correo;
+        det.appendChild(c);
+        li.appendChild(det);
+      }
       ul.appendChild(li);
     });
     fila.appendChild(ul);
@@ -445,6 +473,32 @@ async function guardaCupo(){
       ? `Cupo en ${d.cupo}. Ya hay ${d.registrados} equipos: el registro queda CERRADO.`
       : d.cupo > 0 ? `Cupo en ${d.cupo}. Quedan ${d.quedan} lugares.`
                    : "Sin límite de cupo: el registro no se cierra por cupo.", "ok");
+  } catch (e) {
+    di("No se pudo guardar: " + e.message, "err");
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+/* Integrantes por equipo. Igual que el cupo: va a la base y aplica ya. */
+async function guardaTamano(){
+  const campo = $("#f-tamano"), nota = $("#tamano-msg"), boton = $("#b-tamano");
+  const n = Number(campo.value);
+  const di = (t, clase) => { nota.textContent = t; nota.className = "nota " + (clase || ""); };
+  if (!Number.isInteger(n) || n < 1 || n > 6) return di("Tiene que ser un entero de 1 a 6.", "err");
+  boton.disabled = true;
+  di("Guardando...");
+  try {
+    const resp = await fetch(API + "/ajustes", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + token() },
+      body: JSON.stringify({ tamano: n }),
+    });
+    const d = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(d.mensaje || ("HTTP " + resp.status));
+    if (datos) datos.tamano = d.tamano;
+    campo.value = d.tamano;
+    di(`Equipos de ${d.tamano}. La portada lo nota en unos 15 segundos (al recargar).`, "ok");
   } catch (e) {
     di("No se pudo guardar: " + e.message, "err");
   } finally {
@@ -564,7 +618,7 @@ function zonaQuitar(f, tr){
 $("#b-tor").addEventListener("click", cargaTorneo);
 $("#b-tor-csv").addEventListener("click", () => {
   if (!torneo) return;
-  const esc = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const esc = v => '"' + String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""') + '"';
   const filas = [["lugar","alias","correo","puntos","logrado","partida"]];
   torneo.filas.forEach((f, i) => filas.push([i + 1, f.alias, f.correo, f.puntos, f.logrado, f.partida].map(esc)));
   const blob = new Blob(["\ufeff" + filas.map(f => f.join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
@@ -606,6 +660,8 @@ $("#f-puerta").addEventListener("submit", e => {
 $("#b-refresh").addEventListener("click", abre);
 $("#b-cupo").addEventListener("click", guardaCupo);
 $("#b-modo").addEventListener("click", cambiaModo);
+$("#b-tamano").addEventListener("click", guardaTamano);
+$("#f-tamano").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); guardaTamano(); } });
 $("#f-cupo").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); guardaCupo(); } });
 $("#b-salir").addEventListener("click", () => {
   sessionStorage.removeItem("hmt_token");
@@ -614,11 +670,14 @@ $("#b-salir").addEventListener("click", () => {
 
 $("#b-csv").addEventListener("click", () => {
   if (!datos) return;
-  const esc = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
-  const filas = [["folio","equipo","correo","registrado","integrante","telefono","lider","emblema"]];
+  // Un apóstrofo delante de = + - @ evita que Excel lo tome como fórmula.
+  const esc = v => '"' + String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""') + '"';
+  const filas = [["folio","equipo","correo_contacto","registrado","privacidad","tutor",
+                  "integrante","correo","curp","edad","escuela","telefono","lider","emblema"]];
   for (const r of datos.registros){
     r.integrantes.forEach((i, n) => {
-      filas.push([r.folio, r.equipo, r.correo, r.creado, i.nombre, i.telefono,
+      filas.push([r.folio, r.equipo, r.correo, r.creado, r.privacidad ? "si" : "no", r.tutor ? "si" : "no",
+                  i.nombre, i.correo, i.curp, i.edad, i.escuela, i.telefono,
                   n + 1 === r.lider ? "si" : "no", n === 0 ? r.emblema : ""].map(esc));
     });
   }
