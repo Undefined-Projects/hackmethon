@@ -103,14 +103,30 @@
     return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${OPACIDAD})`;
   })();
 
-  /* El mundo mide siempre 300 × 110 — así la partida es la misma en
-     cualquier pantalla — y el canvas se estira a lo ancho del cuadro. */
-  cv.width = W; cv.height = H;
+  /* El mundo mide siempre 300 × 110 —así la partida es la misma en
+     cualquier pantalla—, pero el canvas se dibuja a la resolución real de
+     la pantalla (K pixeles por unidad del mundo). Los personajes siguen
+     viéndose de pixel grueso, pero el mundo puede avanzar de un pixel de
+     pantalla a la vez: con un canvas de 300 se movía a saltos de ~3 px y
+     a ciertas velocidades iba 1, 2, 1, 2… ("se come espacios"). */
+  let K = 1;
+  function resolucion(cssAncho){
+    const dpr = window.devicePixelRatio || 1;
+    const nuevo = Math.max(1, Math.min(ligero ? 3 : 6, Math.round(cssAncho * dpr / W)));
+    if (nuevo === K && cv.width === W * K) return;
+    K = nuevo;
+    cv.width = W * K; cv.height = H * K;
+    ctx.imageSmoothingEnabled = false;          // se reinicia al cambiar el tamaño
+  }
+  // a pixel de pantalla, no a unidad del mundo
+  const R = v => Math.round(v * K) / K;
+
   function medir(){
     if (completo){ acomodaCompleto(); return; }
     cv.style.width = "";
     const css = cv.parentElement.clientWidth || W * 2;
     cv.style.height = Math.round(H * css / W) + "px";
+    resolucion(css);
     dibuja();
   }
 
@@ -542,6 +558,7 @@
 
   /* ── dibujo ────────────────────────────────────────────────── */
   function dibuja(){
+    ctx.setTransform(K, 0, 0, K, 0, 0);
     ctx.clearRect(0, 0, W, H);
     // el velo va antes del espejo: mientras la escena gira, el fondo no se encoge
     ctx.fillStyle = velo;
@@ -554,10 +571,15 @@
       ctx.translate(-W / 2, -H / 2);
     }
 
+    // cuánto adelantar el dibujo: solo mientras se juega
+    const ad = estado === "jugando" ? adelanto : 0;
+    const dx = -e.velocidad * ad;
+    const fondo = e.fondoX + (estado === "jugando" ? e.velocidad * ad : 0);
+
     // cuadrícula de papel de ECG, desplazándose
     ctx.fillStyle = "rgba(79,134,238,.12)";
-    const o = Math.floor(e.fondoX) % 10;
-    for (let x = -o; x < W; x += 10) ctx.fillRect(x, 0, 1, SUELO);
+    const o = fondo % 10;
+    for (let x = -o; x < W; x += 10) ctx.fillRect(R(x), 0, 1, SUELO);
     for (let y = 5; y < SUELO; y += 10) ctx.fillRect(0, y, W, 1);
 
     // durante el aviso de la furia, la pantalla late en rojo
@@ -566,19 +588,21 @@
       ctx.fillRect(-4, -4, W + 8, H + 8);
     }
 
-    for (const v of e.valvulas) valvula(v);
+    for (const v of e.valvulas) valvula(v, dx);
     dibujaGusano();
     ctx.fillStyle = "rgba(255,51,85,.35)";
     for (const z of e.virus){
-      ctx.fillRect(Math.round(z.x + 3), Math.round(z.y), 3, 1);       // estela
-      ctx.drawImage(spriteVirus(Math.floor(z.t / .15) % 2), Math.round(z.x - 2), Math.round(z.y - 2));
+      const zx = z.x + z.vx * ad, zy = z.y + z.vy * ad;
+      ctx.fillRect(R(zx + 3), R(zy), 3, 1);       // estela
+      ctx.drawImage(spriteVirus(Math.floor(z.t / .15) % 2), R(zx - 2), R(zy - 2));
     }
 
     // suelo: una raíz que corre con brotes cada tanto
     ctx.fillStyle = C.verdeDim; ctx.fillRect(0, SUELO, W, 1);
     ctx.fillStyle = C.cuerpo;   ctx.fillRect(0, SUELO + 1, W, H - SUELO - 1);
-    const s = Math.floor(e.fondoX) % 13;
-    for (let x = -s; x < W; x += 13){
+    const s = fondo % 13;
+    for (let x0 = -s; x0 < W; x0 += 13){
+      const x = R(x0);
       ctx.fillStyle = C.verde;
       ctx.fillRect(x, SUELO - 1, 1, 1); ctx.fillRect(x + 1, SUELO - 2, 1, 1);
       ctx.fillStyle = C.dim; ctx.fillRect(x + 6, SUELO + 1, 1, 1);
@@ -588,20 +612,20 @@
     if (rastro.length > 1){
       ctx.lineJoin = "round";
       ctx.strokeStyle = estado === "paro" ? C.sangre : C.phos;
-      if (!ligero){ ctx.globalAlpha = .25; ctx.lineWidth = 3; trazaRastro(); }
-      ctx.globalAlpha = .9;  ctx.lineWidth = 1; trazaRastro();
+      if (!ligero){ ctx.globalAlpha = .25; ctx.lineWidth = 3; trazaRastro(dx); }
+      ctx.globalAlpha = .9;  ctx.lineWidth = 1; trazaRastro(dx);
       ctx.globalAlpha = 1;
     }
 
     dibujaPruebaMundo();
 
     // el pulso
-    const y = plano ? plano.y : e.pulso.y;
-    ctx.drawImage(spritePulso(estado === "paro", !!pulsoVerde()), Math.round(e.pulso.x - 3), Math.round(y - 3));
+    const y = plano ? plano.y : e.pulso.y + e.pulso.vy * ad;
+    ctx.drawImage(spritePulso(estado === "paro", !!pulsoVerde()), R(e.pulso.x - 3), R(y - 3));
 
     for (const c of chispas){
       ctx.globalAlpha = Math.min(1, c.v * 2);
-      ctx.fillStyle = c.c; ctx.fillRect(Math.round(c.x), Math.round(c.y), 1, 1);
+      ctx.fillStyle = c.c; ctx.fillRect(R(c.x), R(c.y), 1, 1);
     }
     ctx.globalAlpha = 1;
     if (destello > 0){
@@ -612,9 +636,9 @@
     dibujaPrueba();
   }
 
-  function trazaRastro(){
+  function trazaRastro(dx = 0){
     ctx.beginPath();
-    rastro.forEach((r, i) => i ? ctx.lineTo(r.x + .5, r.y + .5) : ctx.moveTo(r.x + .5, r.y + .5));
+    rastro.forEach((r, i) => i ? ctx.lineTo(r.x + dx + .5, r.y + .5) : ctx.moveTo(r.x + dx + .5, r.y + .5));
     ctx.stroke();
   }
 
@@ -622,7 +646,7 @@
     const g = e.gusano;
     const enojado = !!e.furia && estado === "jugando";
     const temblor = n => enojado && !quieto ? Math.round((Math.random() - .5) * n) : 0;
-    const gx = Math.round(g.x - 10) + temblor(3), gy = Math.round(g.y - 12) + temblor(2);
+    const gx = R(g.x - 10) + temblor(3), gy = R(g.y - 12) + temblor(2);
     const cargando = (g.carga > 0 && estado === "jugando") || enojado;
     const parpadeo = cargando && Math.floor((enojado ? e.furia.t : g.carga) * 16) % 2 === 0;
     const tinta = enojado ? (parpadeo ? "furiaLuz" : "furia")
@@ -637,8 +661,8 @@
     }
   }
 
-  function valvula(v){
-    const x = Math.round(v.x), arriba = Math.round(v.centro - v.hueco / 2), abajo = Math.round(v.centro + v.hueco / 2);
+  function valvula(v, dx = 0){
+    const x = R(v.x + dx), arriba = Math.round(v.centro - v.hueco / 2), abajo = Math.round(v.centro + v.hueco / 2);
     for (const [y0, y1, boca] of [[0, arriba, arriba - 3], [abajo, SUELO, abajo]]){
       if (y1 <= y0) continue;
       ctx.fillStyle = C.cuerpo;  ctx.fillRect(x, y0, ANCHO, y1 - y0);
@@ -709,6 +733,11 @@
 
   /* ── el bucle: solo con el juego a la vista ────────────────── */
   let visible = true, corriendo = false, antes = 0, acumulado = 0;
+  /* La física va en pasos de 1/120 s y la pantalla a 60, 90, 120 o 144 Hz:
+     entre un cuadro y otro caben 1 o 2 pasos, desparejo. Para que el
+     movimiento se vea parejo, el dibujo adelanta lo que el mundo avanzó
+     desde el último paso (solo el dibujo: la física no se toca). */
+  let adelanto = 0;
 
   function arranca(){
     if (corriendo || !visible || document.visibilityState !== "visible") return;
@@ -724,6 +753,7 @@
       if (estado === "jugando") pasoJuego(); else pasoAdorno();
       acumulado -= DT;
     }
+    adelanto = acumulado;
     dibuja();
     if (estado === "pausa" || (quieto && estado === "listo") || (estado === "paro" && enParo > 2)){
       corriendo = false; return;
@@ -955,6 +985,7 @@
     const k = Math.max(1, Math.min(aw / W, ah / H));
     cv.style.width  = Math.floor(W * k) + "px";
     cv.style.height = Math.floor(H * k) + "px";
+    resolucion(Math.floor(W * k));
     $("j-gira").hidden = !girado;
     dibuja();
   }
