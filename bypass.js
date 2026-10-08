@@ -37,6 +37,18 @@
    precalculados (un drawImage cada uno), y el bucle solo corre con el
    juego a la vista y la pestaña abierta.
 
+   La prueba del monitor (contra bots): entre la válvula 10 y la 20 el
+   juego pregunta al servidor, válvula por válvula, si ya toca
+   (GET /api/desafio). Solo en la que eligió el servidor —con una llave
+   que aquí no existe— contesta que sí y con qué prueba: latir 3 veces
+   rápido, 2 seguidas, o latir cuando el pulso se ponga verde. Se dibuja
+   dentro del canvas (no es texto de la página) y solo las partidas que
+   la pasan entran a la tabla. Un bot no puede llevar la partida ya
+   calculada: tiene que ver y reaccionar en vivo.
+
+   Repeticiones: desde el panel (VER) se abre la portada con
+   #repeticion=ID y aquí se reproduce esa partida tal cual.
+
    Pantalla completa (pensada para teléfonos): un botón la pide junto
    con la orientación horizontal. Mientras se acomoda hay una carga de
    verdad —sprites, audio, partida del servidor y una medición de qué
@@ -131,8 +143,8 @@
     cache.set(clave, c);
     return c;
   }
-  const spritePulso = muerto => sprite("pulso" + muerto, SPRITE,
-    { X: muerto ? C.sangre : C.phos, H: C.hi });
+  const spritePulso = (muerto, verde) => sprite("pulso" + muerto + verde, SPRITE,
+    { X: muerto ? C.sangre : verde ? C.verde : C.phos, H: verde ? C.verdeHi : C.hi });
   const spriteVirus = f => sprite("virus" + f, VIRUS[f], { X: C.sangre, O: C.hi });
   // Todas las tintas posibles del gusano, para precalentar en la carga.
   const TINTAS_GUSANO = {
@@ -144,7 +156,7 @@
   };
   const spriteGusano = (f, tinta) => sprite("gusano" + f + tinta, GUSANO[f], TINTAS_GUSANO[tinta], 2);
   function precalienta(){
-    [true, false].forEach(spritePulso);
+    spritePulso(true, false); spritePulso(false, false); spritePulso(false, true);
     [0, 1].forEach(spriteVirus);
     for (const t in TINTAS_GUSANO) [0, 1].forEach(f => spriteGusano(f, t));
   }
@@ -152,6 +164,9 @@
   /* ── estado ────────────────────────────────────────────────── */
   let estado = "listo";     // listo · jugando · paro · pausa
   let completo = false;     // jugando en pantalla completa
+  let prueba = null;        // { tipo, verde, aparicion, ini, fin, estado: activa|ok|falla, t }
+  let preguntadas = new Set();
+  let repeticion = null;    // { alias, puntos, latidos, i } al ver una partida desde el panel
   let ligero = false;       // teléfono lento: sin partículas ni brillo
   let e = M.crea(1);        // estado del motor (en "listo" solo se usa para dibujar)
   let reloj = 0;            // tiempo cosmético, para animaciones que no son física
@@ -189,6 +204,7 @@
     pidePartida();                       // ya va pidiendo la de la siguiente
 
     e = M.crea(partida.semilla);
+    prueba = null; preguntadas = new Set();
     latidos = []; rastro = []; chispas = [];
     destello = sacudida = 0; plano = null;
     espejo = espejoDesde = espejoHacia = 1; giroT = 1;     // cada partida empieza derecha
@@ -203,10 +219,20 @@
   // un paso del motor, con lo que el dibujo necesita alrededor
   let cargaba = false;
   function pasoJuego(){
-    const latio = latePendiente;
-    latePendiente = false;
+    let latio;
+    if (repeticion){
+      // en una repetición los latidos vienen de la partida guardada
+      latio = false;
+      while (repeticion.i < repeticion.latidos.length && repeticion.latidos[repeticion.i] === e.paso + 1){
+        latio = true; repeticion.i++;
+      }
+    } else {
+      latio = latePendiente;
+      latePendiente = false;
+    }
     if (latio){ latidos.push(e.paso + 1); suena("latido"); }
     const eventos = M.avanza(e, latio);
+    revisaPrueba();
     // el zumbido de aviso suena cuando el gusano empieza a cargar
     const carga = e.gusano.carga > 0 && !e.furia;
     if (carga && !cargaba) suena("carga");
@@ -220,6 +246,7 @@
     switch (ev.tipo){
       case "punto":
         ptsEl.textContent = pad3(e.puntos);
+        preguntaPrueba(e.puntos);
         if (e.puntos % GIRO === 0) volteaMundo();
         else if (e.puntos % FURIA.cada) suena("punto");      // en la décima suena la furia
         break;
@@ -242,6 +269,67 @@
         muere(ev.motivo); break;
     }
   }
+  /* ── la prueba del monitor ─────────────────────────────────── */
+  function preguntaPrueba(n){
+    if (repeticion || prueba || !partida?.oficial || !RUTA) return;
+    if (n < M.PRUEBA.desde || n > M.PRUEBA.hasta || preguntadas.has(n)) return;
+    preguntadas.add(n);
+    const de = partida;                    // si se reinicia, la respuesta ya no aplica
+    fetch(`${RUTA}/desafio?token=${encodeURIComponent(de.token)}&p=${n}`, { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.ahora && de === partida && estado === "jugando" && !prueba) activaPrueba(d.tipo, d.verde, e.paso); })
+      .catch(() => {});
+  }
+  function activaPrueba(tipo, verde, aparicion){
+    const [ini, fin] = M.ventanaPrueba(tipo, verde, aparicion);
+    prueba = { tipo, verde, aparicion, ini, fin, estado: "activa", t: 0 };
+    suena("alarma");
+  }
+  function revisaPrueba(){
+    if (repeticion && repeticion.prueba && !prueba && e.paso >= repeticion.aparicion)
+      activaPrueba(repeticion.prueba.tipo, repeticion.prueba.verde, repeticion.aparicion);
+    if (!prueba || prueba.estado !== "activa") return;
+    if (M.cumplePrueba(prueba.tipo, prueba.verde, prueba.aparicion, latidos)){
+      prueba.estado = "ok"; prueba.t = 0; suena("registro");
+    } else if (e.paso > prueba.fin){
+      prueba.estado = "falla"; prueba.t = 0; suena("alarma");
+    }
+  }
+  const TEXTO_PRUEBA = {
+    rapido: "LATE 3 VECES RAPIDO",
+    doble:  "LATE 2 VECES SEGUIDAS",
+    verde:  "LATE CUANDO SE PONGA VERDE",
+  };
+  // Se dibuja encima de todo y sin el espejo del volteo: siempre se lee.
+  function dibujaPrueba(){
+    if (!prueba) return;
+    if (prueba.estado !== "activa" && prueba.t > 1.6) return;
+    const x = 40, y = 4, w = W - 80, h = 25;
+    const color = prueba.estado === "ok" ? C.verde : prueba.estado === "falla" ? C.sangre
+                : (Math.floor(reloj * 6) % 2 ? C.phos : C.hi);
+    ctx.fillStyle = "rgba(10,7,12,.88)";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1);
+    ctx.fillRect(x, y, 1, h); ctx.fillRect(x + w - 1, y, 1, h);
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.font = "8px Silkscreen, monospace";
+    const linea1 = prueba.estado === "ok" ? "PRUEBA SUPERADA" : prueba.estado === "falla" ? "PRUEBA FALLIDA" : "PRUEBA DEL MONITOR";
+    const linea2 = prueba.estado === "ok" ? "TU PARTIDA PUEDE ENTRAR A LA TABLA"
+                 : prueba.estado === "falla" ? "ESTA PARTIDA NO ENTRA A LA TABLA"
+                 : TEXTO_PRUEBA[prueba.tipo];
+    ctx.fillText(linea1, W / 2, y + 4);
+    ctx.fillStyle = C.hi;
+    ctx.fillText(linea2, W / 2, y + 14);
+    if (prueba.estado === "activa"){
+      // lo que queda de tiempo
+      const resta = Math.max(0, Math.min(1, (prueba.fin - e.paso) / (prueba.fin - prueba.aparicion)));
+      ctx.fillStyle = color;
+      ctx.fillRect(x + 2, y + h - 3, Math.round((w - 4) * resta), 1);
+    }
+  }
+  const pulsoVerde = () => prueba && prueba.tipo === "verde" && prueba.estado === "activa" && e.paso >= prueba.ini;
+
   function terminaFuria(){
     delete caja.dataset.furia;
     if (avisoFuria) avisoFuria.hidden = true;
@@ -270,6 +358,7 @@
 
   function cosmeticos(dt){
     reloj += dt;
+    if (prueba && prueba.estado !== "activa") prueba.t += dt;
     if (giroT < 1){
       giroT = Math.min(1, giroT + dt / GIRO_DUR);
       const k = giroT < .5 ? 2 * giroT * giroT : 1 - 2 * (1 - giroT) ** 2;   // entra y sale suave
@@ -330,6 +419,15 @@
                      v: .5 + Math.random() * .5, c: i % 3 ? C.phos : C.hi });
 
     const puntos = e.puntos;
+    if (repeticion){
+      setTimeout(() => {
+        if (estado !== "paro") return;
+        const p = repeticion.prueba ? (M.cumplePrueba(repeticion.prueba.tipo, repeticion.prueba.verde, repeticion.aparicion, repeticion.latidos)
+                                       ? " Prueba del monitor: superada." : " Prueba del monitor: NO superada.") : "";
+        muestra("FIN DE LA REPETICIÓN", `${repeticion.alias} · ${pad3(puntos)} válvulas.${p}`, "TOCA PARA VERLA DE NUEVO");
+      }, 450);
+      return;
+    }
     let nuevo = false;
     if (puntos > record){
       record = puntos; nuevo = true;
@@ -337,15 +435,20 @@
       setTimeout(() => suena("record"), 700);
       guarda("hmt2-bypass", String(record));
     }
-    // la partida oficial queda lista para registrarse
-    if (partida.oficial && puntos > 0 && torneoAbierto){
-      envio = { token: partida.token, latidos: latidos.slice(), pasos: e.paso, puntos };
+    // la partida oficial queda lista para registrarse, si pasó la prueba
+    const paso = prueba?.estado === "ok";
+    if (partida.oficial && puntos > 0 && torneoAbierto && paso){
+      envio = { token: partida.token, latidos: latidos.slice(), pasos: e.paso, puntos,
+                prueba: { aparicion: prueba.aparicion } };
       abreFormulario();
     }
     setTimeout(() => {
       if (estado !== "paro") return;
       const fin = `${pad3(puntos)} válvulas cruzadas.${nuevo ? " Nuevo récord." : ""}`;
-      const nota = partida.oficial ? "" : " (Sin conexión: esta partida no cuenta para la tabla.)";
+      const nota = !partida.oficial ? " (Sin conexión: esta partida no cuenta para la tabla.)"
+        : paso ? " Prueba del monitor superada: puedes registrarla."
+        : prueba?.estado === "falla" || prueba?.estado === "activa" ? " No pasaste la prueba del monitor: esta partida no entra a la tabla."
+        : ` Para entrar a la tabla, llega a la prueba del monitor (entre la válvula ${M.PRUEBA.desde} y la ${M.PRUEBA.hasta}) y pásala.`;
       const porque = motivo === "furia" ? " La furia del gusano te alcanzó."
                    : motivo === "virus" ? " Un virus del gusano alcanzó el pulso."
                    : " El reflejo ya se armó.";
@@ -409,7 +512,7 @@
 
     // el pulso
     const y = plano ? plano.y : e.pulso.y;
-    ctx.drawImage(spritePulso(estado === "paro"), Math.round(e.pulso.x - 3), Math.round(y - 3));
+    ctx.drawImage(spritePulso(estado === "paro", !!pulsoVerde()), Math.round(e.pulso.x - 3), Math.round(y - 3));
 
     for (const c of chispas){
       ctx.globalAlpha = Math.min(1, c.v * 2);
@@ -421,6 +524,7 @@
       ctx.fillRect(-4, -4, W + 8, H + 8);
     }
     ctx.restore();
+    dibujaPrueba();
   }
 
   function trazaRastro(){
@@ -483,6 +587,11 @@
 
   /* ── controles ─────────────────────────────────────────────── */
   function late(){
+    if (repeticion){
+      if (estado === "pausa"){ estado = "jugando"; esconde(); arranca(); }
+      else if (estado === "listo" || (estado === "paro" && enParo >= .5)) empiezaRepeticion();
+      return;
+    }
     if (estado === "listo") empieza();
     else if (estado === "pausa"){ estado = "jugando"; esconde(); }
     else if (estado === "paro"){
@@ -671,7 +780,7 @@
       const r = await fetch(RUTA + "/puntaje", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...envio, alias, correo, empresa: form.empresa.value }),
+        body: JSON.stringify({ ...envio, alias, correo, empresa: form.empresa.value }),     // incluye prueba.aparicion
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok){
@@ -697,6 +806,44 @@
   if (!RUTA){
     cierreEl.textContent = "· SIN CONEXIÓN";
   }
+
+  /* ════════════════════════════════════════════════════════
+     REPETICIONES (desde el panel)
+     El panel abre la portada con #repeticion=ID. Con la sesión del panel
+     abierta en esta pestaña, se pide la partida y se reproduce.
+     ════════════════════════════════════════════════════════ */
+  function empiezaRepeticion(){
+    e = M.crea(repeticion.semilla);
+    repeticion.i = 0;
+    prueba = null;
+    latidos = []; rastro = []; chispas = [];
+    destello = sacudida = 0; plano = null; enParo = 0;
+    espejo = espejoDesde = espejoHacia = 1; giroT = 1;
+    escondeGiro(); terminaFuria();
+    ptsEl.textContent = pad3(0);
+    estado = "jugando";
+    caja.dataset.estado = "jugando";
+    esconde();
+    arranca();
+  }
+  (function abreRepeticion(){
+    const m = location.hash.match(/^#repeticion=([\w-]+)$/);
+    let token = null;
+    try { token = sessionStorage.getItem("hmt_token"); } catch {}
+    if (!m || !token || !RUTA) return;
+    fetch(`${RUTA}/puntajes?repeticion=${m[1]}`, { headers: { authorization: "Bearer " + token }, cache: "no-store" })
+      .then(r => r.json().then(d => ({ ok: r.ok, d })))
+      .then(({ ok, d }) => {
+        if (!ok) throw new Error(d.mensaje || "NO SE PUDO ABRIR LA REPETICIÓN.");
+        repeticion = { alias: d.alias, puntos: d.puntos, semilla: d.semilla >>> 0,
+                       latidos: d.latidos, aparicion: d.aparicion, prueba: d.prueba, i: 0 };
+        caja.dataset.repeticion = "";
+        $("juego-nombre").textContent = `REPETICIÓN \u00B7 ${d.alias} \u00B7 ${pad3(d.puntos)}`;
+        caja.scrollIntoView({ block: "center" });
+        muestra("REPETICIÓN", `La partida de ${d.alias}: ${pad3(d.puntos)} válvulas. Se reproduce tal cual la jugó.`, "TOCA PARA VERLA");
+      })
+      .catch(err => muestra("REPETICIÓN", err.message, "TOCA PARA JUGAR"));
+  })();
 
   /* ════════════════════════════════════════════════════════
      PANTALLA COMPLETA

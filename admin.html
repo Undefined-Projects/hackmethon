@@ -158,6 +158,9 @@
     <div class="panel__body">
       <p class="adm__sum" id="t-sum"></p>
       <p class="fs__hint">
+        Solo entran partidas que pasaron la <b>prueba del monitor</b> (la elige el
+        servidor en secreto y aparece entre la válvula 10 y la 20). Con <b>VER ▸</b>
+        se reproduce la partida tal cual se jugó: un bot se nota.
         Los <b>8 primeros</b> al cierre pasan a la dinámica del día del evento
         (marcados en verde); escríbeles a su correo. Cada puntaje lo contó el
         servidor volviendo a jugar la partida, así que no se puede inventar,
@@ -166,7 +169,7 @@
         sus partidas siguen anotadas y no las puede volver a usar.
       </p>
       <div class="tor-wrap"><table class="tor">
-        <thead><tr><th>#</th><th>ALIAS</th><th>CORREO</th><th>PUNTOS</th><th>LOGRADO</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>ALIAS</th><th>CORREO</th><th>PUNTOS</th><th>LOGRADO</th><th>REPETICIÓN</th><th></th></tr></thead>
         <tbody id="t-cuerpo"></tbody>
       </table></div>
       <p class="cta" style="margin-top:20px">
@@ -463,7 +466,7 @@ async function cargaTorneo(){
       `<span>CIERRE <b>${d.cierre ? fechaCorta(d.cierre) : "SIN FECHA"}</b></span>`;
     cuerpo.textContent = "";
     if (!d.filas.length){
-      cuerpo.innerHTML = '<tr><td colspan="6" class="vacio">NADIE HA REGISTRADO UNA PARTIDA.</td></tr>';
+      cuerpo.innerHTML = '<tr><td colspan="7" class="vacio">NADIE HA REGISTRADO UNA PARTIDA.</td></tr>';
       return;
     }
     d.filas.forEach((f, i) => {
@@ -480,13 +483,18 @@ async function cargaTorneo(){
       c.appendChild(a);
       celda("p", String(f.puntos).padStart(3, "0"));
       celda("f", fechaCorta(f.logrado));
+      // la repetición se ve en la portada, con esta misma sesión
+      const ver = document.createElement("a");
+      ver.href = "index.html#repeticion=" + encodeURIComponent(f.partida);
+      ver.textContent = "VER \u25B8";
+      celda("r").appendChild(ver);
       celda("b").appendChild(zonaQuitar(f, tr));
       cuerpo.appendChild(tr);
     });
   } catch (e) {
     // Sin las rutas del torneo (servidor viejo) el panel sigue sirviendo.
     $("#torneo").hidden = false;
-    cuerpo.innerHTML = '<tr><td colspan="6" class="vacio"></td></tr>';
+    cuerpo.innerHTML = '<tr><td colspan="7" class="vacio"></td></tr>';
     cuerpo.querySelector("td").textContent = "NO SE PUDO LEER EL TORNEO: " + e.message;
   }
 }
