@@ -887,8 +887,14 @@
     if (!envio) return;
     const alias  = form.alias.value.trim().replace(/\s+/g, " ").toUpperCase();
     const correo = form.correo.value.trim().toLowerCase();
-    if (!ALIAS_OK.test(alias))   return avisa("EL ALIAS VA DE 2 A 14 LETRAS, NÚMEROS O ESPACIOS.", true);
-    if (!CORREO_OK.test(correo)) return avisa("EL CORREO NO ES VÁLIDO.", true);
+    const clave  = form.clave.value;
+    // marca el campo con problema (y desmarca los demás)
+    const marca = campo => ["alias", "correo", "clave"].forEach(n =>
+      n === campo ? form[n].setAttribute("aria-invalid", "true") : form[n].removeAttribute("aria-invalid"));
+    if (!ALIAS_OK.test(alias)){ marca("alias"); return avisa("EL ALIAS VA DE 2 A 14 LETRAS, NÚMEROS O ESPACIOS.", true); }
+    if (!CORREO_OK.test(correo)){ marca("correo"); return avisa("EL CORREO NO ES VÁLIDO.", true); }
+    if (clave.length < 4 || clave.length > 32){ marca("clave"); return avisa("LA CONTRASEÑA VA DE 4 A 32 CARACTERES.", true); }
+    marca(null);
 
     const boton = form.querySelector("button");
     boton.disabled = true;
@@ -897,17 +903,21 @@
       const r = await fetch(RUTA + "/puntaje", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...envio, alias, correo, empresa: form.empresa.value }),     // incluye la aparición de la prueba
+        body: JSON.stringify({ ...envio, alias, correo, clave, empresa: form.empresa.value }),     // incluye la aparición de la prueba
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok){
         avisa(d.mensaje || "NO SE PUDO REGISTRAR LA PARTIDA.", true);
         if (r.status === 403) torneoCerrado();
+        // un alias ocupado o una contraseña que no coincide se corrigen y se
+        // reintenta con la misma partida; una partida ya registrada, no
+        if (d.campo){ marca(d.campo); form[d.campo].focus(); boton.disabled = false; return; }
         if (r.status !== 409 && r.status !== 403) boton.disabled = false;
         return;
       }
       guarda("hmt2-alias", alias);
       guarda("hmt2-correo", correo);
+      form.clave.value = "";              // la contraseña no se guarda en el navegador
       envio = null;                       // esta partida ya quedó; el botón espera a la siguiente
       suena("registro");
       avisa(d.mejor > d.puntos

@@ -509,7 +509,8 @@ img{ max-width:100%; image-rendering:pixelated; }
   margin:0 0 10px; font-family:var(--f-pixel); font-size:11.5px; letter-spacing:.12em; color:var(--phos-dim);
 }
 .juego__guardar-t b{ color:var(--phos-hi); font-weight:400; text-shadow:var(--bloom); }
-.juego__campos{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto; gap:10px 14px; align-items:end; }
+.juego__campos{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,.8fr) auto; gap:10px 14px; align-items:end; }
+.juego__campo input[aria-invalid="true"]{ border-bottom-color:var(--sangre); background:rgba(255,51,85,.12); }
 .juego__campo{
   display:flex; flex-direction:column; gap:4px; min-width:0;
   font-family:var(--f-pixel); font-size:10px; letter-spacing:.14em; color:var(--phos-dim);

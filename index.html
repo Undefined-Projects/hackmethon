@@ -206,9 +206,12 @@
           <label class="juego__campo">CORREO
             <input name="correo" type="email" maxlength="120" autocomplete="email" placeholder="tu@correo.com" required>
           </label>
+          <label class="juego__campo">CONTRASEÑA
+            <input name="clave" type="password" minlength="4" maxlength="32" autocomplete="current-password" placeholder="••••" required>
+          </label>
           <button class="key key--go key--sm" type="submit">ENVIAR</button>
         </div>
-        <p class="juego__nota">Tu correo no se publica: solo sirve para avisarte si ganas. Se guarda tu mejor partida.</p>
+        <p class="juego__nota">Tu correo no se publica: solo sirve para avisarte si ganas. La contraseña la eliges la primera vez; después la necesitas para registrar con ese correo, así nadie más usa tu nombre. Se guarda tu mejor partida.</p>
         <p class="juego__aviso" id="j-form-msg" role="status"></p>
       </form>
 

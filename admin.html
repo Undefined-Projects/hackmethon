@@ -77,6 +77,10 @@
   .tor a{ color:var(--phos); }
   .tor .eq__borrar{ margin:0; padding:0; border:0; justify-content:flex-end; }
   .tor-wrap{ overflow-x:auto; }
+  .tor td.k{ font-size:10.5px; color:var(--phos-dim); white-space:nowrap; }
+  .tor button.mini{ font-family:var(--f-mono); font-size:10px; letter-spacing:.08em; background:transparent;
+                    color:var(--phos-dim); border:1px solid var(--rule); padding:3px 8px; cursor:pointer; }
+  .tor button.mini:hover{ color:var(--screen); background:var(--phos); border-color:var(--phos); }
   .eq--fuera{ opacity:.3; pointer-events:none; }
   .puerta{ max-width:520px; }
   .puerta .fld > label{ width:16ch; }
@@ -170,7 +174,7 @@
         sus partidas siguen anotadas y no las puede volver a usar.
       </p>
       <div class="tor-wrap"><table class="tor">
-        <thead><tr><th>#</th><th>ALIAS</th><th>CORREO</th><th>PUNTOS</th><th>LOGRADO</th><th>REPETICIÓN</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>ALIAS</th><th>CORREO</th><th>PUNTOS</th><th>LOGRADO</th><th>CONTRASEÑA</th><th>REPETICIÓN</th><th></th></tr></thead>
         <tbody id="t-cuerpo"></tbody>
       </table></div>
       <p class="cta" style="margin-top:20px">
@@ -467,7 +471,7 @@ async function cargaTorneo(){
       `<span>CIERRE <b>${d.cierre ? fechaCorta(d.cierre) : "SIN FECHA"}</b></span>`;
     cuerpo.textContent = "";
     if (!d.filas.length){
-      cuerpo.innerHTML = '<tr><td colspan="7" class="vacio">NADIE HA REGISTRADO UNA PARTIDA.</td></tr>';
+      cuerpo.innerHTML = '<tr><td colspan="8" class="vacio">NADIE HA REGISTRADO UNA PARTIDA.</td></tr>';
       return;
     }
     d.filas.forEach((f, i) => {
@@ -484,6 +488,22 @@ async function cargaTorneo(){
       c.appendChild(a);
       celda("p", String(f.puntos).padStart(3, "0"));
       celda("f", fechaCorta(f.logrado));
+      // contraseña: si la olvidó, se borra y la próxima vez elige otra
+      const cc = celda("k");
+      if (f.con_clave){
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "mini"; b.textContent = "BORRAR CONTRASEÑA";
+        b.addEventListener("click", async () => {
+          if (b.dataset.seguro !== "si"){ b.dataset.seguro = "si"; b.textContent = "¿SEGURO? TOCA DE NUEVO"; setTimeout(() => { b.dataset.seguro = ""; b.textContent = "BORRAR CONTRASEÑA"; }, 5000); return; }
+          b.disabled = true; b.textContent = "BORRANDO...";
+          try {
+            const r = await fetch(`${API}/puntajes?correo=${encodeURIComponent(f.correo)}&clave=1`, { method: "DELETE", headers: { authorization: "Bearer " + token() } });
+            if (!r.ok) throw new Error((await r.json().catch(() => ({}))).mensaje || ("HTTP " + r.status));
+            cc.textContent = "SIN CONTRASEÑA";
+          } catch (e) { b.disabled = false; b.textContent = "NO SE PUDO: " + e.message; }
+        });
+        cc.appendChild(b);
+      } else cc.textContent = "SIN CONTRASEÑA";
       // la repetición se ve en la portada, con esta misma sesión
       const ver = document.createElement("a");
       ver.href = "index.html#repeticion=" + encodeURIComponent(f.partida);
@@ -495,7 +515,7 @@ async function cargaTorneo(){
   } catch (e) {
     // Sin las rutas del torneo (servidor viejo) el panel sigue sirviendo.
     $("#torneo").hidden = false;
-    cuerpo.innerHTML = '<tr><td colspan="7" class="vacio"></td></tr>';
+    cuerpo.innerHTML = '<tr><td colspan="8" class="vacio"></td></tr>';
     cuerpo.querySelector("td").textContent = "NO SE PUDO LEER EL TORNEO: " + e.message;
   }
 }
