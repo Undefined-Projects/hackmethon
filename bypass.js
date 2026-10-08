@@ -169,6 +169,9 @@
   /* ── estado ────────────────────────────────────────────────── */
   let estado = "listo";     // listo · jugando · paro · pausa
   let completo = false;     // jugando en pantalla completa
+  // teléfono o tableta: dedo y sin ratón
+  const movil = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  if (movil) caja.classList.add("juego--movil");
   let preguntadas = new Set();
   let repeticion = null;    // { alias, puntos, latidos, i } al ver una partida desde el panel
   let ligero = false;       // teléfono lento: sin partículas ni brillo
@@ -348,7 +351,7 @@
       const g = pr.golpes.find(x => !x.ok && e.paso <= x.en + M.PRUEBA.ritmoTol);
       if (g){
         const falta = g.en - e.paso;
-        const r = Math.max(4, 4 + falta * .45);
+        const r = Math.min(40, Math.max(4, 4 + falta * .45));
         ctx.strokeStyle = Math.abs(falta) <= M.PRUEBA.ritmoTol ? C.verde : C.phos;
         ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(px, e.pulso.y, r, 0, Math.PI * 2); ctx.stroke();
@@ -373,7 +376,9 @@
     ctx.textAlign = "center"; ctx.textBaseline = "top";
     ctx.font = "8px Silkscreen, monospace";
     const meta = metaPrueba(pr);
+    const leyendo = pr.estado === "activa" && e.paso < pr.ini;
     const linea1 = pr.estado === "ok" ? "PRUEBA SUPERADA" : pr.estado === "falla" ? "PRUEBA FALLIDA"
+                 : leyendo ? "PRUEBA DEL MONITOR \u00B7 PREPARATE"
                  : pr.tipo === "franja" ? "PRUEBA DEL MONITOR" : `PRUEBA DEL MONITOR  ${pr.avance}/${meta}`;
     const linea2 = pr.estado === "ok" ? "TU PARTIDA PUEDE ENTRAR A LA TABLA"
                  : pr.estado === "falla" ? "ESTA PARTIDA NO ENTRA A LA TABLA"
@@ -382,10 +387,12 @@
     ctx.fillStyle = C.hi;
     ctx.fillText(linea2, W / 2, y + 14);
     if (pr.estado === "activa"){
+      // leyendo: la barra se llena hasta que empieza a contar;
       // franja: lo que lleva dentro; las demás: el tiempo que queda
-      const k = pr.tipo === "franja" ? pr.avance / meta
+      const k = leyendo ? (e.paso - pr.a) / M.PRUEBA.lectura
+              : pr.tipo === "franja" ? pr.avance / meta
               : Math.max(0, Math.min(1, (pr.fin - e.paso) / M.PRUEBA.dura));
-      ctx.fillStyle = pr.tipo === "franja" ? C.verde : color;
+      ctx.fillStyle = leyendo ? C.hi : pr.tipo === "franja" ? C.verde : color;
       ctx.fillRect(x + 2, y + h - 3, Math.round((w - 4) * k), 1);
       // los números de las marcas, legibles aunque el mundo esté volteado
       if (pr.tipo === "marcas") pr.marcas.forEach((m, i) => {
@@ -512,7 +519,8 @@
     }
     // la partida oficial queda lista para registrarse, si pasó la prueba
     const paso = e.prueba?.estado === "ok";
-    if (partida.oficial && puntos > 0 && torneoAbierto && paso){
+    const registrable = partida.oficial && puntos > 0 && torneoAbierto && paso;
+    if (registrable){
       envio = { token: partida.token, latidos: latidos.slice(), pasos: e.paso, puntos,
                 prueba: { aparicion: e.prueba.a } };
       abreFormulario();
@@ -523,12 +531,12 @@
       const nota = !partida.oficial ? " (Sin conexión: esta partida no cuenta para la tabla.)"
         : paso ? " Prueba del monitor superada: puedes registrarla."
         : e.prueba ? " No pasaste la prueba del monitor: esta partida no entra a la tabla."
-        : ` Para entrar a la tabla, llega a la prueba del monitor (entre la válvula ${M.PRUEBA.desde} y la ${M.PRUEBA.hasta}) y pásala.`;
+        : "";                                   // la prueba es sorpresa: no se anuncia
       const porque = motivo === "furia" ? " La furia del gusano te alcanzó."
                    : motivo === "virus" ? " Un virus del gusano alcanzó el pulso."
                    : " El reflejo ya se armó.";
       muestra(motivo === "valvula" ? "PARO" : "INFECTADO", fin + porque + nota, "TOCA PARA REANIMAR");
-      $("j-ir-tabla").hidden = !(completo && envio);
+      $("j-ir-tabla").hidden = !(completo && registrable);
     }, 450);
   }
 
@@ -686,6 +694,8 @@
     if (ev.target.closest("button")) return;
     if (!$("j-carga").hidden) return;              // mientras carga, no
     ev.preventDefault();
+    // En un teléfono solo se juega en pantalla completa: tocar el cuadro la abre.
+    if (movil && !completo){ entra(); return; }
     cv.focus({ preventScroll: true });
     late();
   });

@@ -1378,6 +1378,10 @@ html.proximamente #historia::after{
 .juego__boton--sale{ display:none; color:var(--screen); background:var(--sangre); border-color:var(--sangre); }
 .juego__fs{ pointer-events:auto; margin-top:10px; font-size:12px; padding:9px 16px; }
 .juego__fs[hidden]{ display:none; }
+/* En un teléfono solo se juega en pantalla completa: fuera de ella no se
+   invita a tocar para latir, solo a abrirla. */
+.juego--movil:not(.juego--completo) #j-tecla{ display:none; }
+.juego--movil:not(.juego--completo) #j-fs{ display:inline-block; }
 /* con ratón no hace falta el botón grande: queda el de la cabecera */
 @media (hover:hover) and (pointer:fine){ #j-fs{ display:none; } }
 
