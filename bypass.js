@@ -40,16 +40,18 @@
    Cada volteo trae 3 s de calma: el motor despeja la pantalla y no
    sale nada, para darle tiempo a reaccionar.
 
-   La prueba del monitor (contra bots): entre la válvula 10 y la 19 el
-   juego pregunta al servidor, válvula por válvula, si ya toca
-   (GET /api/desafio). Solo en la que eligió el servidor —con una llave
-   que aquí no existe— contesta que sí, con el reto y sus parámetros al
-   azar: mantenerse en una franja, latir al ritmo, tocar dos marcas en
-   orden o latir cada vez que el pulso se ponga verde. Mientras dura no
-   hay obstáculos. Se dibuja dentro del canvas (no es texto de la
-   página), el motor la evalúa igual que el servidor, y solo las
-   partidas que la pasan entran a la tabla. Un bot no puede llevar la
-   partida ya calculada: tiene que ver y reaccionar en vivo.
+   Las pruebas del monitor (contra bots): desde la válvula 6 el juego
+   pregunta al servidor, válvula por válvula, si toca una
+   (GET /api/desafio). Solo en las que eligió el servidor —con una llave
+   que aquí no existe, en momentos al azar— contesta que sí, con 2 o 3
+   retos encadenados y sus parámetros al azar: seguir una franja que se
+   mueve, latir a un ritmo que cambia, tocar cuatro marcas en orden, o
+   latir en verde y nunca en rojo. Mientras dura no hay obstáculos. Se
+   dibuja dentro del canvas (no es texto de la página), el motor la
+   evalúa igual que el servidor, y solo entran a la tabla las partidas
+   que superan TODAS las que les salieron. Un bot no puede llevar la
+   partida ya calculada: tiene que ver y reaccionar en vivo, una y otra
+   vez.
 
    Repeticiones: desde el panel (VER) se abre la portada con
    #repeticion=ID y aquí se reproduce esa partida tal cual.
@@ -92,6 +94,7 @@
     verde: tono("--clorofila", "#3ddc97"), verdeHi: tono("--clorofila-hi", "#b4f5d4"),
     verdeDim: tono("--clorofila-dim", "#23805a"),
     sangre: tono("--sangre", "#ff3355"),  uv: tono("--uv", "#d946ef"),
+    sangreHi: tono("--sangre-hi", "#ffc2cc"),
   };
 
   /* Cuánto tapa el fondo del juego (0 = transparente, 1 = sólido).
@@ -164,8 +167,10 @@
     cache.set(clave, c);
     return c;
   }
-  const spritePulso = (muerto, verde) => sprite("pulso" + muerto + verde, SPRITE,
-    { X: muerto ? C.sangre : verde ? C.verde : C.phos, H: verde ? C.verdeHi : C.hi });
+  // color: "" · "verde" · "rojo" (las señales del reto verde)
+  const spritePulso = (muerto, color) => sprite("pulso" + muerto + color, SPRITE,
+    { X: muerto || color === "rojo" ? C.sangre : color === "verde" ? C.verde : C.phos,
+      H: color === "verde" ? C.verdeHi : color === "rojo" ? C.sangreHi : C.hi });
   const spriteVirus = f => sprite("virus" + f, VIRUS[f], { X: C.sangre, O: C.hi });
   // Todas las tintas posibles del gusano, para precalentar en la carga.
   const TINTAS_GUSANO = {
@@ -177,7 +182,7 @@
   };
   const spriteGusano = (f, tinta) => sprite("gusano" + f + tinta, GUSANO[f], TINTAS_GUSANO[tinta], 2);
   function precalienta(){
-    spritePulso(true, false); spritePulso(false, false); spritePulso(false, true);
+    spritePulso(true, ""); spritePulso(false, ""); spritePulso(false, "verde"); spritePulso(false, "rojo");
     [0, 1].forEach(spriteVirus);
     for (const t in TINTAS_GUSANO) [0, 1].forEach(f => spriteGusano(f, t));
   }
@@ -189,7 +194,8 @@
   const movil = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
   if (movil) caja.classList.add("juego--movil");
   let preguntadas = new Set();
-  let repeticion = null;    // { alias, puntos, latidos, i } al ver una partida desde el panel
+  let repeticion = null;    // { alias, puntos, latidos, i, pruebas, apariciones, j } al ver una partida desde el panel
+  let apariciones = [];     // el paso en que salió cada prueba de esta partida
   let ligero = false;       // teléfono lento: sin partículas ni brillo
   let e = M.crea(1);        // estado del motor (en "listo" solo se usa para dibujar)
   let reloj = 0;            // tiempo cosmético, para animaciones que no son física
@@ -227,7 +233,7 @@
     pidePartida();                       // ya va pidiendo la de la siguiente
 
     e = M.crea(partida.semilla);
-    preguntadas = new Set(); pruebaFinT = 0; tics = new Set();
+    preguntadas = new Set(); pruebaFinT = 0; tics = new Set(); apariciones = [];
     latidos = []; rastro = []; chispas = [];
     destello = sacudida = 0; plano = null;
     espejo = espejoDesde = espejoHacia = 1; giroT = 1;     // cada partida empieza derecha
@@ -244,8 +250,11 @@
   function pasoJuego(){
     let latio;
     if (repeticion){
-      // la prueba entra en su paso, igual que la inyecta el servidor
-      if (repeticion.prueba && !e.prueba && e.paso === repeticion.aparicion) arrancaPrueba(repeticion.prueba.def);
+      // cada prueba entra en su paso, igual que la inyecta el servidor
+      while (repeticion.j < repeticion.apariciones.length && e.paso === repeticion.apariciones[repeticion.j]){
+        if (!M.activa(e)) arrancaPrueba(repeticion.pruebas[repeticion.j]);
+        repeticion.j++;
+      }
       // en una repetición los latidos vienen de la partida guardada
       latio = false;
       while (repeticion.i < repeticion.latidos.length && repeticion.latidos[repeticion.i] === e.paso + 1){
@@ -291,6 +300,8 @@
         salpica(ev.x, ev.y, C.verdeDim, 4); break;
       case "acierto":
         suena("punto"); break;
+      case "retoOk":
+        suena("vuelta"); break;
       case "pruebaFin":
         pruebaFinT = 0;
         suena(ev.estado === "ok" ? "registro" : "alarma"); break;
@@ -304,36 +315,46 @@
   /* ── la prueba del monitor ─────────────────────────────────── */
   // El estado de la prueba vive en el motor (e.prueba), que la evalúa.
   // Aquí solo se pregunta al servidor, se arranca y se dibuja.
+  // Con una prueba fallida la partida ya no entra a la tabla: se deja
+  // de preguntar.
+  const fallida = () => e.pruebas.includes("falla");
   function preguntaPrueba(n){
-    if (repeticion || e.prueba || !partida?.oficial || !RUTA) return;
-    if (n < M.PRUEBA.desde || n > M.PRUEBA.hasta || preguntadas.has(n)) return;
+    if (repeticion || M.activa(e) || fallida() || !partida?.oficial || !RUTA) return;
+    if (n < M.PRUEBA.desde || preguntadas.has(n)) return;
     preguntadas.add(n);
     const de = partida;                    // si se reinicia, la respuesta ya no aplica
     fetch(`${RUTA}/desafio?token=${encodeURIComponent(de.token)}&p=${n}`, { cache: "no-store" })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.ahora && d.def && de === partida && estado === "jugando" && !e.prueba) arrancaPrueba(d.def); })
+      .then(d => {
+        if (!d?.ahora || !d.def || de !== partida || estado !== "jugando" || M.activa(e)) return;
+        apariciones.push(e.paso);
+        arrancaPrueba(d.def);
+      })
       .catch(() => {});
   }
   // Se arranca entre dos pasos, igual que la inyecta el servidor al validar.
   function arrancaPrueba(def){
+    tics = new Set();
     for (const ev of M.iniciaPrueba(e, def)) reacciona(ev);
     suena("alarma");
   }
   const TEXTO_PRUEBA = {
-    franja: "MANTENTE DENTRO DE LA FRANJA",
-    ritmo:  "LATE CUANDO SE CIERRE EL ANILLO",
-    marcas: "TOCA LA MARCA 1 Y LUEGO LA 2",
-    verde:  "LATE CADA VEZ QUE SE PONGA VERDE",
+    franja: "SIGUE LA FRANJA: SE MUEVE",
+    ritmo:  "LATE AL CERRARSE EL ANILLO",
+    marcas: "TOCA LAS MARCAS EN ORDEN",
+    verde:  "LATE EN VERDE \u00B7 NUNCA EN ROJO",
   };
   const metaPrueba = pr => pr.tipo === "franja" ? M.PRUEBA.franjaNecesita
                          : pr.tipo === "ritmo" ? pr.golpes.length
-                         : pr.tipo === "marcas" ? pr.marcas.length : pr.ventanas.length;
+                         : pr.tipo === "marcas" ? pr.marcas.length : pr.ventanas.filter(v => v.verde).length;
   // de coordenadas del mundo a la pantalla, contando el espejo del volteo
   const aPantalla = (x, y) => [W / 2 + (x - W / 2) * espejo, H / 2 + (y - H / 2) * espejo];
-  const pulsoVerde = () => {
+  // "verde" o "rojo" mientras dura una señal del reto verde; "" si no
+  const colorPulso = () => {
     const pr = e.prueba;
-    return pr && pr.tipo === "verde" && pr.estado === "activa"
-        && pr.ventanas.some(v => !v.ok && e.paso >= v.ini && e.paso <= v.fin);
+    if (!pr || pr.tipo !== "verde" || pr.estado !== "activa") return "";
+    const v = pr.ventanas.find(v => e.paso >= v.ini && e.paso <= v.fin);
+    return !v ? "" : !v.verde ? "rojo" : v.ok ? "" : "verde";
   };
 
   // Lo que va pegado al mundo (se voltea con él): franja, marcas y anillo.
@@ -342,12 +363,12 @@
     if (!pr || pr.estado !== "activa") return;
     const px = e.pulso.x, parpadeo = Math.floor(reloj * 6) % 2;
     if (pr.tipo === "franja"){
-      const h = M.PRUEBA.franjaH, dentro = Math.abs(e.pulso.y - pr.c) <= h;
+      const h = M.PRUEBA.franjaH, c = pr.cy, dentro = e.paso >= pr.ini && Math.abs(e.pulso.y - c) <= h;
       ctx.fillStyle = dentro ? "rgba(61,220,151,.22)" : "rgba(61,220,151,.10)";
-      ctx.fillRect(0, Math.round(pr.c - h), W, h * 2);
+      ctx.fillRect(0, R(c - h), W, h * 2);
       ctx.fillStyle = C.verde;
       for (let x = (Math.floor(reloj * 40) % 6); x < W; x += 6){
-        ctx.fillRect(x, Math.round(pr.c - h), 3, 1); ctx.fillRect(x, Math.round(pr.c + h), 3, 1);
+        ctx.fillRect(x, R(c - h), 3, 1); ctx.fillRect(x, R(c + h), 3, 1);
       }
     }
     if (pr.tipo === "marcas"){
@@ -364,7 +385,7 @@
     }
     if (pr.tipo === "ritmo"){
       // el anillo se cierra justo en el golpe
-      const g = pr.golpes.find(x => !x.ok && e.paso <= x.en + M.PRUEBA.ritmoTol);
+      const g = e.paso >= pr.ini && pr.golpes.find(x => !x.ok && e.paso <= x.en + M.PRUEBA.ritmoTol);
       if (g){
         const falta = g.en - e.paso;
         const r = Math.min(40, Math.max(4, 4 + falta * .45));
@@ -382,6 +403,11 @@
     if (!pr) return;
     if (pr.estado !== "activa" && pruebaFinT > 1.8) return;
     const x = 30, y = 4, w = W - 60, h = 25;
+    // Si el pulso pasa por debajo del recuadro, el recuadro se vuelve casi
+    // transparente: nunca lo tapa (y moverlo taparía las marcas de abajo).
+    const sy = aPantalla(e.pulso.x, e.pulso.y)[1];
+    ctx.save();
+    if (sy < y + h + 6) ctx.globalAlpha = .3;
     const color = pr.estado === "ok" ? C.verde : pr.estado === "falla" ? C.sangre
                 : (Math.floor(reloj * 6) % 2 ? C.phos : C.hi);
     ctx.fillStyle = "rgba(10,7,12,.88)";
@@ -393,11 +419,13 @@
     ctx.font = "8px Silkscreen, monospace";
     const meta = metaPrueba(pr);
     const leyendo = pr.estado === "activa" && e.paso < pr.ini;
+    const reto = `RETO ${pr.n + 1}/${pr.retos.length}`;
     const linea1 = pr.estado === "ok" ? "PRUEBA SUPERADA" : pr.estado === "falla" ? "PRUEBA FALLIDA"
-                 : leyendo ? "PRUEBA DEL MONITOR \u00B7 PREPARATE"
-                 : pr.tipo === "franja" ? "PRUEBA DEL MONITOR" : `PRUEBA DEL MONITOR  ${pr.avance}/${meta}`;
-    const linea2 = pr.estado === "ok" ? "TU PARTIDA PUEDE ENTRAR A LA TABLA"
+                 : leyendo ? `${reto} \u00B7 PREPARATE`
+                 : pr.tipo === "franja" ? reto : `${reto}  \u00B7  ${pr.avance}/${meta}`;
+    const linea2 = pr.estado === "ok" ? "SIGUE JUGANDO: PUEDE HABER MAS"
                  : pr.estado === "falla" ? "ESTA PARTIDA NO ENTRA A LA TABLA"
+                 : colorPulso() === "rojo" ? "ROJO: NO LATAS AHORA"
                  : TEXTO_PRUEBA[pr.tipo];
     ctx.fillText(linea1, W / 2, y + 4);
     ctx.fillStyle = C.hi;
@@ -405,11 +433,12 @@
     if (pr.estado === "activa"){
       // leyendo: la barra se llena hasta que empieza a contar;
       // franja: lo que lleva dentro; las demás: el tiempo que queda
-      const k = leyendo ? (e.paso - pr.a) / M.PRUEBA.lectura
+      const k = leyendo ? 1 - (pr.ini - e.paso) / M.PRUEBA.lectura
               : pr.tipo === "franja" ? pr.avance / meta
-              : Math.max(0, Math.min(1, (pr.fin - e.paso) / M.PRUEBA.dura));
+              : Math.max(0, Math.min(1, (pr.fin - e.paso) / (pr.fin - pr.ini)));
       ctx.fillStyle = leyendo ? C.hi : pr.tipo === "franja" ? C.verde : color;
       ctx.fillRect(x + 2, y + h - 3, Math.round((w - 4) * k), 1);
+      ctx.restore();
       // los números de las marcas, legibles aunque el mundo esté volteado
       if (pr.tipo === "marcas") pr.marcas.forEach((m, i) => {
         const [sx, sy] = aPantalla(e.pulso.x + 11, m.y);
@@ -418,7 +447,7 @@
         ctx.fillText(String(i + 1), sx, sy);
         ctx.textBaseline = "top";
       });
-    }
+    } else ctx.restore();
   }
 
   function terminaFuria(){
@@ -452,7 +481,7 @@
   function ticRitmo(){
     const pr = e.prueba;
     if (!pr || pr.tipo !== "ritmo" || pr.estado !== "activa") return;
-    pr.golpes.forEach((g, i) => { if (e.paso >= g.en && !tics.has(i)){ tics.add(i); suena("tic"); } });
+    pr.golpes.forEach((g, i) => { const k = pr.n + ":" + i; if (e.paso >= g.en && !tics.has(k)){ tics.add(k); suena("tic"); } });
   }
 
   function cosmeticos(dt){
@@ -521,7 +550,9 @@
     if (repeticion){
       setTimeout(() => {
         if (estado !== "paro") return;
-        const p = e.prueba ? (e.prueba.estado === "ok" ? " Prueba del monitor: superada." : " Prueba del monitor: NO superada.") : "";
+        const ok = e.pruebas.filter(x => x === "ok").length;
+        const p = !e.prueba ? "" : fallida() || M.activa(e) ? ` Pruebas del monitor: ${ok} superadas y una NO.`
+                : ` Pruebas del monitor: ${ok} de ${ok} superadas.`;
         muestra("FIN DE LA REPETICIÓN", `${repeticion.alias} · ${pad3(puntos)} válvulas.${p}`, "TOCA PARA VERLA DE NUEVO");
       }, 450);
       return;
@@ -533,20 +564,23 @@
       setTimeout(() => suena("record"), 700);
       guarda("hmt2-bypass", String(record));
     }
-    // la partida oficial queda lista para registrarse, si pasó la prueba
-    const paso = e.prueba?.estado === "ok";
+    // La partida oficial queda lista para registrarse si superó todas las
+    // pruebas que le salieron (al menos una). Morir a media prueba es no
+    // superarla.
+    const superadas = e.pruebas.filter(x => x === "ok").length;
+    const paso = superadas > 0 && !fallida() && !M.activa(e);
     const registrable = partida.oficial && puntos > 0 && torneoAbierto && paso;
     if (registrable){
       envio = { token: partida.token, latidos: latidos.slice(), pasos: e.paso, puntos,
-                prueba: { aparicion: e.prueba.a } };
+                pruebas: apariciones.slice() };
       abreFormulario();
     }
     setTimeout(() => {
       if (estado !== "paro") return;
       const fin = `${pad3(puntos)} válvulas cruzadas.${nuevo ? " Nuevo récord." : ""}`;
       const nota = !partida.oficial ? " (Sin conexión: esta partida no cuenta para la tabla.)"
-        : paso ? " Prueba del monitor superada: puedes registrarla."
-        : e.prueba ? " No pasaste la prueba del monitor: esta partida no entra a la tabla."
+        : paso ? ` Superaste ${superadas === 1 ? "la prueba" : `las ${superadas} pruebas`} del monitor: puedes registrarla.`
+        : e.prueba ? " No superaste una prueba del monitor: esta partida no entra a la tabla."
         : "";                                   // la prueba es sorpresa: no se anuncia
       const porque = motivo === "furia" ? " La furia del gusano te alcanzó."
                    : motivo === "virus" ? " Un virus del gusano alcanzó el pulso."
@@ -621,7 +655,7 @@
 
     // el pulso
     const y = plano ? plano.y : e.pulso.y + e.pulso.vy * ad;
-    ctx.drawImage(spritePulso(estado === "paro", !!pulsoVerde()), R(e.pulso.x - 3), R(y - 3));
+    ctx.drawImage(spritePulso(estado === "paro", colorPulso()), R(e.pulso.x - 3), R(y - 3));
 
     for (const c of chispas){
       ctx.globalAlpha = Math.min(1, c.v * 2);
@@ -941,7 +975,7 @@
      ════════════════════════════════════════════════════════ */
   function empiezaRepeticion(){
     e = M.crea(repeticion.semilla);
-    repeticion.i = 0;
+    repeticion.i = 0; repeticion.j = 0;
     pruebaFinT = 0; tics = new Set();
     latidos = []; rastro = []; chispas = [];
     destello = sacudida = 0; plano = null; enParo = 0;
@@ -963,7 +997,7 @@
       .then(({ ok, d }) => {
         if (!ok) throw new Error(d.mensaje || "NO SE PUDO ABRIR LA REPETICIÓN.");
         repeticion = { alias: d.alias, puntos: d.puntos, semilla: d.semilla >>> 0,
-                       latidos: d.latidos, aparicion: d.aparicion, prueba: d.prueba, i: 0 };
+                       latidos: d.latidos, apariciones: d.apariciones, pruebas: d.pruebas, i: 0, j: 0 };
         caja.dataset.repeticion = "";
         $("juego-nombre").textContent = `REPETICIÓN \u00B7 ${d.alias} \u00B7 ${pad3(d.puntos)}`;
         caja.scrollIntoView({ block: "center" });
