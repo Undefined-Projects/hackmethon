@@ -96,7 +96,8 @@
   let e = M.crea(1);        // estado del motor (en "listo" solo se usa para dibujar)
   let reloj = 0;            // tiempo cosmético, para animaciones que no son física
   let rastro = [], chispas = [];
-  let destello = 0, sacudida = 0, enParo = 0, caida = null;
+  let destello = 0, sacudida = 0, enParo = 0;
+  let plano = null;         // al morir: { y, vel } — el trazo se vuelve línea plana
   let latidos = [], latePendiente = false;
   let partida = null;       // { semilla, token?, oficial }
   let siguiente = null;     // la semilla firmada que se usará en la próxima partida
@@ -122,7 +123,7 @@
 
     e = M.crea(partida.semilla);
     latidos = []; rastro = []; chispas = [];
-    destello = sacudida = 0; caida = null;
+    destello = sacudida = 0; plano = null;
     ptsEl.textContent = pad3(0);
     estado = "jugando";
     caja.dataset.estado = "jugando";
@@ -209,9 +210,14 @@
       enParo += DT;
       for (const z of e.virus){ z.x += z.vx * DT; z.y += z.vy * DT; z.t += DT; }
       e.virus = e.virus.filter(z => z.x > -6);
-      if (caida && caida.y < SUELO - 3){
-        caida.vy += 560 * DT;
-        caida.y = Math.min(SUELO - 3, caida.y + caida.vy * DT);
+      // Asistolia: el monitor sigue barriendo, pero ya no hay latido. El
+      // trazo corre a la izquierda a la misma velocidad que traía y cada
+      // punto nuevo sale a la misma altura: la curva vieja se va de la
+      // pantalla y queda solo la línea plana.
+      if (plano){
+        for (const r of rastro) r.x -= plano.vel * DT;
+        rastro.push({ x: e.pulso.x - 3, y: plano.y });
+        while (rastro.length && rastro[0].x < 0) rastro.shift();
       }
     }
   }
@@ -224,7 +230,9 @@
     enParo = 0;
     destello = quieto ? 0 : .25;
     sacudida = quieto ? 0 : .3;
-    caida = { y: e.pulso.y, vy: -60 };
+    // el pulso se queda donde murió y desde ahí sale la línea plana
+    // (dentro de la pantalla aunque haya chocado con el techo o el suelo)
+    plano = { y: Math.max(3, Math.min(SUELO - 3, e.pulso.y)), vel: e.velocidad };
     if (!quieto) for (let i = 0; i < 14; i++)
       chispas.push({ x: e.pulso.x, y: e.pulso.y, vx: (Math.random() - .5) * 140, vy: -Math.random() * 120,
                      v: .5 + Math.random() * .5, c: i % 3 ? C.phos : C.hi });
@@ -308,7 +316,7 @@
     }
 
     // el pulso
-    const y = caida ? caida.y : e.pulso.y;
+    const y = plano ? plano.y : e.pulso.y;
     const px = Math.round(e.pulso.x - 3), py = Math.round(y - 3);
     const muerto = estado === "paro";
     for (let r = 0; r < SPRITE.length; r++) for (let c = 0; c < 7; c++){
