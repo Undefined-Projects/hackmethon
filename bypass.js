@@ -37,14 +37,19 @@
    precalculados (un drawImage cada uno), y el bucle solo corre con el
    juego a la vista y la pestaña abierta.
 
-   La prueba del monitor (contra bots): entre la válvula 10 y la 20 el
+   Cada volteo trae 3 s de calma: el motor despeja la pantalla y no
+   sale nada, para darle tiempo a reaccionar.
+
+   La prueba del monitor (contra bots): entre la válvula 10 y la 19 el
    juego pregunta al servidor, válvula por válvula, si ya toca
    (GET /api/desafio). Solo en la que eligió el servidor —con una llave
-   que aquí no existe— contesta que sí y con qué prueba: latir 3 veces
-   rápido, 2 seguidas, o latir cuando el pulso se ponga verde. Se dibuja
-   dentro del canvas (no es texto de la página) y solo las partidas que
-   la pasan entran a la tabla. Un bot no puede llevar la partida ya
-   calculada: tiene que ver y reaccionar en vivo.
+   que aquí no existe— contesta que sí, con el reto y sus parámetros al
+   azar: mantenerse en una franja, latir al ritmo, tocar dos marcas en
+   orden o latir cada vez que el pulso se ponga verde. Mientras dura no
+   hay obstáculos. Se dibuja dentro del canvas (no es texto de la
+   página), el motor la evalúa igual que el servidor, y solo las
+   partidas que la pasan entran a la tabla. Un bot no puede llevar la
+   partida ya calculada: tiene que ver y reaccionar en vivo.
 
    Repeticiones: desde el panel (VER) se abre la portada con
    #repeticion=ID y aquí se reproduce esa partida tal cual.
@@ -164,7 +169,6 @@
   /* ── estado ────────────────────────────────────────────────── */
   let estado = "listo";     // listo · jugando · paro · pausa
   let completo = false;     // jugando en pantalla completa
-  let prueba = null;        // { tipo, verde, aparicion, ini, fin, estado: activa|ok|falla, t }
   let preguntadas = new Set();
   let repeticion = null;    // { alias, puntos, latidos, i } al ver una partida desde el panel
   let ligero = false;       // teléfono lento: sin partículas ni brillo
@@ -177,7 +181,7 @@
   /* El volteo: cada GIRO puntos el espejo cambia de lado. `espejo` va de
      1 (normal) a −1 (invertido) y en medio pasa por 0: la escena se
      encoge al centro y se abre reflejada, como una tarjeta que gira. */
-  const GIRO = 20, GIRO_DUR = .45;
+  const GIRO = M.GIRO, GIRO_DUR = .45;
   let espejo = 1, espejoDesde = 1, espejoHacia = 1, giroT = 1;
   let avisoGiroT = 0;
   let latidos = [], latePendiente = false;
@@ -204,7 +208,7 @@
     pidePartida();                       // ya va pidiendo la de la siguiente
 
     e = M.crea(partida.semilla);
-    prueba = null; preguntadas = new Set();
+    preguntadas = new Set(); pruebaFinT = 0; tics = new Set();
     latidos = []; rastro = []; chispas = [];
     destello = sacudida = 0; plano = null;
     espejo = espejoDesde = espejoHacia = 1; giroT = 1;     // cada partida empieza derecha
@@ -221,6 +225,8 @@
   function pasoJuego(){
     let latio;
     if (repeticion){
+      // la prueba entra en su paso, igual que la inyecta el servidor
+      if (repeticion.prueba && !e.prueba && e.paso === repeticion.aparicion) arrancaPrueba(repeticion.prueba.def);
       // en una repetición los latidos vienen de la partida guardada
       latio = false;
       while (repeticion.i < repeticion.latidos.length && repeticion.latidos[repeticion.i] === e.paso + 1){
@@ -232,7 +238,7 @@
     }
     if (latio){ latidos.push(e.paso + 1); suena("latido"); }
     const eventos = M.avanza(e, latio);
-    revisaPrueba();
+    ticRitmo();
     // el zumbido de aviso suena cuando el gusano empieza a cargar
     const carga = e.gusano.carga > 0 && !e.furia;
     if (carga && !cargaba) suena("carga");
@@ -262,6 +268,13 @@
         suena("muro");
         sacudida = quieto ? 0 : .18;
         salpica(ev.x, ev.y, C.sangre, 8); break;
+      case "limpia":
+        salpica(ev.x, ev.y, C.verdeDim, 4); break;
+      case "acierto":
+        suena("punto"); break;
+      case "pruebaFin":
+        pruebaFinT = 0;
+        suena(ev.estado === "ok" ? "registro" : "alarma"); break;
       case "absorbe":
         suena("absorbe");
         salpica(ev.x, ev.y, C.verde, 6); break;
@@ -270,42 +283,87 @@
     }
   }
   /* ── la prueba del monitor ─────────────────────────────────── */
+  // El estado de la prueba vive en el motor (e.prueba), que la evalúa.
+  // Aquí solo se pregunta al servidor, se arranca y se dibuja.
   function preguntaPrueba(n){
-    if (repeticion || prueba || !partida?.oficial || !RUTA) return;
+    if (repeticion || e.prueba || !partida?.oficial || !RUTA) return;
     if (n < M.PRUEBA.desde || n > M.PRUEBA.hasta || preguntadas.has(n)) return;
     preguntadas.add(n);
     const de = partida;                    // si se reinicia, la respuesta ya no aplica
     fetch(`${RUTA}/desafio?token=${encodeURIComponent(de.token)}&p=${n}`, { cache: "no-store" })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.ahora && de === partida && estado === "jugando" && !prueba) activaPrueba(d.tipo, d.verde, e.paso); })
+      .then(d => { if (d?.ahora && d.def && de === partida && estado === "jugando" && !e.prueba) arrancaPrueba(d.def); })
       .catch(() => {});
   }
-  function activaPrueba(tipo, verde, aparicion){
-    const [ini, fin] = M.ventanaPrueba(tipo, verde, aparicion);
-    prueba = { tipo, verde, aparicion, ini, fin, estado: "activa", t: 0 };
+  // Se arranca entre dos pasos, igual que la inyecta el servidor al validar.
+  function arrancaPrueba(def){
+    for (const ev of M.iniciaPrueba(e, def)) reacciona(ev);
     suena("alarma");
   }
-  function revisaPrueba(){
-    if (repeticion && repeticion.prueba && !prueba && e.paso >= repeticion.aparicion)
-      activaPrueba(repeticion.prueba.tipo, repeticion.prueba.verde, repeticion.aparicion);
-    if (!prueba || prueba.estado !== "activa") return;
-    if (M.cumplePrueba(prueba.tipo, prueba.verde, prueba.aparicion, latidos)){
-      prueba.estado = "ok"; prueba.t = 0; suena("registro");
-    } else if (e.paso > prueba.fin){
-      prueba.estado = "falla"; prueba.t = 0; suena("alarma");
+  const TEXTO_PRUEBA = {
+    franja: "MANTENTE DENTRO DE LA FRANJA",
+    ritmo:  "LATE CUANDO SE CIERRE EL ANILLO",
+    marcas: "TOCA LA MARCA 1 Y LUEGO LA 2",
+    verde:  "LATE CADA VEZ QUE SE PONGA VERDE",
+  };
+  const metaPrueba = pr => pr.tipo === "franja" ? M.PRUEBA.franjaNecesita
+                         : pr.tipo === "ritmo" ? pr.golpes.length
+                         : pr.tipo === "marcas" ? pr.marcas.length : pr.ventanas.length;
+  // de coordenadas del mundo a la pantalla, contando el espejo del volteo
+  const aPantalla = (x, y) => [W / 2 + (x - W / 2) * espejo, H / 2 + (y - H / 2) * espejo];
+  const pulsoVerde = () => {
+    const pr = e.prueba;
+    return pr && pr.tipo === "verde" && pr.estado === "activa"
+        && pr.ventanas.some(v => !v.ok && e.paso >= v.ini && e.paso <= v.fin);
+  };
+
+  // Lo que va pegado al mundo (se voltea con él): franja, marcas y anillo.
+  function dibujaPruebaMundo(){
+    const pr = e.prueba;
+    if (!pr || pr.estado !== "activa") return;
+    const px = e.pulso.x, parpadeo = Math.floor(reloj * 6) % 2;
+    if (pr.tipo === "franja"){
+      const h = M.PRUEBA.franjaH, dentro = Math.abs(e.pulso.y - pr.c) <= h;
+      ctx.fillStyle = dentro ? "rgba(61,220,151,.22)" : "rgba(61,220,151,.10)";
+      ctx.fillRect(0, Math.round(pr.c - h), W, h * 2);
+      ctx.fillStyle = C.verde;
+      for (let x = (Math.floor(reloj * 40) % 6); x < W; x += 6){
+        ctx.fillRect(x, Math.round(pr.c - h), 3, 1); ctx.fillRect(x, Math.round(pr.c + h), 3, 1);
+      }
+    }
+    if (pr.tipo === "marcas"){
+      pr.marcas.forEach((m, i) => {
+        const siguiente = !m.ok && pr.marcas.findIndex(x => !x.ok) === i;
+        ctx.fillStyle = "rgba(250,57,186,.25)";
+        for (let x = 0; x < W; x += 8) ctx.fillRect(x, Math.round(m.y), 4, 1);
+        ctx.fillStyle = m.ok ? "rgba(61,220,151,.4)" : "rgba(250,57,186,.12)";
+        ctx.fillRect(Math.round(px - 5), Math.round(m.y - 5), 11, 11);
+        ctx.strokeStyle = m.ok ? C.verde : siguiente && parpadeo ? C.hi : C.phos;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(Math.round(px - 6) + .5, Math.round(m.y - 6) + .5, 12, 12);
+      });
+    }
+    if (pr.tipo === "ritmo"){
+      // el anillo se cierra justo en el golpe
+      const g = pr.golpes.find(x => !x.ok && e.paso <= x.en + M.PRUEBA.ritmoTol);
+      if (g){
+        const falta = g.en - e.paso;
+        const r = Math.max(4, 4 + falta * .45);
+        ctx.strokeStyle = Math.abs(falta) <= M.PRUEBA.ritmoTol ? C.verde : C.phos;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(px, e.pulso.y, r, 0, Math.PI * 2); ctx.stroke();
+      }
     }
   }
-  const TEXTO_PRUEBA = {
-    rapido: "LATE 3 VECES RAPIDO",
-    doble:  "LATE 2 VECES SEGUIDAS",
-    verde:  "LATE CUANDO SE PONGA VERDE",
-  };
-  // Se dibuja encima de todo y sin el espejo del volteo: siempre se lee.
+
+  // El recuadro de la instrucción: encima de todo y sin espejo, siempre se lee.
+  let pruebaFinT = 0;
   function dibujaPrueba(){
-    if (!prueba) return;
-    if (prueba.estado !== "activa" && prueba.t > 1.6) return;
-    const x = 40, y = 4, w = W - 80, h = 25;
-    const color = prueba.estado === "ok" ? C.verde : prueba.estado === "falla" ? C.sangre
+    const pr = e.prueba;
+    if (!pr) return;
+    if (pr.estado !== "activa" && pruebaFinT > 1.8) return;
+    const x = 30, y = 4, w = W - 60, h = 25;
+    const color = pr.estado === "ok" ? C.verde : pr.estado === "falla" ? C.sangre
                 : (Math.floor(reloj * 6) % 2 ? C.phos : C.hi);
     ctx.fillStyle = "rgba(10,7,12,.88)";
     ctx.fillRect(x, y, w, h);
@@ -314,21 +372,31 @@
     ctx.fillRect(x, y, 1, h); ctx.fillRect(x + w - 1, y, 1, h);
     ctx.textAlign = "center"; ctx.textBaseline = "top";
     ctx.font = "8px Silkscreen, monospace";
-    const linea1 = prueba.estado === "ok" ? "PRUEBA SUPERADA" : prueba.estado === "falla" ? "PRUEBA FALLIDA" : "PRUEBA DEL MONITOR";
-    const linea2 = prueba.estado === "ok" ? "TU PARTIDA PUEDE ENTRAR A LA TABLA"
-                 : prueba.estado === "falla" ? "ESTA PARTIDA NO ENTRA A LA TABLA"
-                 : TEXTO_PRUEBA[prueba.tipo];
+    const meta = metaPrueba(pr);
+    const linea1 = pr.estado === "ok" ? "PRUEBA SUPERADA" : pr.estado === "falla" ? "PRUEBA FALLIDA"
+                 : pr.tipo === "franja" ? "PRUEBA DEL MONITOR" : `PRUEBA DEL MONITOR  ${pr.avance}/${meta}`;
+    const linea2 = pr.estado === "ok" ? "TU PARTIDA PUEDE ENTRAR A LA TABLA"
+                 : pr.estado === "falla" ? "ESTA PARTIDA NO ENTRA A LA TABLA"
+                 : TEXTO_PRUEBA[pr.tipo];
     ctx.fillText(linea1, W / 2, y + 4);
     ctx.fillStyle = C.hi;
     ctx.fillText(linea2, W / 2, y + 14);
-    if (prueba.estado === "activa"){
-      // lo que queda de tiempo
-      const resta = Math.max(0, Math.min(1, (prueba.fin - e.paso) / (prueba.fin - prueba.aparicion)));
-      ctx.fillStyle = color;
-      ctx.fillRect(x + 2, y + h - 3, Math.round((w - 4) * resta), 1);
+    if (pr.estado === "activa"){
+      // franja: lo que lleva dentro; las demás: el tiempo que queda
+      const k = pr.tipo === "franja" ? pr.avance / meta
+              : Math.max(0, Math.min(1, (pr.fin - e.paso) / M.PRUEBA.dura));
+      ctx.fillStyle = pr.tipo === "franja" ? C.verde : color;
+      ctx.fillRect(x + 2, y + h - 3, Math.round((w - 4) * k), 1);
+      // los números de las marcas, legibles aunque el mundo esté volteado
+      if (pr.tipo === "marcas") pr.marcas.forEach((m, i) => {
+        const [sx, sy] = aPantalla(e.pulso.x + 11, m.y);
+        ctx.fillStyle = m.ok ? C.verde : C.hi;
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(i + 1), sx, sy);
+        ctx.textBaseline = "top";
+      });
     }
   }
-  const pulsoVerde = () => prueba && prueba.tipo === "verde" && prueba.estado === "activa" && e.paso >= prueba.ini;
 
   function terminaFuria(){
     delete caja.dataset.furia;
@@ -356,9 +424,17 @@
   }
   function escondeGiro(){ if (avisoGiro) avisoGiro.hidden = true; avisoGiroT = 0; }
 
+  // el tic del metrónomo en la prueba de ritmo (solo sonido)
+  let tics = new Set();
+  function ticRitmo(){
+    const pr = e.prueba;
+    if (!pr || pr.tipo !== "ritmo" || pr.estado !== "activa") return;
+    pr.golpes.forEach((g, i) => { if (e.paso >= g.en && !tics.has(i)){ tics.add(i); suena("tic"); } });
+  }
+
   function cosmeticos(dt){
     reloj += dt;
-    if (prueba && prueba.estado !== "activa") prueba.t += dt;
+    if (e.prueba && e.prueba.estado !== "activa") pruebaFinT += dt;
     if (giroT < 1){
       giroT = Math.min(1, giroT + dt / GIRO_DUR);
       const k = giroT < .5 ? 2 * giroT * giroT : 1 - 2 * (1 - giroT) ** 2;   // entra y sale suave
@@ -422,8 +498,7 @@
     if (repeticion){
       setTimeout(() => {
         if (estado !== "paro") return;
-        const p = repeticion.prueba ? (M.cumplePrueba(repeticion.prueba.tipo, repeticion.prueba.verde, repeticion.aparicion, repeticion.latidos)
-                                       ? " Prueba del monitor: superada." : " Prueba del monitor: NO superada.") : "";
+        const p = e.prueba ? (e.prueba.estado === "ok" ? " Prueba del monitor: superada." : " Prueba del monitor: NO superada.") : "";
         muestra("FIN DE LA REPETICIÓN", `${repeticion.alias} · ${pad3(puntos)} válvulas.${p}`, "TOCA PARA VERLA DE NUEVO");
       }, 450);
       return;
@@ -436,10 +511,10 @@
       guarda("hmt2-bypass", String(record));
     }
     // la partida oficial queda lista para registrarse, si pasó la prueba
-    const paso = prueba?.estado === "ok";
+    const paso = e.prueba?.estado === "ok";
     if (partida.oficial && puntos > 0 && torneoAbierto && paso){
       envio = { token: partida.token, latidos: latidos.slice(), pasos: e.paso, puntos,
-                prueba: { aparicion: prueba.aparicion } };
+                prueba: { aparicion: e.prueba.a } };
       abreFormulario();
     }
     setTimeout(() => {
@@ -447,7 +522,7 @@
       const fin = `${pad3(puntos)} válvulas cruzadas.${nuevo ? " Nuevo récord." : ""}`;
       const nota = !partida.oficial ? " (Sin conexión: esta partida no cuenta para la tabla.)"
         : paso ? " Prueba del monitor superada: puedes registrarla."
-        : prueba?.estado === "falla" || prueba?.estado === "activa" ? " No pasaste la prueba del monitor: esta partida no entra a la tabla."
+        : e.prueba ? " No pasaste la prueba del monitor: esta partida no entra a la tabla."
         : ` Para entrar a la tabla, llega a la prueba del monitor (entre la válvula ${M.PRUEBA.desde} y la ${M.PRUEBA.hasta}) y pásala.`;
       const porque = motivo === "furia" ? " La furia del gusano te alcanzó."
                    : motivo === "virus" ? " Un virus del gusano alcanzó el pulso."
@@ -509,6 +584,8 @@
       ctx.globalAlpha = .9;  ctx.lineWidth = 1; trazaRastro();
       ctx.globalAlpha = 1;
     }
+
+    dibujaPruebaMundo();
 
     // el pulso
     const y = plano ? plano.y : e.pulso.y;
@@ -780,7 +857,7 @@
       const r = await fetch(RUTA + "/puntaje", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...envio, alias, correo, empresa: form.empresa.value }),     // incluye prueba.aparicion
+        body: JSON.stringify({ ...envio, alias, correo, empresa: form.empresa.value }),     // incluye la aparición de la prueba
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok){
@@ -815,7 +892,7 @@
   function empiezaRepeticion(){
     e = M.crea(repeticion.semilla);
     repeticion.i = 0;
-    prueba = null;
+    pruebaFinT = 0; tics = new Set();
     latidos = []; rastro = []; chispas = [];
     destello = sacudida = 0; plano = null; enParo = 0;
     espejo = espejoDesde = espejoHacia = 1; giroT = 1;
