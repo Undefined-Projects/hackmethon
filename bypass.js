@@ -349,6 +349,14 @@
                          : pr.tipo === "marcas" ? pr.marcas.length : pr.ventanas.filter(v => v.verde).length;
   // de coordenadas del mundo a la pantalla, contando el espejo del volteo
   const aPantalla = (x, y) => [W / 2 + (x - W / 2) * espejo, H / 2 + (y - H / 2) * espejo];
+  // Antes de cada rojo, un anillo rojo se cierra sobre el pulso durante
+  // AVISO_ROJO pasos (0.6 s): da tiempo de un último latido y de soltar.
+  const AVISO_ROJO = 72;
+  const rojoQueViene = () => {
+    const pr = e.prueba;
+    if (!pr || pr.tipo !== "verde" || pr.estado !== "activa") return null;
+    return pr.ventanas.find(v => !v.verde && v.ini - e.paso > 0 && v.ini - e.paso <= AVISO_ROJO) || null;
+  };
   // "verde" o "rojo" mientras dura una señal del reto verde; "" si no
   const colorPulso = () => {
     const pr = e.prueba;
@@ -382,6 +390,15 @@
         ctx.lineWidth = 1;
         ctx.strokeRect(Math.round(px - 6) + .5, Math.round(m.y - 6) + .5, 12, 12);
       });
+    }
+    if (pr.tipo === "verde"){
+      const v = rojoQueViene();
+      if (v){
+        const r = Math.max(4, 4 + (v.ini - e.paso) * .4);
+        ctx.strokeStyle = C.sangre;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(px, e.pulso.y, r, 0, Math.PI * 2); ctx.stroke();
+      }
     }
     if (pr.tipo === "ritmo"){
       // el anillo se cierra justo en el golpe
@@ -421,11 +438,12 @@
     const leyendo = pr.estado === "activa" && e.paso < pr.ini;
     const reto = `RETO ${pr.n + 1}/${pr.retos.length}`;
     const linea1 = pr.estado === "ok" ? "PRUEBA SUPERADA" : pr.estado === "falla" ? "PRUEBA FALLIDA"
-                 : leyendo ? `${reto} \u00B7 PREPARATE`
+                 : leyendo ? `${reto} \u00B7 ${pr.tipo === "verde" ? "GRAVEDAD LENTA" : "PREPARATE"}`
                  : pr.tipo === "franja" ? reto : `${reto}  \u00B7  ${pr.avance}/${meta}`;
     const linea2 = pr.estado === "ok" ? "SIGUE JUGANDO: PUEDE HABER MAS"
                  : pr.estado === "falla" ? "ESTA PARTIDA NO ENTRA A LA TABLA"
                  : colorPulso() === "rojo" ? "ROJO: NO LATAS AHORA"
+                 : rojoQueViene() ? "VIENE ROJO: PREPARATE PARA SOLTAR"
                  : TEXTO_PRUEBA[pr.tipo];
     ctx.fillText(linea1, W / 2, y + 4);
     ctx.fillStyle = C.hi;
