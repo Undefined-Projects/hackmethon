@@ -349,9 +349,11 @@
 
   /* El bucle de animación solo corre cuando hace falta: pulsos del
      micelio en pantalla, la transición de marchitarse o el rebrote. */
-  let girando = false, transicion = null;
+  let girando = false, transicion = null, porJuego = false;
+  // con BYPASS en pantalla completa, el jardín no se mueve
+  window.addEventListener("juego-completo", ev => { porJuego = !!ev.detail; if (!porJuego) despierta(); });
   function despierta(){
-    if (girando || quieto) return;
+    if (girando || quieto || porJuego) return;
     const hay = transicion || [...vistas].some(m => m.animado);
     if (!hay || document.visibilityState !== "visible") return;
     girando = true;
@@ -361,7 +363,7 @@
     if (transicion && transicion(t) === false) { transicion = null; riegaTodo(true); }
     for (const m of vistas) if (m.animado) m.t = t;
     riegaTodo(false, !!transicion);
-    const sigue = transicion || [...vistas].some(m => m.animado);
+    const sigue = !porJuego && (transicion || [...vistas].some(m => m.animado));
     if (sigue && document.visibilityState === "visible") requestAnimationFrame(gira);
     else girando = false;
   }

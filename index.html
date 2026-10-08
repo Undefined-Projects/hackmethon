@@ -149,12 +149,19 @@
          Estilo Flappy Bird. Lo maneja bypass.js; las raíces del
          corazón se enchufan en el borde de arriba de este cuadro. -->
     <section class="juego" id="juego" aria-labelledby="juego-nombre">
+      <!-- cabecera y pantalla van juntas: en pantalla completa vertical,
+           esto es lo que se gira (el cuadro de fuera no se puede girar
+           mientras el navegador lo tiene en pantalla completa) -->
+      <div class="juego__cuerpo">
       <p class="juego__head">
         <span class="juego__tag">PF5</span>
         <span class="juego__name" id="juego-nombre">BYPASS &middot; MINIJUEGO</span>
         <span class="juego__marcador">PUNTOS <b id="j-pts">000</b><span>RÉCORD <b id="j-rec">000</b></span></span>
         <button type="button" class="juego__sonido" id="j-sonido" aria-pressed="true"
                 title="Activar o silenciar el sonido (tecla M en el juego)">SONIDO: SÍ</button>
+        <button type="button" class="juego__boton juego__boton--entra" id="j-completa"
+                title="Jugar en pantalla completa, en horizontal">&#9656; PANTALLA COMPLETA</button>
+        <button type="button" class="juego__boton juego__boton--sale" id="j-salir">&#10005; SALIR</button>
       </p>
       <div class="juego__pantalla">
         <canvas id="j-cv" tabindex="0"
@@ -165,8 +172,23 @@
           <p class="juego__titulo" id="j-titulo">BYPASS</p>
           <p class="juego__txt" id="j-txt">El pulso se escapa del corazón. Llévalo entre las válvulas y esquiva los virus que escupe el gusano.</p>
           <p class="juego__tecla" id="j-tecla">ESPACIO &middot; CLIC &middot; TOCA PARA LATIR</p>
+          <!-- en un teléfono, la forma buena de jugar -->
+          <button type="button" class="key key--go juego__fs" id="j-fs">&#9656; JUGAR EN PANTALLA COMPLETA</button>
+          <!-- en pantalla completa, tras una partida oficial -->
+          <button type="button" class="key juego__fs" id="j-ir-tabla" hidden>REGISTRAR EN LA TABLA</button>
+        </div>
+
+        <!-- La carga de la pantalla completa: no es decorado, mientras se
+             ve se preparan los sprites, el audio y la partida, y se mide
+             qué tan rápido va el teléfono (bypass.js, "pantalla completa"). -->
+        <div class="juego__carga" id="j-carga" hidden role="status">
+          <p class="juego__carga-t">PREPARANDO QUIRÓFANO</p>
+          <div class="juego__barra"><i id="j-barra"></i></div>
+          <p class="juego__carga-paso" id="j-paso">ESTERILIZANDO PANTALLA&hellip;</p>
+          <p class="juego__carga-gira" id="j-gira">GIRA TU TELÉFONO &#8635;</p>
         </div>
       </div>
+      </div><!-- /juego__cuerpo -->
 
       <!-- Registrar la partida: aparece al morir, si la partida fue
            oficial (con semilla del servidor). El servidor la vuelve a

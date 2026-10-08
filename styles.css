@@ -1361,3 +1361,86 @@ html.proximamente #historia::after{
   border-style:dashed; background:transparent; box-shadow:none;
 }
 .key--off:hover{ background:transparent; color:var(--phos-dim); }
+
+/* ============================================================
+   BYPASS EN PANTALLA COMPLETA
+   bypass.js pone .juego--completo en el cuadro (y .juego-completo
+   en <html>). Con la Fullscreen API el cuadro sube a la capa de
+   arriba solo; donde no existe (iPhone), estas reglas lo vuelven
+   una capa fija sobre todo. Si el teléfono está vertical y no se
+   pudo bloquear la orientación, .juego--girado lo rota 90°.
+   ============================================================ */
+.juego__boton{
+  font-family:var(--f-pixel); font-size:10px; letter-spacing:.12em; cursor:pointer;
+  color:var(--phos); background:transparent; border:1px solid var(--rule); padding:2px 8px;
+}
+.juego__boton:hover{ background:var(--phos); color:var(--screen); border-color:var(--phos); }
+.juego__boton--sale{ display:none; color:var(--screen); background:var(--sangre); border-color:var(--sangre); }
+.juego__fs{ pointer-events:auto; margin-top:10px; font-size:12px; padding:9px 16px; }
+.juego__fs[hidden]{ display:none; }
+/* con ratón no hace falta el botón grande: queda el de la cabecera */
+@media (hover:hover) and (pointer:fine){ #j-fs{ display:none; } }
+
+.juego--completo{
+  position:fixed; inset:0; z-index:1000; margin:0; border:0;
+  width:100vw; height:100vh; height:100dvh;
+  display:flex; flex-direction:column; background:#000;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  touch-action:none; overscroll-behavior:none;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+}
+.juego--completo:fullscreen{ width:100vw; height:100vh; }
+.juego--completo .juego__guardar,
+.juego--completo .juego__tabla{ display:none; }
+.juego--completo .juego__head{ flex:none; border-bottom-color:rgba(250,57,186,.3); }
+.juego--completo .juego__boton--entra{ display:none; }
+.juego--completo .juego__boton--sale{ display:inline-block; }
+.juego--completo #j-fs{ display:none; }
+.juego--completo .juego__pantalla{
+  flex:1; min-height:0; display:flex; align-items:center; justify-content:center;
+  background:var(--screen);
+}
+.juego--completo canvas{ flex:none; touch-action:none; }
+.juego--completo .juego__msg{ background:rgba(10,7,12,.4); }
+.juego--completo .juego__titulo{ font-size:clamp(26px,6vh,44px); }
+
+.juego--completo .juego__cuerpo{ flex:1; min-height:0; display:flex; flex-direction:column; }
+
+/* Vertical sin poder bloquear la orientación: se gira el cuerpo, no el
+   cuadro (al elemento en pantalla completa el navegador le prohíbe
+   transformarse). Se planta en la esquina derecha y gira 90°. */
+.juego--completo.juego--girado{ padding:0; }
+.juego--completo.juego--girado .juego__cuerpo{
+  position:absolute; top:0; left:100%;
+  width:100vh; width:100dvh; height:100vw;
+  transform-origin:top left; transform:rotate(90deg);
+}
+
+/* la pantalla de carga */
+.juego__carga{
+  position:absolute; inset:0; z-index:3; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:12px; padding:16px;
+  background:var(--screen); line-height:1.4;
+}
+.juego__carga[hidden]{ display:none; }
+.juego__carga-t{
+  margin:0; font-family:var(--f-pixel); font-size:clamp(16px,4vh,26px); letter-spacing:.12em;
+  color:var(--phos-hi); text-shadow:var(--fringe), var(--bloom-2);
+}
+.juego__barra{ width:min(60%, 360px); height:8px; border:1px solid var(--phos); padding:1px; }
+.juego__barra i{
+  display:block; height:100%; width:0; background:var(--clorofila);
+  box-shadow:0 0 8px rgba(61,220,151,.6); transition:width .25s steps(5);
+}
+.juego__carga-paso{ margin:0; font-family:var(--f-pixel); font-size:11px; letter-spacing:.14em; color:var(--phos-dim); }
+.juego__carga-gira{ margin:0; font-family:var(--f-pixel); font-size:10px; letter-spacing:.14em; color:var(--blue-hi); animation:blink 1s steps(1) infinite; }
+.juego__carga-gira[hidden]{ display:none; }
+
+/* Mientras se juega en pantalla completa, lo demás no gasta: sin las
+   capas del CRT, sin glitch y sin poder desplazar la página detrás. */
+html.juego-completo .tubo{ overflow:hidden; }
+html.juego-completo .tubo__fijo,
+html.juego-completo .gabinete{ display:none; }
+html.juego-completo main,
+html.juego-completo .h2,
+html.juego-completo .banner__blk{ animation:none; transform:none; }

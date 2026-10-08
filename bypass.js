@@ -33,15 +33,25 @@
    - Sin servidor (vista previa, sin red) el juego funciona igual,
      solo que esas partidas no cuentan para la tabla.
 
-   Rendimiento: canvas de 300 × 110 escalado pixelado, y el bucle
-   solo corre con el juego a la vista y la pestaña abierta.
+   Rendimiento: canvas de 300 × 110 escalado pixelado, personajes
+   precalculados (un drawImage cada uno), y el bucle solo corre con el
+   juego a la vista y la pestaña abierta.
+
+   Pantalla completa (pensada para teléfonos): un botón la pide junto
+   con la orientación horizontal. Mientras se acomoda hay una carga de
+   verdad —sprites, audio, partida del servidor y una medición de qué
+   tan rápido va el teléfono; si va lento, modo ligero—, y mientras se
+   juega así, el resto de la página se pausa. Donde el navegador no deja
+   (iPhone), el juego ocupa toda la ventana y, si el teléfono está
+   vertical, se gira solo.
    ============================================================ */
 (function bypass(){
   const M     = window.BypassMotor;
   const caja  = document.getElementById("juego");
   const cv    = document.getElementById("j-cv");
   if (!M || !caja || !cv || !cv.getContext) return;
-  const ctx   = cv.getContext("2d");
+  const ctx   = cv.getContext("2d", { alpha: true, desynchronized: true });
+  ctx.imageSmoothingEnabled = false;
   const $     = id => document.getElementById(id);
   const msg = $("j-msg"), tit = $("j-titulo"), txt = $("j-txt"), tecla = $("j-tecla");
   const ptsEl = $("j-pts"), recEl = $("j-rec"), avisoFuria = $("j-furia"), avisoGiro = $("j-giro");
@@ -80,6 +90,8 @@
      cualquier pantalla — y el canvas se estira a lo ancho del cuadro. */
   cv.width = W; cv.height = H;
   function medir(){
+    if (completo){ acomodaCompleto(); return; }
+    cv.style.width = "";
     const css = cv.parentElement.clientWidth || W * 2;
     cv.style.height = Math.round(H * css / W) + "px";
     dibuja();
@@ -99,8 +111,48 @@
     ["..X..", ".XXX.", "XXOXX", ".XXX.", "..X.."],
   ];
 
+  /* ── sprites precalculados ──────────────────────────────────────
+     Cada personaje se pinta UNA vez en un canvas chico y luego se estampa
+     con drawImage: el gusano eran ~120 rectángulos por cuadro y ahora es
+     uno. En un teléfono es la diferencia entre 60 cuadros y 40. */
+  const cache = new Map();
+  function sprite(clave, filas, tinta, esc = 1){
+    let c = cache.get(clave);
+    if (c) return c;
+    c = document.createElement("canvas");
+    c.width = filas[0].length * esc; c.height = filas.length * esc;
+    const k = c.getContext("2d");
+    for (let r = 0; r < filas.length; r++) for (let x = 0; x < filas[r].length; x++){
+      const t = filas[r][x];
+      if (t === "." || !tinta[t]) continue;
+      k.fillStyle = tinta[t];
+      k.fillRect(x * esc, r * esc, esc, esc);
+    }
+    cache.set(clave, c);
+    return c;
+  }
+  const spritePulso = muerto => sprite("pulso" + muerto, SPRITE,
+    { X: muerto ? C.sangre : C.phos, H: C.hi });
+  const spriteVirus = f => sprite("virus" + f, VIRUS[f], { X: C.sangre, O: C.hi });
+  // Todas las tintas posibles del gusano, para precalentar en la carga.
+  const TINTAS_GUSANO = {
+    calma:      { B: C.azul,   b: C.azulDim, V: C.violeta, E: C.sangre, M: C.fondo,  H: C.hi },
+    carga:      { B: C.azul,   b: C.azulDim, V: C.violeta, E: C.sangre, M: C.sangre, H: C.hi },
+    cargaLuz:   { B: C.uv,     b: C.azulDim, V: C.violeta, E: C.sangre, M: C.sangre, H: C.hi },
+    furia:      { B: C.phos,   b: C.violeta, V: C.sangre,  E: C.hi,     M: C.sangre, H: C.hi },
+    furiaLuz:   { B: C.sangre, b: C.violeta, V: C.sangre,  E: C.hi,     M: C.sangre, H: C.hi },
+  };
+  const spriteGusano = (f, tinta) => sprite("gusano" + f + tinta, GUSANO[f], TINTAS_GUSANO[tinta], 2);
+  function precalienta(){
+    [true, false].forEach(spritePulso);
+    [0, 1].forEach(spriteVirus);
+    for (const t in TINTAS_GUSANO) [0, 1].forEach(f => spriteGusano(f, t));
+  }
+
   /* ── estado ────────────────────────────────────────────────── */
   let estado = "listo";     // listo · jugando · paro · pausa
+  let completo = false;     // jugando en pantalla completa
+  let ligero = false;       // teléfono lento: sin partículas ni brillo
   let e = M.crea(1);        // estado del motor (en "listo" solo se usa para dibujar)
   let reloj = 0;            // tiempo cosmético, para animaciones que no son física
   let rastro = [], chispas = [];
@@ -196,7 +248,7 @@
   }
 
   function salpica(x, y, color, n){
-    if (quieto) return;
+    if (quieto || ligero) return;
     for (let i = 0; i < n; i++)
       chispas.push({ x, y, vx: (Math.random() - .5) * 90, vy: -Math.random() * 70,
                      v: .3 + Math.random() * .3, c: color });
@@ -273,7 +325,7 @@
     // el pulso se queda donde murió y desde ahí sale la línea plana
     // (dentro de la pantalla aunque haya chocado con el techo o el suelo)
     plano = { y: Math.max(3, Math.min(SUELO - 3, e.pulso.y)), vel: e.velocidad };
-    if (!quieto) for (let i = 0; i < 14; i++)
+    if (!quieto && !ligero) for (let i = 0; i < 14; i++)
       chispas.push({ x: e.pulso.x, y: e.pulso.y, vx: (Math.random() - .5) * 140, vy: -Math.random() * 120,
                      v: .5 + Math.random() * .5, c: i % 3 ? C.phos : C.hi });
 
@@ -298,6 +350,7 @@
                    : motivo === "virus" ? " Un virus del gusano alcanzó el pulso."
                    : " El reflejo ya se armó.";
       muestra(motivo === "valvula" ? "PARO" : "INFECTADO", fin + porque + nota, "TOCA PARA REANIMAR");
+      $("j-ir-tabla").hidden = !(completo && envio);
     }, 450);
   }
 
@@ -329,17 +382,10 @@
 
     for (const v of e.valvulas) valvula(v);
     dibujaGusano();
+    ctx.fillStyle = "rgba(255,51,85,.35)";
     for (const z of e.virus){
-      const f = VIRUS[Math.floor(z.t / .15) % 2];
-      const vx = Math.round(z.x - 2), vy = Math.round(z.y - 2);
-      ctx.fillStyle = "rgba(255,51,85,.35)";
-      ctx.fillRect(Math.round(z.x + 3), Math.round(z.y), 3, 1);
-      for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++){
-        const k = f[r][c];
-        if (k === ".") continue;
-        ctx.fillStyle = k === "O" ? C.hi : C.sangre;
-        ctx.fillRect(vx + c, vy + r, 1, 1);
-      }
+      ctx.fillRect(Math.round(z.x + 3), Math.round(z.y), 3, 1);       // estela
+      ctx.drawImage(spriteVirus(Math.floor(z.t / .15) % 2), Math.round(z.x - 2), Math.round(z.y - 2));
     }
 
     // suelo: una raíz que corre con brotes cada tanto
@@ -356,21 +402,14 @@
     if (rastro.length > 1){
       ctx.lineJoin = "round";
       ctx.strokeStyle = estado === "paro" ? C.sangre : C.phos;
-      ctx.globalAlpha = .25; ctx.lineWidth = 3; trazaRastro();
+      if (!ligero){ ctx.globalAlpha = .25; ctx.lineWidth = 3; trazaRastro(); }
       ctx.globalAlpha = .9;  ctx.lineWidth = 1; trazaRastro();
       ctx.globalAlpha = 1;
     }
 
     // el pulso
     const y = plano ? plano.y : e.pulso.y;
-    const px = Math.round(e.pulso.x - 3), py = Math.round(y - 3);
-    const muerto = estado === "paro";
-    for (let r = 0; r < SPRITE.length; r++) for (let c = 0; c < 7; c++){
-      const k = SPRITE[r][c];
-      if (k === ".") continue;
-      ctx.fillStyle = k === "H" ? C.hi : (muerto ? C.sangre : C.phos);
-      ctx.fillRect(px + c, py + r, 1, 1);
-    }
+    ctx.drawImage(spritePulso(estado === "paro"), Math.round(e.pulso.x - 3), Math.round(y - 3));
 
     for (const c of chispas){
       ctx.globalAlpha = Math.min(1, c.v * 2);
@@ -392,24 +431,16 @@
 
   function dibujaGusano(){
     const g = e.gusano;
-    const f = GUSANO[Math.floor(reloj / .35) % 2];
     const enojado = !!e.furia && estado === "jugando";
     const temblor = n => enojado && !quieto ? Math.round((Math.random() - .5) * n) : 0;
     const gx = Math.round(g.x - 10) + temblor(3), gy = Math.round(g.y - 12) + temblor(2);
     const cargando = (g.carga > 0 && estado === "jugando") || enojado;
     const parpadeo = cargando && Math.floor((enojado ? e.furia.t : g.carga) * 16) % 2 === 0;
-    const tinta = enojado
-      ? { B: parpadeo ? C.sangre : C.phos, b: C.violeta, V: C.sangre, E: C.hi, M: C.sangre, H: C.hi }
-      : { B: parpadeo ? C.uv : C.azul, b: C.azulDim, V: C.violeta,
-          E: C.sangre, M: cargando ? C.sangre : C.fondo, H: C.hi };
+    const tinta = enojado ? (parpadeo ? "furiaLuz" : "furia")
+                : cargando ? (parpadeo ? "cargaLuz" : "carga") : "calma";
     ctx.fillStyle = "rgba(10,7,12,.7)";
     ctx.fillRect(gx - 1, gy - 1, 22, 26);
-    for (let r = 0; r < f.length; r++) for (let c = 0; c < f[r].length; c++){
-      const k = f[r][c];
-      if (k === ".") continue;
-      ctx.fillStyle = tinta[k];
-      ctx.fillRect(gx + c * 2, gy + r * 2, 2, 2);
-    }
+    ctx.drawImage(spriteGusano(Math.floor(reloj / .35) % 2, tinta), gx, gy);
     if (cargando){
       const n = enojado ? 3 + (parpadeo ? 2 : 0) : Math.ceil((1 - g.carga / CARGA) * 4);
       ctx.fillStyle = C.sangre;
@@ -445,6 +476,7 @@
   /* ── mensajes ──────────────────────────────────────────────── */
   function muestra(t, cuerpo, tec){
     tit.textContent = t; txt.textContent = cuerpo; tecla.textContent = tec;
+    $("j-ir-tabla").hidden = true;
     msg.hidden = false;
   }
   const esconde = () => { msg.hidden = true; };
@@ -461,7 +493,12 @@
     arranca();
   }
 
-  cv.addEventListener("pointerdown", ev => {
+  // Se late tocando cualquier parte de la pantalla del juego (en pantalla
+  // completa eso incluye las franjas de arriba y abajo), menos los botones.
+  const pantalla = cv.parentElement;
+  pantalla.addEventListener("pointerdown", ev => {
+    if (ev.target.closest("button")) return;
+    if (!$("j-carga").hidden) return;              // mientras carga, no
     ev.preventDefault();
     cv.focus({ preventScroll: true });
     late();
@@ -508,7 +545,7 @@
   let primeraVez = true;
   if ("IntersectionObserver" in window){
     new IntersectionObserver(([en]) => {
-      visible = en.isIntersecting;
+      visible = en.isIntersecting || completo;
       if (visible && primeraVez){ primeraVez = false; pidePartida(); cargaTabla(); }
       visible ? arranca() : detiene();
     }, { threshold: .2 }).observe(caja);
@@ -518,7 +555,7 @@
   });
 
   let rz = null;
-  addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(medir, 150); });
+  addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(medir, completo ? 60 : 150); });
 
   /* ════════════════════════════════════════════════════════
      LEADERBOARD
@@ -660,6 +697,128 @@
   if (!RUTA){
     cierreEl.textContent = "· SIN CONEXIÓN";
   }
+
+  /* ════════════════════════════════════════════════════════
+     PANTALLA COMPLETA
+     ════════════════════════════════════════════════════════ */
+  const raizDoc = document.documentElement;
+  const carga = $("j-carga"), barra = $("j-barra"), pasoTxt = $("j-paso");
+  let nativo = false;          // true: la pidió el navegador; false: la simulamos
+
+  const pideCompleta = el => (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el, { navigationUI: "hide" });
+  const salDeCompleta = () => (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+  const enCompleta = () => document.fullscreenElement || document.webkitFullscreenElement;
+
+  // Vertical sin bloqueo de orientación (iPhone): se gira el juego entero.
+  const vertical = () => innerHeight > innerWidth;
+
+  function acomodaCompleto(){
+    const girado = vertical();
+    caja.classList.toggle("juego--girado", girado);
+    // el espacio útil, ya contando el giro y la barra de arriba
+    const aw = girado ? innerHeight : innerWidth;
+    const ah = (girado ? innerWidth : innerHeight) - caja.querySelector(".juego__head").offsetHeight;
+    const k = Math.max(1, Math.min(aw / W, ah / H));
+    cv.style.width  = Math.floor(W * k) + "px";
+    cv.style.height = Math.floor(H * k) + "px";
+    $("j-gira").hidden = !girado;
+    dibuja();
+  }
+
+  const espera = ms => new Promise(r => setTimeout(r, ms));
+  // n cuadros seguidos; si se da `cada`, se llama en cada uno. Devuelve
+  // el promedio de milisegundos por cuadro.
+  const cuadros = (n, cada) => new Promise(r => {
+    let t0 = null, i = 0;
+    requestAnimationFrame(function f(t){
+      if (t0 === null) t0 = t;
+      if (cada) cada();
+      if (++i < n) requestAnimationFrame(f); else r((t - t0) / Math.max(1, n - 1));
+    });
+  });
+
+  async function entra(){
+    if (completo) return;
+    // Lo primero, sin esperar nada: el navegador solo concede la pantalla
+    // completa dentro del mismo toque.
+    let pedida = null;
+    try { pedida = pideCompleta(caja); } catch {}
+    completo = true;
+    window.Sonido?.toca("latido");
+    if (estado === "jugando") detiene();
+    caja.classList.add("juego--completo");
+    raizDoc.classList.add("juego-completo");
+    window.dispatchEvent(new CustomEvent("juego-completo", { detail: true }));
+    msg.hidden = true;
+    carga.hidden = false;
+    const t0 = performance.now();
+    const avanza = (pct, texto) => { barra.style.width = pct + "%"; pasoTxt.textContent = texto; };
+
+    avanza(10, "ESTERILIZANDO PANTALLA\u2026");
+    try { await pedida; nativo = !!enCompleta(); } catch { nativo = false; }
+    try { await screen.orientation?.lock?.("landscape"); } catch {}
+    await espera(250);                 // que la rotación y las barras se acomoden
+    acomodaCompleto();
+
+    avanza(35, "CONECTANDO EL PULSO\u2026");
+    precalienta();
+    pidePartida();                     // la semilla de la próxima partida, por adelantado
+    await cuadros(2);
+
+    avanza(60, "AFINANDO EL MONITOR\u2026");
+    window.Sonido?.toca("alarma");
+    await cuadros(2);
+
+    avanza(85, "MIDIENDO EL RITMO\u2026");
+    // 30 cuadros de prueba con la escena real: si el teléfono no llega
+    // cómodo a ~45 cuadros por segundo, modo ligero (sin partículas ni
+    // brillo del rastro).
+    const ms = await cuadros(30, () => { pasoAdorno(); dibuja(); });
+    ligero = ms > 22;
+    caja.dataset.ligero = ligero ? "si" : "no";
+
+    avanza(100, ligero ? "MODO LIGERO \u00B7 LISTO" : "LISTO");
+    await espera(Math.max(250, 1100 - (performance.now() - t0)));   // que se alcance a leer
+    carga.hidden = true;
+    acomodaCompleto();
+    if (estado === "pausa" || estado === "listo")
+      muestra(estado === "pausa" ? "PAUSA" : "BYPASS",
+              estado === "pausa" ? `${pad3(e.puntos)} válvulas cruzadas. El pulso te espera.`
+                                 : "Toca en cualquier parte de la pantalla para latir.",
+              estado === "pausa" ? "TOCA PARA SEGUIR" : "TOCA PARA LATIR");
+    else if (estado === "paro") msg.hidden = false;
+    cv.focus({ preventScroll: true });
+    arranca();
+  }
+
+  function sale(){
+    if (!completo) return;
+    completo = false;
+    if (estado === "jugando") detiene();
+    try { screen.orientation?.unlock?.(); } catch {}
+    if (enCompleta()) try { salDeCompleta(); } catch {}
+    nativo = false;
+    carga.hidden = true;
+    caja.classList.remove("juego--completo", "juego--girado");
+    raizDoc.classList.remove("juego-completo");
+    window.dispatchEvent(new CustomEvent("juego-completo", { detail: false }));
+    $("j-ir-tabla").hidden = true;
+    medir();
+  }
+
+  $("j-completa").addEventListener("click", entra);
+  $("j-fs").addEventListener("click", entra);
+  $("j-salir").addEventListener("click", sale);
+  $("j-ir-tabla").addEventListener("click", () => {
+    sale();
+    form.scrollIntoView({ block: "center" });
+    setTimeout(() => form.alias.focus({ preventScroll: true }), 300);
+  });
+  // si la persona sale con el gesto del sistema (atrás, Esc), seguimos su paso
+  ["fullscreenchange", "webkitfullscreenchange"].forEach(ev =>
+    document.addEventListener(ev, () => { if (completo && nativo && !enCompleta()) sale(); }));
+  addEventListener("keydown", ev => { if (ev.key === "Escape" && completo && !nativo) sale(); });
+  addEventListener("orientationchange", () => { if (completo) setTimeout(acomodaCompleto, 200); });
 
   /* — el interruptor del sonido, en la cabecera — */
   const bSon = $("j-sonido");

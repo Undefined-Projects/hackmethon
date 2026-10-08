@@ -287,10 +287,23 @@ const Monitor = (function monitor(){
     if (trazo.length) ctx.clearRect(trazo[0][0] + 1, 0, x - trazo[0][0] + 16, H);
     pinta();
 
-    if (enPantalla || estado === "paro") requestAnimationFrame(cuadro);
+    if ((enPantalla || estado === "paro") && !porJuego) requestAnimationFrame(cuadro);
     else dormido = true;
   }
   let dormido = false, enPantalla = true;
+
+  /* Con BYPASS en pantalla completa nadie ve el monitor: se duerme para
+     dejarle al juego todo el teléfono, y despierta al salir. */
+  let porJuego = false;
+  window.addEventListener("juego-completo", ev => {
+    porJuego = !!ev.detail;
+    if (!porJuego && dormido){
+      dormido = false;
+      antes = performance.now();
+      ultimo = performance.now(); ocioso = 0;       // no cobrarle el tiempo de juego
+      requestAnimationFrame(cuadro);
+    }
+  });
   requestAnimationFrame(cuadro);
 
   /* Fuera de pantalla el monitor se duerme: no tiene caso dibujar un
