@@ -10,6 +10,7 @@
    Para que sea determinista de verdad:
    - Paso fijo de 1/120 s. El tiempo real nunca entra al motor.
    - Azar con semilla (mulberry32), nunca Math.random.
+   - Una semilla por tramo de 10 válvulas (ver TRAMO, abajo).
    - Nada de Math.sin, Math.sqrt ni Math.hypot: el estándar deja
      que cada navegador los aproxime a su manera, y una diferencia
      en el último decimal desvía la partida. Se usan seno() y raiz()
@@ -26,11 +27,12 @@
   else raiz.BypassMotor = motor;
 })(typeof globalThis !== "undefined" ? globalThis : this, function (){
 
-  const VERSION = 5;          // súbelo si cambia la física: invalida partidas viejas
+  const VERSION = 6;          // súbelo si cambia la física: invalida partidas viejas
                               // 2: calma al voltear y prueba sin obstáculos
                               // 3: 1.5 s para leer la prueba; ritmo con más margen
                               // 4: varias pruebas por partida, cada una con 2–3 retos
                               // 5: gravedad lenta en el reto verde/rojo, y en rojo el pulso flota
+                              // 6: una semilla por tramo de 10 válvulas, que suelta el servidor
 
   /* ── el mundo ─────────────────────────────────────────────── */
   const W = 300, H = 110, SUELO = H - 4;
@@ -65,6 +67,23 @@
     paso:   7,
   };
 
+  /* Semillas por tramo. Con una sola semilla para toda la partida, un
+     bot la tenía completa desde el primer segundo: simulaba en local el
+     futuro entero, elegía semillas fáciles y calculaba la partida
+     perfecta. Ahora el azar se reinicia cada TRAMO.valvulas válvulas
+     nacidas con la semilla de ese tramo, y el servidor suelta la del
+     tramo k solo cuando el jugador demuestra (con sus latidos) que ya
+     nacieron TRAMO.valvulas · k − TRAMO.anticipo válvulas: el navegador
+     conoce como mucho el tramo en curso y el que sigue.
+     Las semillas son independientes (HMACs de la llave del servidor):
+     adivinar una a partir de lo que se ve no dice nada de la siguiente.
+     Si a la hora de nacer la primera válvula de un tramo su semilla no
+     ha llegado, el juego se detiene ahí (falta(), abajo) hasta que llegue. */
+  const TRAMO = {
+    valvulas: 10,
+    anticipo: 5,      // se pide el siguiente a 5 válvulas de que haga falta (~4.5 s o más)
+  };
+
   /* ── matemáticas deterministas ────────────────────────────── */
   function azar(semilla){
     let a = semilla >>> 0;
@@ -94,10 +113,26 @@
   }
   const limita = (v, a, b) => v < a ? a : v > b ? b : v;
 
+  /* Semillas de tramo sin servidor (partidas que no cuentan, adorno):
+     salen de una semilla base, mezcladas con el número de tramo. */
+  function semillasLocales(base){
+    return k => {
+      let x = (base ^ Math.imul(k + 1, 0x9E3779B1)) >>> 0;
+      x = Math.imul(x ^ (x >>> 16), 0x85EBCA6B);
+      x = Math.imul(x ^ (x >>> 13), 0xC2B2AE35);
+      return (x ^ (x >>> 16)) >>> 0;
+    };
+  }
+
   /* ── estado ───────────────────────────────────────────────── */
-  function crea(semilla){
+  // semillas: k → semilla del tramo k (o undefined si todavía no llega).
+  // Un número es la base de semillasLocales.
+  function crea(semillas){
+    const s = typeof semillas === "function" ? semillas : semillasLocales(semillas >>> 0);
     return {
-      r: azar(semilla),
+      semillas: s,
+      r: azar(s(0)),
+      nacidas: 0,                 // válvulas que han salido (marca los tramos)
       paso: 0, t: 0, vivo: true, motivo: null,
       puntos: 0, velocidad: 62, fondoX: 0,
       pulso:   { x: PULSO_X, y: H / 2, vy: 0 },
@@ -127,6 +162,9 @@
   }
 
   function nuevaValvula(e){
+    if (e.nacidas > 0 && e.nacidas % TRAMO.valvulas === 0)
+      e.r = azar(e.semillas(e.nacidas / TRAMO.valvulas));
+    e.nacidas++;
     const r = e.r;
     const hueco  = Math.max(36, 50 - e.puntos * .6);
     const centro = 18 + hueco / 2 + r() * (SUELO - 36 - hueco);
@@ -198,6 +236,20 @@
     ev.push({ tipo: "muerte", motivo });
   }
 
+  // ¿en el siguiente paso nace una válvula? (nada antes de eso en avanza
+  // cambia la furia, la calma, la prueba ni las válvulas)
+  function saleValvula(e){
+    const ultima = e.valvulas[e.valvulas.length - 1];
+    return !e.furia && !tranquilo(e) && (!ultima || ultima.x < W - ESPACIO);
+  }
+  /* El número de tramo cuya semilla hace falta para dar el siguiente paso
+     y no ha llegado, o −1 si se puede avanzar. */
+  function falta(e){
+    if (!e.vivo || e.nacidas === 0 || e.nacidas % TRAMO.valvulas) return -1;
+    const k = e.nacidas / TRAMO.valvulas;
+    return e.semillas(k) === undefined && saleValvula(e) ? k : -1;
+  }
+
   /* ── un paso de 1/120 s ───────────────────────────────────────
      latio: si en este paso el jugador latió. Devuelve los eventos
      del paso para que el dibujo reaccione (chispas, sacudidas…). */
@@ -217,8 +269,7 @@
     p.y += p.vy * dt;
     e.fondoX += e.velocidad * dt;
 
-    const ultima = e.valvulas[e.valvulas.length - 1];
-    if (!e.furia && !tranquilo(e) && (!ultima || ultima.x < W - ESPACIO)) nuevaValvula(e);
+    if (saleValvula(e)) nuevaValvula(e);
 
     let volteo = false;
     for (const v of e.valvulas){
@@ -280,17 +331,18 @@
   }
 
   /* ── volver a jugar una partida ───────────────────────────────
+     semillas: k → semilla del tramo k (el servidor las tiene todas).
      latidos: los números de paso en que el jugador latió, en orden.
      Es lo que hace el servidor para contar los puntos él mismo.
      pruebas: [{ a, def }, …] — en qué paso apareció cada prueba del
      monitor y cuál era; se inyectan igual que las vio el jugador.
      pasoDePunto[n] = el paso en que se cruzó la válvula n. */
-  function simula(semilla, latidos, tope, pruebas){
-    const e = crea(semilla);
+  function simula(semillas, latidos, tope, pruebas){
+    const e = crea(semillas);
     const pasoDePunto = [0];
     const lista = pruebas || [];
     let i = 0, j = 0;
-    while (e.vivo && e.paso < tope){
+    while (e.vivo && e.paso < tope && falta(e) < 0){
       // cada prueba entra en su paso; si llega con otra en curso, no entra
       // (y la partida no cuadra: el navegador nunca haría eso)
       while (j < lista.length && e.paso === lista[j].a){
@@ -306,7 +358,7 @@
     const estados = e.pruebas.slice();
     if (activa(e)) estados.push("activa");
     return { puntos: e.puntos, pasos: e.paso, vivo: e.vivo, motivo: e.motivo, pasoDePunto,
-             pruebas: estados };
+             pruebas: estados, nacidas: e.nacidas };
   }
 
   /* ── la prueba del monitor ────────────────────────────────────
@@ -435,6 +487,6 @@
     ev.push({ tipo: "pruebaFin", estado: pr.estado });
   }
 
-  return { VERSION, W, H, SUELO, DT, ANCHO, CARGA, FURIA, PULSO_X, PRUEBA, GIRO,
-           crea, avanza, simula, seno, iniciaPrueba, activa };
+  return { VERSION, W, H, SUELO, DT, ANCHO, CARGA, FURIA, PULSO_X, PRUEBA, GIRO, TRAMO,
+           crea, avanza, simula, falta, semillasLocales, seno, iniciaPrueba, activa };
 });

@@ -23,8 +23,15 @@
    - Antes de cada partida se pide al servidor una semilla firmada
      (GET /api/partida). Se pide por adelantado para que empezar a
      jugar nunca espere a la red.
+   - Esa semilla es solo la del primer tramo (10 válvulas). La de cada
+     tramo siguiente se pide a 5 válvulas de que haga falta
+     (POST /api/tramo) mandando los latidos hasta ahí: el servidor
+     vuelve a jugar y solo la da si de verdad se llegó. Si no ha llegado
+     cuando nace la primera válvula del tramo, el juego se detiene
+     ("SINCRONIZANDO") hasta que llegue; si el servidor no contesta en
+     ESPERA_TRAMO, la partida sigue con azar local y deja de contar.
    - Durante la partida se anota en qué paso del motor latió el
-     jugador. Esa lista y la semilla bastan para repetir la partida
+     jugador. Esa lista y las semillas bastan para repetir la partida
      exacta.
    - Al morir, si la partida tenía semilla del servidor, se ofrece
      registrarla (POST /api/puntaje). El servidor la vuelve a jugar
@@ -210,7 +217,7 @@
   let espejo = 1, espejoDesde = 1, espejoHacia = 1, giroT = 1;
   let avisoGiroT = 0;
   let latidos = [], latePendiente = false;
-  let partida = null;       // { semilla, token?, oficial }
+  let partida = null;       // { semilla, token?, oficial, tramos, local? }
   let siguiente = null;     // la semilla firmada que se usará en la próxima partida
   let envio = null;         // la última partida oficial, lista para registrar
   let torneoAbierto = true;
@@ -227,12 +234,15 @@
     // pero esa partida no cuenta para la tabla.
     const fresca = siguiente && Date.now() - siguiente.pedida < 5 * 3600e3;
     partida = fresca
-      ? { semilla: siguiente.semilla, token: siguiente.token, oficial: true }
-      : { semilla: (Math.random() * 4294967296) >>> 0, oficial: false };
+      ? { semilla: siguiente.semilla, token: siguiente.token, oficial: true, tramos: [siguiente.semilla] }
+      : { semilla: (Math.random() * 4294967296) >>> 0, oficial: false, tramos: [] };
+    if (!partida.oficial) partida.local = M.semillasLocales(partida.semilla);
     siguiente = null;
     pidePartida();                       // ya va pidiendo la de la siguiente
 
-    e = M.crea(partida.semilla);
+    const de = partida;
+    e = M.crea(k => de.tramos[k] ?? de.local?.(k));
+    congelado = 0; pidiendoTramo.clear();
     preguntadas = new Set(); pruebaFinT = 0; tics = new Set(); apariciones = [];
     latidos = []; rastro = []; chispas = [];
     destello = sacudida = 0; plano = null;
@@ -248,6 +258,16 @@
   // un paso del motor, con lo que el dibujo necesita alrededor
   let cargaba = false;
   function pasoJuego(){
+    // sin la semilla del tramo que empieza, el mundo espera (y los toques
+    // de mientras no cuentan)
+    if (M.falta(e) >= 0){
+      latePendiente = false;
+      congelado += DT;
+      if (congelado > ESPERA_TRAMO) sinServidor();
+      cosmeticos(DT);
+      return;
+    }
+    congelado = 0;
     let latio;
     if (repeticion){
       // cada prueba entra en su paso, igual que la inyecta el servidor
@@ -266,6 +286,7 @@
     }
     if (latio){ latidos.push(e.paso + 1); suena("latido"); }
     const eventos = M.avanza(e, latio);
+    pideTramo();
     ticRitmo();
     // el zumbido de aviso suena cuando el gusano empieza a cargar
     const carga = e.gusano.carga > 0 && !e.furia;
@@ -312,6 +333,42 @@
         muere(ev.motivo); break;
     }
   }
+  /* ── los tramos ────────────────────────────────────────────── */
+  // A TRAMO.anticipo válvulas de que empiece el tramo k se pide su semilla,
+  // con los latidos y las pruebas hasta este paso como prueba de que se
+  // llegó. Si falla la red se reintenta; si el servidor la niega, o no
+  // contesta en ESPERA_TRAMO segundos con el juego detenido, la partida
+  // sigue con azar local y ya no cuenta para la tabla.
+  const ESPERA_TRAMO = 8;
+  let congelado = 0;              // segundos con el juego detenido esperando un tramo
+  const pidiendoTramo = new Set();
+  function pideTramo(){
+    if (repeticion || !partida?.oficial || !RUTA) return;
+    const k = Math.floor((e.nacidas + M.TRAMO.anticipo) / M.TRAMO.valvulas);
+    if (k < 1 || partida.tramos[k] !== undefined || pidiendoTramo.has(k)) return;
+    pidiendoTramo.add(k);
+    const de = partida;
+    const cuerpo = JSON.stringify({ token: de.token, k, pasos: e.paso, latidos, pruebas: apariciones });
+    const intenta = () => fetch(RUTA + "/tramo", {
+        method: "POST", headers: { "content-type": "application/json" }, body: cuerpo, cache: "no-store" })
+      .then(r => r.json().catch(() => ({})).then(d => {
+        if (de !== partida || !de.oficial) return;
+        if (r.ok && Number.isInteger(d.semilla)){ de.tramos[k] = d.semilla >>> 0; return; }
+        if (r.status >= 400 && r.status < 500) sinServidor();
+        else throw new Error();
+      }))
+      .catch(() => { if (de === partida && de.oficial) setTimeout(intenta, 1500); });
+    intenta();
+  }
+  // La partida sigue, pero con azar local: ya no cuenta para la tabla.
+  function sinServidor(){
+    if (!partida || !partida.oficial) return;
+    partida.oficial = false;
+    partida.local = M.semillasLocales((Math.random() * 4294967296) >>> 0);
+    caja.dataset.oficial = "no";
+    congelado = 0;
+  }
+
   /* ── la prueba del monitor ─────────────────────────────────── */
   // El estado de la prueba vive en el motor (e.prueba), que la evalúa.
   // Aquí solo se pregunta al servidor, se arranca y se dibuja.
@@ -624,7 +681,7 @@
     }
 
     // cuánto adelantar el dibujo: solo mientras se juega
-    const ad = estado === "jugando" ? adelanto : 0;
+    const ad = estado === "jugando" && !congelado ? adelanto : 0;
     const dx = -e.velocidad * ad;
     const fondo = e.fondoX + (estado === "jugando" ? e.velocidad * ad : 0);
 
@@ -686,6 +743,14 @@
     }
     ctx.restore();
     dibujaPrueba();
+    if (congelado > .1 && estado === "jugando"){
+      ctx.fillStyle = "rgba(10,7,12,.88)";
+      ctx.fillRect(W / 2 - 70, H / 2 - 9, 140, 18);
+      ctx.fillStyle = Math.floor(reloj * 4) % 2 ? C.phos : C.hi;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "8px Silkscreen, monospace";
+      ctx.fillText("SINCRONIZANDO EL PULSO\u2026", W / 2, H / 2);
+    }
   }
 
   function trazaRastro(dx = 0){
@@ -992,7 +1057,8 @@
      abierta en esta pestaña, se pide la partida y se reproduce.
      ════════════════════════════════════════════════════════ */
   function empiezaRepeticion(){
-    e = M.crea(repeticion.semilla);
+    e = M.crea(k => repeticion.tramos[k]);
+    congelado = 0;
     repeticion.i = 0; repeticion.j = 0;
     pruebaFinT = 0; tics = new Set();
     latidos = []; rastro = []; chispas = [];
@@ -1014,7 +1080,7 @@
       .then(r => r.json().then(d => ({ ok: r.ok, d })))
       .then(({ ok, d }) => {
         if (!ok) throw new Error(d.mensaje || "NO SE PUDO ABRIR LA REPETICIÓN.");
-        repeticion = { alias: d.alias, puntos: d.puntos, semilla: d.semilla >>> 0,
+        repeticion = { alias: d.alias, puntos: d.puntos, tramos: (d.tramos || []).map(x => x >>> 0),
                        latidos: d.latidos, apariciones: d.apariciones, pruebas: d.pruebas, i: 0, j: 0 };
         caja.dataset.repeticion = "";
         $("juego-nombre").textContent = `REPETICIÓN \u00B7 ${d.alias} \u00B7 ${pad3(d.puntos)}`;
