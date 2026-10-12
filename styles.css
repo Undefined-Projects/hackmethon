@@ -1048,6 +1048,15 @@ body.paro .chispa{ stroke:var(--sangre-hi); }
 .signoff__line a{ color:var(--phos); text-decoration:none; }
 .signoff__line a:hover{ background:var(--phos); color:var(--screen); }
 .signoff__line--dim{ color:rgba(176,85,155,.55); margin-top:14px; }
+/* El membrete de undefined_projects, en blanco (el original es morado y
+   sobre el negro del tubo no se leía). Con su propio rayado y un brillo
+   leve, como el resto de lo que está encendido en la pantalla. */
+.signoff__marca{ margin:22px 0 0; }
+.signoff__marca img{
+  display:block; width:clamp(140px, 20vw, 170px); height:auto;
+  image-rendering:auto; opacity:.92;
+  filter:drop-shadow(0 0 6px rgba(255,211,238,.35));
+}
 
 /* ── área de información del operador (la línea 24) ─────── */
 .oia{
