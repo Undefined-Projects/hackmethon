@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HACK(ME)THON 2.0 · The Anatomy of a Machine</title>
+<link rel="icon" href="corazon.svg" type="image/svg+xml">
+<link rel="icon" href="corazon-30.png" type="image/png" sizes="30x30">
+<link rel="apple-touch-icon" href="corazon-180.png">
 <meta name="description" content="Una máquina viva está infectando la red y no se puede desconectar. Seis sistemas. Tres roles. Un quirófano a oscuras. El hackathon de nuevo ingreso de Startup Chihuahua.">
 <meta property="og:title" content="HACK(ME)THON 2.0 · The Anatomy of a Machine">
 <meta property="og:description" content="El instinto es solo un algoritmo sin documentar. Una máquina viva, seis sistemas, una noche para operarla a corazón abierto.">
@@ -620,17 +623,17 @@
           <p class="fs__hint">Todos son obligatorios. La fecha de nacimiento tiene que coincidir con tu CURP.</p>
           <div class="crew__campos">
             <label class="crew__campo crew__campo--ancho"><span>NOMBRE(S)</span>
-              <input type="text" name="nombre" maxlength="60" autocomplete="given-name" placeholder="NOMBRE(S)"></label>
+              <input type="text" name="nombre" maxlength="60" autocomplete="given-name" placeholder="NOMBRE(S)" required></label>
             <label class="crew__campo crew__campo--ancho"><span>APELLIDOS</span>
-              <input type="text" name="apellidos" maxlength="80" autocomplete="family-name" placeholder="APELLIDOS"></label>
+              <input type="text" name="apellidos" maxlength="80" autocomplete="family-name" placeholder="APELLIDOS" required></label>
             <label class="crew__campo crew__campo--ancho"><span>CORREO</span>
-              <input type="email" name="correo" maxlength="120" autocomplete="email" placeholder="tu@correo.com"></label>
+              <input type="email" name="correo" maxlength="120" autocomplete="email" placeholder="tu@correo.com" required></label>
             <label class="crew__campo crew__campo--ancho"><span>TELÉFONO (WHATSAPP)</span>
-              <input type="tel" name="tel" maxlength="16" autocomplete="tel" placeholder="10 DÍGITOS"></label>
+              <input type="tel" name="tel" maxlength="16" autocomplete="tel" placeholder="10 DÍGITOS" required></label>
             <label class="crew__campo crew__campo--ancho"><span>CURP</span>
-              <input type="text" name="curp" maxlength="18" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="18 CARACTERES"></label>
+              <input type="text" name="curp" maxlength="18" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="18 CARACTERES" required></label>
             <label class="crew__campo crew__campo--ancho"><span>GÉNERO</span>
-              <select name="genero">
+              <select name="genero" required>
                 <option value="">ELIGE UNA OPCIÓN</option>
                 <option value="hombre">Hombre</option>
                 <option value="mujer">Mujer</option>
@@ -638,9 +641,9 @@
                 <option value="prefiero_no_decir">Prefiero no decir</option>
               </select></label>
             <label class="crew__campo crew__campo--ancho"><span>FECHA DE NACIMIENTO</span>
-              <input type="date" name="nacimiento" autocomplete="bday" min="1925-01-01"></label>
+              <input type="date" name="nacimiento" autocomplete="bday" min="1925-01-01" required></label>
             <label class="crew__campo crew__campo--ancho"><span>CÓDIGO POSTAL</span>
-              <input type="text" name="cp" maxlength="5" inputmode="numeric" autocomplete="postal-code" placeholder="5 DÍGITOS"></label>
+              <input type="text" name="cp" maxlength="5" inputmode="numeric" autocomplete="postal-code" placeholder="5 DÍGITOS" required></label>
           </div>
         </fieldset>
 
@@ -648,8 +651,8 @@
           <legend>&#9656; ESCUELA</legend>
           <p class="fs__hint">¿Estudias actualmente?</p>
           <div class="opciones">
-            <label class="consent"><input type="radio" name="estudia" value="si"><span>Sí</span></label>
-            <label class="consent"><input type="radio" name="estudia" value="no"><span>No</span></label>
+            <label class="consent"><input type="radio" name="estudia" value="si" required><span>Sí</span></label>
+            <label class="consent"><input type="radio" name="estudia" value="no" required><span>No</span></label>
           </div>
           <div class="crew__campos escuela" id="escuela" hidden>
             <label class="crew__campo crew__campo--ancho"><span>UNIVERSIDAD / INSTITUCIÓN</span>
@@ -704,9 +707,9 @@
           <legend>&#9656; EQUIPO</legend>
           <p class="fs__hint">Los equipos son de 3 a 5 personas. Una persona crea el equipo y les pasa la contraseña a los demás.</p>
           <div class="opciones">
-            <label class="consent"><input type="radio" name="equipoModo" value="unirse"><span>Ya tengo equipo</span></label>
-            <label class="consent"><input type="radio" name="equipoModo" value="asignar"><span>No tengo equipo, agrégame a uno</span></label>
-            <label class="consent"><input type="radio" name="equipoModo" value="crear"><span>Crear un equipo</span></label>
+            <label class="consent"><input type="radio" name="equipoModo" value="unirse" required><span>Ya tengo equipo</span></label>
+            <label class="consent"><input type="radio" name="equipoModo" value="asignar" required><span>No tengo equipo, agrégame a uno</span></label>
+            <label class="consent"><input type="radio" name="equipoModo" value="crear" required><span>Crear un equipo</span></label>
           </div>
 
           <!-- Ya tengo equipo: la lista la llena script.js desde /api/equipos -->
@@ -779,7 +782,7 @@
             <p><a href="privacidad.html" target="_blank" rel="noopener">LEER EL AVISO DE PRIVACIDAD COMPLETO ↗</a></p>
           </div>
           <label class="consent">
-            <input type="checkbox" name="privacidad" id="f-privacidad">
+            <input type="checkbox" name="privacidad" id="f-privacidad" required>
             <span>Leí el aviso de privacidad y acepto que mis datos se usen para lo que ahí se describe.</span>
           </label>
           <label class="consent" id="tutor" hidden>
@@ -809,7 +812,7 @@
             </p>
           </div>
           <label class="consent">
-            <input type="checkbox" name="responsiva" id="f-responsiva">
+            <input type="checkbox" name="responsiva" id="f-responsiva" required>
             <span>Leí la responsiva y la acepto.</span>
           </label>
         </fieldset>

@@ -510,8 +510,11 @@ const Monitor = (function monitor(){
   const limpiaTel = v => {
     let d = String(v || "").replace(/\D/g, "");
     if (d.length === 12 && d.startsWith("52")) d = d.slice(2);
-    return d.length === 10 ? d : null;
+    return /^[2-9]\d{9}$/.test(d) ? d : null;   // ninguna lada empieza con 0 ni 1
   };
+  // Nombres: solo letras, espacios, apóstrofo, punto y guion; dos letras o más.
+  const letras = s => (s.match(/\p{L}/gu) || []).length;
+  const nombreOk = s => /^[\p{L}\p{M}' .-]+$/u.test(s) && letras(s) >= 2;
 
   const el = n => form.elements[n];
   const val = n => (el(n)?.value || "").trim();
@@ -811,9 +814,11 @@ const Monitor = (function monitor(){
   function revisa(){
     form.querySelectorAll("[aria-invalid]").forEach(i => i.removeAttribute("aria-invalid"));
     if (!val("nombre"))    return falla("nombre", "FALTA TU NOMBRE.");
+    if (!nombreOk(val("nombre"))) return falla("nombre", "TU NOMBRE SOLO PUEDE LLEVAR LETRAS.");
     if (!val("apellidos")) return falla("apellidos", "FALTAN TUS APELLIDOS.");
+    if (!nombreOk(val("apellidos"))) return falla("apellidos", "TUS APELLIDOS SOLO PUEDEN LLEVAR LETRAS.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val("correo"))) return falla("correo", "EL CORREO NO ES VÁLIDO.");
-    if (!limpiaTel(val("tel"))) return falla("tel", "EL TELÉFONO DEBE TENER 10 DÍGITOS.");
+    if (!limpiaTel(val("tel"))) return falla("tel", "EL TELÉFONO NO ES VÁLIDO: SON 10 DÍGITOS.");
     const curp = limpiaCurp(val("curp"));
     if (!curpValida(curp)) return falla("curp", "LA CURP NO ES VÁLIDA. REVÍSALA LETRA POR LETRA.");
     if (!val("genero")) return falla("genero", "ELIGE UNA OPCIÓN DE GÉNERO.");
@@ -824,13 +829,15 @@ const Monitor = (function monitor(){
     if (edad < EDAD.min || edad > EDAD.max)
       return falla("nacimiento", `LA EDAD DEBE IR DE ${EDAD.min} A ${EDAD.max} AÑOS.`);
     if (!/^\d{5}$/.test(val("cp"))) return falla("cp", "EL CÓDIGO POSTAL DEBE TENER 5 DÍGITOS.");
+    if (/^00/.test(val("cp"))) return falla("cp", "ESE CÓDIGO POSTAL NO EXISTE.");
 
     const estudia = elegido("estudia");
     if (!estudia) return falla("estudia", "DINOS SI ESTUDIAS ACTUALMENTE.");
     if (estudia === "si"){
       if (!val("institucion")) return falla("institucion", "ELIGE TU UNIVERSIDAD O INSTITUCIÓN.");
-      if (val("institucion") === "otra" && !val("otra")) return falla("otra", "ESCRIBE EL NOMBRE DE TU ESCUELA.");
+      if (val("institucion") === "otra" && letras(val("otra")) < 3) return falla("otra", "ESCRIBE EL NOMBRE DE TU ESCUELA.");
       if (!val("carrera")) return falla("carrera", "FALTA TU CARRERA.");
+      if (letras(val("carrera")) < 3) return falla("carrera", "ESCRIBE EL NOMBRE DE TU CARRERA.");
       const tope = PERIODO_MAX[val("periodo")], n = Number(val("semestre"));
       if (!Number.isInteger(n) || n < 1 || n > tope)
         return falla("semestre", `EL ${PERIODO_NOMBRE[val("periodo")]} VA DE 1 A ${tope}.`);
@@ -850,6 +857,7 @@ const Monitor = (function monitor(){
     }
     if (modo === "crear"){
       if (val("equipo").length < 2) return falla("equipo", "FALTA EL NOMBRE DE TU EQUIPO.");
+      if (!/[\p{L}\d]/u.test(val("equipo"))) return falla("equipo", "EL NOMBRE DEL EQUIPO NECESITA LETRAS O NÚMEROS.");
       if (el("claveCrear").value.length < 4)
         return falla("claveCrear", "LA CONTRASEÑA DEL EQUIPO DEBE TENER AL MENOS 4 CARACTERES.");
       if (!px.some(Boolean)){
