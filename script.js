@@ -12,6 +12,19 @@ document.querySelectorAll("[data-cfg]").forEach(el => {
 });
 // Sin mapa todavía, el botón de "abrir en mapas" no tiene a dónde ir.
 if (!EVENTO.mapa) document.querySelectorAll(".maplink").forEach(el => { el.hidden = true; });
+// El mapa de la sede: Google Maps incrustado, sin llave de API. Con
+// coordenadas sale el mapa (y el botón va en su pie); sin ellas, solo el botón.
+(function mapa(){
+  const caja = document.getElementById("mapa");
+  const m = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/.exec(EVENTO.coordenadas || "");
+  if (!caja || !m) return;
+  caja.querySelector("iframe").src =
+    // directo al formato /maps/embed: el atajo ?output=embed redirige, y la
+    // redirección trae X-Frame-Options
+    `https://www.google.com/maps/embed?pb=!1m3!2m1!1s${m[1]},${m[2]}!6i16!3m1!1ses!5m1!1ses`;
+  caja.hidden = false;
+  document.querySelectorAll(".maplink--solo").forEach(el => { el.hidden = true; });
+})();
 document.querySelectorAll("[data-cfg-href]").forEach(el => {
   const v = EVENTO[el.dataset.cfgHref];
   if (!v || v === "#") return;                 // sin link todavía: se queda en el ancla

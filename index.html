@@ -534,15 +534,23 @@
           </p>
         </div>
         <dl class="readout readout--stack">
-          <div><dt>LÁMPARAS</dt><dd>Cialíticas, una por mesa</dd></div>
-          <div><dt>TELAS</dt><dd>Follaje morado y rosa, techo completo</dd></div>
-          <div><dt>PINTURA</dt><dd>Fotoluminiscente, 4 paredes</dd></div>
           <div><dt>MONITORES</dt><dd>Signos vitales del paciente en vivo</dd></div>
           <div><dt>SONIDO</dt><dd>El latido de la máquina</dd></div>
           <div><dt>SEDE</dt><dd data-cfg="sede">—</dd></div>
           <div><dt>COORDENADAS</dt><dd class="coords" data-cfg="coordenadas">—</dd></div>
         </dl>
-        <p class="maplink"><a data-cfg-href="mapa" href="#" rel="noopener">&#9656; ABRIR EN MAPAS</a></p>
+        <!-- El mapa lo arma script.js con EVENTO.coordenadas; sin ellas no sale. -->
+        <figure class="mapa" id="mapa" hidden>
+          <div class="mapa__vidrio">
+            <iframe title="Mapa de la sede del HACK(ME)THON 2.0" loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+          </div>
+          <figcaption class="mapa__pie">
+            <span>FIG. 2 · UBICACIÓN DE LA SEDE</span>
+            <span class="maplink"><a data-cfg-href="mapa" href="#" rel="noopener">&#9656; ABRIR EN MAPAS</a></span>
+          </figcaption>
+        </figure>
+        <p class="maplink maplink--solo"><a data-cfg-href="mapa" href="#" rel="noopener">&#9656; ABRIR EN MAPAS</a></p>
       </div>
     </div>
     <footer class="panel__keys">
