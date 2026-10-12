@@ -4,16 +4,16 @@
    Minijuego estilo Flappy Bird. El jugador es un pulso que se
    escapó del corazón: cada toque es un latido que lo empuja hacia
    arriba, y deja detrás un trazo de electrocardiograma. Tiene que
-   pasar entre válvulas de circuito y enredadera mientras el gusano,
-   en el borde derecho, le escupe virus. Cada 10 válvulas el gusano
+   pasar entre válvulas de circuito y enredadera mientras el chiwuacornio
+   (la mascota: un chihuahua con camisa y cuerno de unicornio), en el borde
+   derecho, le escupe virus. Cada 10 válvulas el chiwuacornio
    se enfurece y lanza tres muros de virus. Cada 20, el mundo se
-   voltea: la gravedad y el lado se invierten (y a los 40 regresan).
+   voltea de izquierda a derecha (y a los 40 regresa).
 
    El volteo es un ESPEJO DEL DIBUJO, no física: el motor sigue igual
-   y la pantalla se refleja de arriba abajo y de izquierda a derecha.
-   Para quien juega es idéntico a invertir la gravedad —el pulso "cae"
-   hacia arriba, el latido lo empuja hacia abajo, el gusano queda a la
-   izquierda y las válvulas llegan desde ahí—, y el servidor, que
+   y la pantalla gira sobre el eje vertical (se refleja de izquierda a
+   derecha). Para quien juega, el chiwuacornio pasa a la izquierda y las
+   válvulas llegan desde ahí; la gravedad no cambia. El servidor, que
    vuelve a jugar las partidas con el motor, no tiene que saberlo.
 
    La física vive en bypass-motor.js y es determinista. Este archivo
@@ -142,13 +142,108 @@
 
   /* ── sprites ───────────────────────────────────────────────── */
   const SPRITE = [".XX.XX.", "XHXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X..."];
-  // el gusano, 10×12 dibujado al doble. B cuerpo · b sombra · V tentáculo · E ojo · M boca · H brillo
-  const GUSANO = [
-    ["....BBBB..", "..BBBBBBB.", ".BBHBBBBbB", "BBEEBBBBbb", "BBEEBBBBbb", "MMMBBBBBbb",
-     "..MBBBBBbb", "MMMBBBBBbb", "BBBBBBBBbb", ".BBBBBBBb.", "..BVBVBB..", "...V.V.V.."],
-    ["...BBBBB..", "..BBBBBBb.", ".BBBHBBBbB", "BBEEBBBBbb", "BBEEBBBBbb", "MMMBBBBBbb",
-     "..MBBBBBbb", "MMMBBBBBbb", "BBBBBBBBbb", ".BBBBBBBb.", "..VBVBVB..", "..V.V.V..."],
+  /* el chiwuacornio, la mascota: un chihuahua café claro sentado, de frente,
+     con cuerno de unicornio de colores y camisa blanca (Chihuahua Tech Week).
+     36×55, a escala 1: mide la mitad de la altura del juego.
+     B C pelo · b D sombra y contorno · O oreja por dentro · E ojo · H brillo
+     N nariz · M boca · S s z camisa · G Y R A logo · g v a p cuerno
+     Las demás poses (respirar, parpadear, orejas, boca, cejas) salen de
+     esta base en poseChiwua(). */
+  const CHIWUA_W = 36, CHIWUA_H = 55, CHIWUA_BOCA = 24;   // fila de la boca: de ahí salen los virus
+  const CHIWUA_1 = [
+    ".................gG.................",
+    ".................gG.................",
+    "DD.DDD...........vG...........DDD.DD",
+    ".DDBBBD.........vvvD.........DBBBDD.",
+    ".DBBBBD.........aaaD.........DBBBBD.",
+    ".DOBBBD.........aaaD.........DBBBOD.",
+    ".DBOOBBDD.......pppD.......DDBBOOBD.",
+    ".DBOOOBBBD.....pppppD.....DBBBOOOBD.",
+    ".DBOOOOOBBDD...vvvvvD...DDBBOOOOOBD.",
+    ".DBBOOOOOOBCD..vvvvvD..DCBOOOOOOBBD.",
+    ".DBBOOOOOOBD.DDvvvvvvDD.DBOOOOOOBBD.",
+    ".DBBBOOOOOBBDBBBBBBBBBBDBBOOOOOBBBD.",
+    ".DCBBOOOOBBBBBBBBBBBBBBBBBBOOOOBBCD.",
+    "..DCBOOOBBBBBBBBBBBBBBBBBBBBOOOBCD..",
+    "...DCBOOBBBBBBBBBBBBBBBBBBBBOOBCD...",
+    "....DCOBBBBBBBBBBBBBBBBBBBBBBOCD....",
+    ".....DBBBBBBBBBBBBBBBBBBBBBBBBD.....",
+    ".....DBBBBBBBBBBBBBBBBBBBBBBBBD.....",
+    ".....DCBBBBEEBBBBBBBBBBEEBBBBCD.....",
+    "......DBBBEEHEBBBBBBBBEEHEBBBD......",
+    "......DCBBEEEEBBBBBBBBEEEEBBCD......",
+    ".......DBBBEEBBBNNNNBBBEEBBBD.......",
+    ".......DBBBBBBBBNNNNBBBBBBBBD.......",
+    ".......DCBBBBBBBBNNBBBBBBBBCD.......",
+    "........DCBBBBMBBMMBBMBBBBCD........",
+    ".........DCBBBBMMBBMMBBBBCD.........",
+    "..........DCBBBBBBBBBBBBCD..........",
+    "...........DBBBBBBBBBBBBD...........",
+    "...........zCBBBBBBBBBBCz...........",
+    "...........zCCCCCCCCCCCCz...........",
+    ".........zzsssssCCCCssssszz.........",
+    "........zSSSSSsssssssSSSSSSz........",
+    ".......zSSSSSSSSSSSSSSSSSSSSz.......",
+    "......zSSSSSSSSSSSSYYRRGGAASSz......",
+    ".....zSSSSSSSSSSSSSYYRRGGAASSSz.....",
+    "....zSSSSSSGGSGGSGSSSSSSSSSSSSSz....",
+    "...zSSSSSSGGGGGGGSGGGGGGGGSSSSSSz...",
+    "...zSSSSSSGGGSGGGSGGGGSGGGSSSSSSz...",
+    "...zSSSSSSSSSSSSSSSSSSGGGGSSSSSSz...",
+    "...zSSSSSSSSSSSSSSSSSSSSSSSSSSSSz...",
+    "....DBBBBSSSSSSSSSSSSSSSSSSBBBCD....",
+    "....DBBBBSSSSSSSSSSSSSSSSSSBBBCD....",
+    "....DBBBBSSSSSSSSSSSSSSSSSSBBBCD....",
+    "....DBBBBSSSSSSSSSSSSSSSSSSBBBCD....",
+    "..DbBBBBBSSSSSSSSSSSSSSSSSSBBBBBbD..",
+    ".DCbBBBBBSSSSSSSSSSSSSSSSSSBBBBBbCD.",
+    "DCCbBBBBBSSSSSSSSSSSSSSSSSSBBBBBbCCD",
+    "DCCbBBBBBSSSSSSSSSSSSSSSSSSBBBBBbCCD",
+    "DCCbBBBBBSSSSSSSSSSSSSSSSSSBBBBBbCCD",
+    "DCCbBBBBBbbCCCCCCCCCCCCCCbbBBBBBbCCD",
+    "DCCbBBBBBbbCCCCCCCCCCCCCCbbBBBBBbCCD",
+    "DCCbBBBBBbCCCCCCCCCCCCCCCCbBBBBBbCCD",
+    ".DCCbCCBCCCCCCCCCCCCCCCCCCCCBCCCCbD.",
+    "..DDDDDCDDDDDDDDDDDDDDDDDDDDCDDDDD..",
+    "....................................",
   ];
+
+  /* Poses del chiwuacornio. Cada una se arma cambiando celdas de la base y
+     se pinta una sola vez (ver sprite()). La clave es
+     "respira,ojos,boca,oreja":
+       respira  0 · 1        (1: la cabeza baja un pixel)
+       ojos     abiertos · cerrados · felices · enojados
+       boca     cerrada · abierta · grande
+       oreja    no · izq · der (la punta de esa oreja baja un pixel) */
+  const CHIWUA_OJO = [[11,18],[12,18],[10,19],[11,19],[12,19],[13,19],[10,20],[11,20],[12,20],[13,20],[11,21],[12,21]];
+  function poseChiwua(clave){
+    const [respira, ojos, boca, oreja] = clave.split(",");
+    const f = CHIWUA_1.map(r => r.split(""));
+    const pon = (x, y, k) => { f[y][x] = k; };
+    const ambos = fn => { fn(0); fn(12); };   // el ojo derecho está 12 columnas más allá
+    if (ojos !== "abiertos") ambos(d => CHIWUA_OJO.forEach(([x, y]) => pon(x + d, y, "B")));
+    if (ojos === "cerrados") ambos(d => { for (let x = 10; x <= 13; x++) pon(x + d, 20, "D"); });
+    if (ojos === "felices")  ambos(d => { pon(11 + d, 19, "D"); pon(12 + d, 19, "D"); pon(10 + d, 20, "D"); pon(13 + d, 20, "D"); });
+    if (ojos === "enojados"){
+      // entrecerrados, con cejas que bajan hacia el centro
+      ambos(d => { CHIWUA_OJO.forEach(([x, y]) => y > 18 && pon(x + d, y, "E")); pon(12 + d, 19, "H"); });
+      for (const [x, y] of [[9,16],[10,16],[11,17],[12,17],[13,18]]){ pon(x, y, "D"); pon(35 - x, y, "D"); }
+    }
+    if (boca === "abierta"){
+      for (let x = 16; x <= 19; x++) pon(x, 25, "K");
+      pon(16, 26, "M"); pon(17, 26, "L"); pon(18, 26, "L"); pon(19, 26, "M");
+    }
+    if (boca === "grande"){
+      for (let x = 15; x <= 20; x++){ pon(x, 25, "K"); pon(x, 26, x === 17 || x === 18 ? "L" : "K"); }
+      for (let x = 16; x <= 19; x++) pon(x, 27, "M");
+    }
+    if (oreja !== "no"){
+      const [x0, x1] = oreja === "izq" ? [0, 9] : [26, 35];
+      for (let y = 7; y >= 1; y--) for (let x = x0; x <= x1; x++) f[y][x] = f[y - 1][x];
+    }
+    const filas = f.map(r => r.join(""));
+    return respira === "1" ? [".".repeat(CHIWUA_W), ...filas.slice(0, 28), ...filas.slice(29)] : filas;
+  }
   const VIRUS = [
     ["X.X.X", ".XXX.", "XXOXX", ".XXX.", "X.X.X"],
     ["..X..", ".XXX.", "XXOXX", ".XXX.", "..X.."],
@@ -159,18 +254,33 @@
      con drawImage: el gusano eran ~120 rectángulos por cuadro y ahora es
      uno. En un teléfono es la diferencia entre 60 cuadros y 40. */
   const cache = new Map();
+  // de cualquier color CSS a [r, g, b, a], una vez por color
+  const rgba = (() => {
+    const k = document.createElement("canvas").getContext("2d", { willReadFrequently: true }), vistos = new Map();
+    return color => {
+      let v = vistos.get(color);
+      if (!v){ k.clearRect(0, 0, 1, 1); k.fillStyle = color; k.fillRect(0, 0, 1, 1); v = k.getImageData(0, 0, 1, 1).data; vistos.set(color, v); }
+      return v;
+    };
+  })();
+  // Se escribe directo en los pixeles: el chiwuacornio son ~1500 celdas
+  // y tiene varias poses; con fillRect tardaría en precalentarse.
   function sprite(clave, filas, tinta, esc = 1){
     let c = cache.get(clave);
     if (c) return c;
     c = document.createElement("canvas");
-    c.width = filas[0].length * esc; c.height = filas.length * esc;
-    const k = c.getContext("2d");
+    const w = c.width = filas[0].length * esc, h = c.height = filas.length * esc;
+    const k = c.getContext("2d"), img = k.createImageData(w, h), d = img.data;
     for (let r = 0; r < filas.length; r++) for (let x = 0; x < filas[r].length; x++){
       const t = filas[r][x];
       if (t === "." || !tinta[t]) continue;
-      k.fillStyle = tinta[t];
-      k.fillRect(x * esc, r * esc, esc, esc);
+      const v = rgba(tinta[t]);
+      for (let i = 0; i < esc; i++) for (let j = 0; j < esc; j++){
+        const o = ((r * esc + i) * w + x * esc + j) * 4;
+        d[o] = v[0]; d[o + 1] = v[1]; d[o + 2] = v[2]; d[o + 3] = v[3];
+      }
     }
+    k.putImageData(img, 0, 0);
     cache.set(clave, c);
     return c;
   }
@@ -179,19 +289,39 @@
     { X: muerto || color === "rojo" ? C.sangre : color === "verde" ? C.verde : C.phos,
       H: color === "verde" ? C.verdeHi : color === "rojo" ? C.sangreHi : C.hi });
   const spriteVirus = f => sprite("virus" + f, VIRUS[f], { X: C.sangre, O: C.hi });
-  // Todas las tintas posibles del gusano, para precalentar en la carga.
-  const TINTAS_GUSANO = {
-    calma:      { B: C.azul,   b: C.azulDim, V: C.violeta, E: C.sangre, M: C.fondo,  H: C.hi },
-    carga:      { B: C.azul,   b: C.azulDim, V: C.violeta, E: C.sangre, M: C.sangre, H: C.hi },
-    cargaLuz:   { B: C.uv,     b: C.azulDim, V: C.violeta, E: C.sangre, M: C.sangre, H: C.hi },
-    furia:      { B: C.phos,   b: C.violeta, V: C.sangre,  E: C.hi,     M: C.sangre, H: C.hi },
-    furiaLuz:   { B: C.sangre, b: C.violeta, V: C.sangre,  E: C.hi,     M: C.sangre, H: C.hi },
+  // Todas las tintas posibles del chiwuacornio, para precalentar en la carga.
+  // Al cargar el disparo se le enciende el cuerno; enfurecido se pone rojo.
+  // Sus colores son los de la mascota, no los de la terminal. Al cargar
+  // el disparo se le enciende el cuerno; enfurecido se pone rojo.
+  const MASCOTA = {
+    B: "#f1c27c", C: "#d9a066", b: "#a8743c", D: "#6b4220", O: "#d99555", M: "#6b4220",
+    E: "#0a0705", H: "#ffffff", N: "#1b1108",
+    S: "#f6f1ea", s: "#cfc7bd", z: "#9c958e",
+    G: "#2f6b2e", Y: "#e8c23a", R: "#d8573a", A: "#3f7fd0",
+    g: "#8fd07e", v: "#a48ad0", a: "#86b0e0", p: "#f0a8b4",
+    K: "#3a1218", L: "#f08a9a",   // boca abierta y lengua
   };
-  const spriteGusano = (f, tinta) => sprite("gusano" + f + tinta, GUSANO[f], TINTAS_GUSANO[tinta], 2);
+  const CUERNO_LUZ = { g: "#ffffff", v: C.hi, a: "#ffffff", p: C.hi };
+  const ENOJADO = { B: C.phos, C: C.violeta, b: C.violeta, D: C.fondo, O: C.sangre, M: C.sangre, z: C.violeta };
+  const TINTAS_CHIWUA = {
+    calma:    MASCOTA,
+    carga:    { ...MASCOTA, M: C.sangre, v: C.uv },
+    cargaLuz: { ...MASCOTA, ...CUERNO_LUZ, M: C.sangre },
+    furia:    { ...MASCOTA, ...ENOJADO },
+    furiaLuz: { ...MASCOTA, ...ENOJADO, B: C.sangre, ...CUERNO_LUZ },
+  };
+  const spriteChiwua = (pose, tinta) => sprite("chiwua" + pose + tinta, poseChiwua(pose), TINTAS_CHIWUA[tinta]);
   function precalienta(){
     spritePulso(true, ""); spritePulso(false, ""); spritePulso(false, "verde"); spritePulso(false, "rojo");
     [0, 1].forEach(spriteVirus);
-    for (const t in TINTAS_GUSANO) [0, 1].forEach(f => spriteGusano(f, t));
+    // las combinaciones que de verdad salen en el juego
+    for (const r of "01"){
+      for (const ojos of ["abiertos", "cerrados"]) for (const oreja of ["no", "izq", "der"]) spriteChiwua(`${r},${ojos},cerrada,${oreja}`, "calma");
+      for (const t of ["carga", "cargaLuz"]) spriteChiwua(`${r},abiertos,abierta,no`, t);
+      for (const t of ["furia", "furiaLuz"]) spriteChiwua(`${r},enojados,grande,no`, t);
+      spriteChiwua(`${r},abiertos,grande,no`, "calma");
+      spriteChiwua(`${r},felices,grande,no`, "calma");
+    }
   }
 
   /* ── estado ────────────────────────────────────────────────── */
@@ -209,10 +339,15 @@
   let rastro = [], chispas = [];
   let destello = 0, sacudida = 0, enParo = 0;
   let plano = null;         // al morir: { y, vel } — el trazo se vuelve línea plana
+  // animación del chiwuacornio (solo dibujo): cuenta regresiva al próximo
+  // parpadeo y movimiento de oreja (negativa = está pasando), y lo que dura
+  // la boca abierta después de cada disparo
+  const chiwua = { parpadeo: 2, oreja: 4, lado: "izq", disparo: 0 };
 
   /* El volteo: cada GIRO puntos el espejo cambia de lado. `espejo` va de
      1 (normal) a −1 (invertido) y en medio pasa por 0: la escena se
-     encoge al centro y se abre reflejada, como una tarjeta que gira. */
+     encoge hacia la línea del centro y se abre reflejada, como una
+     tarjeta que gira sobre el eje vertical. */
   const GIRO = M.GIRO, GIRO_DUR = .45;
   let espejo = 1, espejoDesde = 1, espejoHacia = 1, giroT = 1;
   let avisoGiroT = 0;
@@ -306,6 +441,7 @@
         else if (e.puntos % FURIA.cada) suena("punto");      // en la décima suena la furia
         break;
       case "disparo":
+        chiwua.disparo = .25;
         suena("disparo"); break;
       case "furia":
         suena("furia");
@@ -314,6 +450,7 @@
       case "finFuria":
         terminaFuria(); break;
       case "muro":
+        chiwua.disparo = .3;
         suena("muro");
         sacudida = quieto ? 0 : .18;
         salpica(ev.x, ev.y, C.sangre, 8); break;
@@ -405,7 +542,7 @@
                          : pr.tipo === "ritmo" ? pr.golpes.length
                          : pr.tipo === "marcas" ? pr.marcas.length : pr.ventanas.filter(v => v.verde).length;
   // de coordenadas del mundo a la pantalla, contando el espejo del volteo
-  const aPantalla = (x, y) => [W / 2 + (x - W / 2) * espejo, H / 2 + (y - H / 2) * espejo];
+  const aPantalla = (x, y) => [W / 2 + (x - W / 2) * espejo, y];
   // Antes de cada rojo, un anillo rojo se cierra sobre el pulso durante
   // AVISO_ROJO pasos (0.6 s): da tiempo de un último latido y de soltar.
   const AVISO_ROJO = 72;
@@ -544,7 +681,7 @@
     if (quieto) espejo = espejoHacia;
     suena("giro");
     if (avisoGiro){
-      avisoGiro.textContent = invertido ? "\u25BC GRAVEDAD INVERTIDA" : "\u25B2 GRAVEDAD NORMAL";
+      avisoGiro.textContent = invertido ? "\u25C0 MUNDO INVERTIDO" : "\u25B6 MUNDO NORMAL";
       avisoGiro.hidden = false;
       avisoGiroT = 1.8;
     }
@@ -572,6 +709,11 @@
     chispas = chispas.filter(c => c.v > 0);
     destello = Math.max(0, destello - dt);
     sacudida = Math.max(0, sacudida - dt);
+    chiwua.parpadeo -= dt;
+    if (chiwua.parpadeo < -.12) chiwua.parpadeo = 1.8 + Math.random() * 3;
+    chiwua.oreja -= dt;
+    if (chiwua.oreja < -.22){ chiwua.oreja = 2.5 + Math.random() * 4; chiwua.lado = Math.random() < .5 ? "izq" : "der"; }
+    chiwua.disparo = Math.max(0, chiwua.disparo - dt);
   }
   function rastroAvanza(vel){
     for (const r of rastro) r.x -= vel * DT;
@@ -657,8 +799,8 @@
         : paso ? ` Superaste ${superadas === 1 ? "la prueba" : `las ${superadas} pruebas`} del monitor: puedes registrarla.`
         : e.prueba ? " No superaste una prueba del monitor: esta partida no entra a la tabla."
         : "";                                   // la prueba es sorpresa: no se anuncia
-      const porque = motivo === "furia" ? " La furia del gusano te alcanzó."
-                   : motivo === "virus" ? " Un virus del gusano alcanzó el pulso."
+      const porque = motivo === "furia" ? " La furia del chiwuacornio te alcanzó."
+                   : motivo === "virus" ? " Un virus del chiwuacornio alcanzó el pulso."
                    : " El reflejo ya se armó.";
       muestra(motivo === "valvula" ? "PARO" : "INFECTADO", fin + porque + nota, "TOCA PARA REANIMAR");
       $("j-ir-tabla").hidden = !(completo && registrable);
@@ -675,9 +817,9 @@
     ctx.save();
     if (sacudida > 0) ctx.translate(Math.round((Math.random() - .5) * 4), Math.round((Math.random() - .5) * 3));
     if (espejo !== 1){
-      ctx.translate(W / 2, H / 2);
-      ctx.scale(espejo, espejo);
-      ctx.translate(-W / 2, -H / 2);
+      ctx.translate(W / 2, 0);
+      ctx.scale(espejo, 1);
+      ctx.translate(-W / 2, 0);
     }
 
     // cuánto adelantar el dibujo: solo mientras se juega
@@ -697,8 +839,8 @@
       ctx.fillRect(-4, -4, W + 8, H + 8);
     }
 
+    dibujaChiwua();
     for (const v of e.valvulas) valvula(v, dx);
-    dibujaGusano();
     ctx.fillStyle = "rgba(255,51,85,.35)";
     for (const z of e.virus){
       const zx = z.x + z.vx * ad, zy = z.y + z.vy * ad;
@@ -759,24 +901,49 @@
     ctx.stroke();
   }
 
-  function dibujaGusano(){
+  // El enemigo es el chiwuacornio; el motor lo sigue llamando `gusano`.
+  // La boca queda donde el motor hace nacer los virus (g.x − 12, g.y).
+  // Es grande: se dibuja ANTES que las válvulas para que nunca las tape,
+  // y en los extremos de su recorrido se sale un poco de la pantalla.
+  function dibujaChiwua(){
     const g = e.gusano;
-    const enojado = !!e.furia && estado === "jugando";
+    const jugando = estado === "jugando";
+    const enojado = !!e.furia && jugando;
+    const riendo = estado === "paro";                       // ganó: el pulso se detuvo
+    const escupe = chiwua.disparo > 0 && jugando;
     const temblor = n => enojado && !quieto ? Math.round((Math.random() - .5) * n) : 0;
-    const gx = R(g.x - 10) + temblor(3), gy = R(g.y - 12) + temblor(2);
-    const cargando = (g.carga > 0 && estado === "jugando") || enojado;
+    // retrocede un poco al escupir y brinca de gusto cuando el pulso se para
+    const empuje = escupe && !quieto ? Math.round(chiwua.disparo * 8) : 0;
+    const brinco = riendo && !quieto && enParo < 1.6 ? Math.round(Math.abs(Math.sin(enParo * 9)) * 3) : 0;
+    const gx = R(g.x - 12 - CHIWUA_W / 2) + temblor(3) + empuje, gy = R(g.y - CHIWUA_BOCA - 1) + temblor(2) - brinco;
+    const cargando = (g.carga > 0 && jugando) || enojado;
     const parpadeo = cargando && Math.floor((enojado ? e.furia.t : g.carga) * 16) % 2 === 0;
     const tinta = enojado ? (parpadeo ? "furiaLuz" : "furia")
                 : cargando ? (parpadeo ? "cargaLuz" : "carga") : "calma";
-    ctx.fillStyle = "rgba(10,7,12,.7)";
-    ctx.fillRect(gx - 1, gy - 1, 22, 26);
-    ctx.drawImage(spriteGusano(Math.floor(reloj / .35) % 2, tinta), gx, gy);
+    const ojos = enojado ? "enojados" : riendo ? "felices"
+               : chiwua.parpadeo < 0 && !cargando ? "cerrados" : "abiertos";
+    const boca = enojado || escupe || riendo ? "grande" : cargando ? "abierta" : "cerrada";
+    const oreja = chiwua.oreja < 0 && !enojado && !riendo ? chiwua.lado : "no";
+    const respira = Math.floor(reloj / (enojado ? .18 : riendo ? .14 : .6)) % 2;
+    ctx.drawImage(spriteChiwua(`${respira},${ojos},${boca},${oreja}`, tinta), gx, gy);
     if (cargando){
       const n = enojado ? 3 + (parpadeo ? 2 : 0) : Math.ceil((1 - g.carga / CARGA) * 4);
       ctx.fillStyle = C.sangre;
-      ctx.fillRect(gx - n, gy + 12, n, 2);
+      ctx.fillRect(gx + 7 - n, gy + CHIWUA_BOCA, n, 2);
+    }
+    // destellos del cuerno: uno de vez en cuando; seguidos mientras carga
+    if (ligero) return;
+    const periodo = cargando ? .35 : 2.6, fase = reloj % periodo, n = Math.floor(reloj / periodo);
+    if (fase < .35){
+      const sx = gx + 18 + ((n * 7) % 9) - 4, sy = gy + 1 + ((n * 5) % 7);
+      const brazo = fase < .12 || fase > .23 ? 1 : 2;
+      ctx.fillStyle = cargando ? C.hi : "#ffffff";
+      ctx.fillRect(sx, sy, 1, 1);
+      ctx.fillRect(sx - brazo, sy, brazo, 1); ctx.fillRect(sx + 1, sy, brazo, 1);
+      ctx.fillRect(sx, sy - brazo, 1, brazo); ctx.fillRect(sx, sy + 1, 1, brazo);
     }
   }
+
 
   function valvula(v, dx = 0){
     const x = R(v.x + dx), arriba = Math.round(v.centro - v.hueco / 2), abajo = Math.round(v.centro + v.hueco / 2);

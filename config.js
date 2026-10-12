@@ -11,18 +11,14 @@ const EVENTO = {
   // desde que México quitó el horario de verano en 2022 (Ciudad Juárez y los
   // municipios fronterizos sí siguen cambiando: ahí sería -07:00 en invierno).
   //
-  // ⚠ PENDIENTE: vacío mientras no haya fecha. El monitor dice
-  //   "SIN PROGRAMAR" en vez de la cuenta en latidos.
-  //   Ejemplo: "2026-11-23T18:00:00-06:00"
-  inicio:    "",
+  // Vacío = el monitor dice "SIN PROGRAMAR" en vez de la cuenta en latidos.
+  inicio:    "2026-11-28T16:00:00-06:00",
 
-  // ⚠ PENDIENTE: todo por definir. Se escriben aquí y la página se
-  //   actualiza sola en los dos lugares donde aparece cada dato.
-  //   Ejemplos: "Lunes 23 de noviembre, 2026" · "4 horas · 18:00 a 22:00" ·
-  //   "Auditorio MENLO · Parque Orión"
-  fecha:     "Próximamente",
-  duracion:  "Por definir",
-  sede:      "Por definir",
+  // Se escriben aquí y la página se actualiza sola en los dos lugares
+  // donde aparece cada dato.
+  fecha:     "Sábado 28 de noviembre, 2026",
+  duracion:  "6 horas · 16:00 a 22:00",
+  sede:      "Auditorio MENLO · Tec de Monterrey, Campus Chihuahua",
 
   // Sin límite de equipos y sin costo. Si algún día se pone un tope, va
   // aquí el texto (p. ej. "10 equipos · 30 integrantes") y el número en el
@@ -31,11 +27,9 @@ const EVENTO = {
   costo:     "Gratuito · sin costo alguno",
 
   // Ubicación de la sede. Con `mapa` vacío, el botón ABRIR EN MAPAS no sale.
-  // Ejemplo (la de la 1ª edición, Auditorio MENLO):
-  //   coordenadas: "28.674655, -106.080233",
-  //   mapa: "https://www.google.com/maps/search/?api=1&query=28.674654589507416,-106.08023320217369",
-  coordenadas: "Por definir",
-  mapa:        "",
+  // Son las de la 1ª edición, que fue en el mismo Auditorio MENLO.
+  coordenadas: "28.674655, -106.080233",
+  mapa:        "https://www.google.com/maps/search/?api=1&query=28.674654589507416,-106.08023320217369",
 
   // Modo "próximamente" cuando el servidor no contesta (vista previa sin
   // API, servidor caído). El que manda de verdad es el del panel; esto es
