@@ -591,10 +591,10 @@
     <div class="panel__body">
       <h2 class="h2">Cupo: <span data-cfg="cupo">—</span></h2>
       <p class="section-lead">
-        El registro es por persona y toma dos minutos. Si ya tienes equipo,
-        cada integrante se registra y todos escriben el mismo nombre de equipo.
-        Si no tienes, elige «No, asígnenme» y te acomodamos en uno. Los equipos
-        son de 3 a 5 personas.
+        El registro es por persona y toma dos minutos. Una persona del equipo
+        lo crea con nombre, logo y contraseña; los demás lo eligen de la lista
+        con esa contraseña. Si no tienes equipo, elige «No tengo equipo» y te
+        acomodamos en uno. Los equipos son de 3 a 5 personas.
       </p>
 
       <form class="alta" id="alta" novalidate>
@@ -643,21 +643,32 @@
             <label class="crew__campo crew__campo--ancho"><span>UNIVERSIDAD / INSTITUCIÓN</span>
               <select name="institucion">
                 <option value="">ELIGE TU ESCUELA</option>
-                <option>UTCH</option>
-                <option>Tec de Monterrey</option>
-                <option>Politécnico (UPCH)</option>
-                <option>UACH</option>
-                <option>UTCH Sur</option>
-                <option>ULSA</option>
+                <optgroup label="Públicas">
+                  <option value="UACH">Universidad Autónoma de Chihuahua (UACH)</option>
+                  <option value="UTCH">Universidad Tecnológica de Chihuahua (UTCH)</option>
+                  <option value="UTCH Sur">Universidad Tecnológica de Chihuahua Sur (UTCH Sur)</option>
+                  <option value="UTCH BIS">Universidad Tecnológica de Chihuahua BIS (UTCH BIS)</option>
+                  <option value="Politécnico (UPCH)">Universidad Politécnica de Chihuahua (UPCH)</option>
+                  <option value="Instituto Tecnológico de Chihuahua">Instituto Tecnológico de Chihuahua (TecNM)</option>
+                  <option value="Instituto Tecnológico de Chihuahua II">Instituto Tecnológico de Chihuahua II (TecNM)</option>
+                  <option value="Escuela Normal del Estado">Escuela Normal del Estado «Profr. Luis Urías Belderráin»</option>
+                  <option value="Escuela Normal Superior">Escuela Normal Superior «Profr. José E. Medrano R.»</option>
+                </optgroup>
+                <optgroup label="Privadas">
+                  <option value="Tec de Monterrey">Tec de Monterrey, Campus Chihuahua</option>
+                  <option value="ULSA">Universidad La Salle Chihuahua (ULSA)</option>
+                </optgroup>
                 <option value="otra">Otra</option>
               </select></label>
-            <label class="crew__campo crew__campo--ancho" id="otra" hidden><span>¿CUÁL?</span>
-              <input type="text" name="otra" maxlength="80" placeholder="NOMBRE DE TU ESCUELA"></label>
+            <label class="crew__campo crew__campo--ancho" id="otra"><span>¿CUÁL?</span>
+              <input type="text" name="otra" maxlength="80" placeholder="SOLO SI ELEGISTE «OTRA»" disabled></label>
             <label class="crew__campo crew__campo--ancho"><span>CARRERA</span>
               <input type="text" name="carrera" maxlength="80" list="carreras" autocomplete="off" placeholder="TU CARRERA"></label>
             <label class="crew__campo crew__campo--medio"><span>CUENTO EN</span>
               <select name="periodo">
                 <option value="semestre">Semestres</option>
+                <option value="cuatrimestre">Cuatrimestres</option>
+                <option value="tetramestre">Tetramestres</option>
                 <option value="anio">Años</option>
               </select></label>
             <label class="crew__campo crew__campo--medio"><span id="periodo-t">SEMESTRE QUE CURSAS</span>
@@ -679,16 +690,64 @@
 
         <fieldset class="fs">
           <legend>&#9656; EQUIPO</legend>
-          <p class="fs__hint">¿Ya tienes equipo? Los equipos son de 3 a 5 personas.</p>
+          <p class="fs__hint">Los equipos son de 3 a 5 personas. Una persona crea el equipo y les pasa la contraseña a los demás.</p>
           <div class="opciones">
-            <label class="consent"><input type="radio" name="equipoModo" value="con_nombre"><span>Sí, y ya tiene nombre</span></label>
-            <label class="consent"><input type="radio" name="equipoModo" value="sin_nombre"><span>Sí, pero todavía no tiene nombre</span></label>
-            <label class="consent"><input type="radio" name="equipoModo" value="asignar"><span>No, asígnenme uno</span></label>
+            <label class="consent"><input type="radio" name="equipoModo" value="unirse"><span>Ya tengo equipo</span></label>
+            <label class="consent"><input type="radio" name="equipoModo" value="asignar"><span>No tengo equipo, agrégame a uno</span></label>
+            <label class="consent"><input type="radio" name="equipoModo" value="crear"><span>Crear un equipo</span></label>
           </div>
-          <div class="crew__campos" id="equipo" hidden>
-            <label class="crew__campo crew__campo--ancho"><span>NOMBRE DEL EQUIPO</span>
-              <input type="text" name="equipo" maxlength="32" autocomplete="off" placeholder="LOS SIN PULSO"></label>
-            <p class="fs__hint crew__campo--ancho">Todos los integrantes lo escriben igual: así los juntamos.</p>
+
+          <!-- Ya tengo equipo: la lista la llena script.js desde /api/equipos -->
+          <div class="eqs" id="eq-unirse" hidden>
+            <div class="eqs__barra">
+              <p class="fs__hint">Elige el tuyo y escribe la contraseña que les pasó quien lo creó.</p>
+              <label class="eqs__buscar"><span class="sr-only">Buscar equipo</span>
+                <input type="text" name="buscaEquipo" autocomplete="off" placeholder="BUSCAR EQUIPO"></label>
+              <button type="button" class="eqs__btn" id="eq-recarga">ACTUALIZAR</button>
+            </div>
+            <div class="eqs__lista" id="eq-lista" role="radiogroup" aria-label="Equipos registrados"></div>
+            <p class="eqs__estado" id="eq-estado" aria-live="polite"></p>
+            <div class="crew__campos">
+              <label class="crew__campo crew__campo--ancho"><span>CONTRASEÑA DEL EQUIPO</span>
+                <input type="password" name="claveUnirse" maxlength="64" autocomplete="off" placeholder="LA QUE TE PASARON"></label>
+            </div>
+          </div>
+
+          <!-- Crear un equipo: nombre, contraseña y logo de 16 × 16 -->
+          <div class="eqs" id="eq-crear" hidden>
+            <div class="crew__campos">
+              <label class="crew__campo crew__campo--ancho"><span>NOMBRE DEL EQUIPO</span>
+                <input type="text" name="equipo" maxlength="32" autocomplete="off" placeholder="LOS SIN PULSO"></label>
+              <label class="crew__campo crew__campo--ancho"><span>CONTRASEÑA DEL EQUIPO</span>
+                <input type="password" name="claveCrear" maxlength="64" autocomplete="new-password" placeholder="MÍNIMO 4 CARACTERES"></label>
+              <p class="fs__hint crew__campo--ancho">Pásales la contraseña a tus compañeros: la necesitan para unirse. Que no sea la de ninguna otra cuenta tuya.</p>
+            </div>
+            <div class="pixel">
+              <div class="pixel__marco">
+                <canvas class="pixel__lienzo" id="px-lienzo" width="320" height="320" tabindex="0"
+                  aria-label="Logo del equipo, 16 por 16 pixeles. Dibuja con el ratón o el dedo; con el teclado, flechas para moverte y espacio para pintar." aria-describedby="px-pos"></canvas>
+                <p class="pixel__pos" id="px-pos">LOGO · 16 × 16</p>
+              </div>
+              <div class="pixel__panel">
+                <p class="pixel__t">COLOR</p>
+                <div class="pixel__paleta" id="px-paleta" role="radiogroup" aria-label="Color"></div>
+                <p class="pixel__t">HERRAMIENTA</p>
+                <div class="pixel__btns">
+                  <button type="button" class="pixel__btn" data-px="lapiz" aria-pressed="true">LÁPIZ</button>
+                  <button type="button" class="pixel__btn" data-px="bote" aria-pressed="false">BOTE</button>
+                  <button type="button" class="pixel__btn" data-px="espejo" aria-pressed="false">ESPEJO</button>
+                </div>
+                <div class="pixel__btns">
+                  <button type="button" class="pixel__btn" data-px="deshacer">DESHACER</button>
+                  <button type="button" class="pixel__btn" data-px="limpiar">LIMPIAR</button>
+                </div>
+                <p class="pixel__t">ASÍ SE VE</p>
+                <div class="pixel__vistas">
+                  <canvas class="pixel__vista pixel__vista--1" id="px-vista1" width="16" height="16" aria-hidden="true"></canvas>
+                  <canvas class="pixel__vista pixel__vista--3" id="px-vista3" width="16" height="16" aria-hidden="true"></canvas>
+                </div>
+              </div>
+            </div>
           </div>
         </fieldset>
 
@@ -741,10 +800,6 @@
             <input type="checkbox" name="responsiva" id="f-responsiva">
             <span>Leí la responsiva y la acepto.</span>
           </label>
-          <div class="crew__campos firma">
-            <label class="crew__campo crew__campo--ancho"><span>FIRMA: ESCRIBE TU NOMBRE COMPLETO</span>
-              <input type="text" name="firma" maxlength="150" autocomplete="off" placeholder="NOMBRE(S) Y APELLIDOS"></label>
-          </div>
         </fieldset>
 
         <p class="cmd">
@@ -781,7 +836,7 @@
         </details>
         <details>
           <summary>¿Puedo ir solo, sin equipo?</summary>
-          <p>Sí. El registro es por persona: si no tienes equipo, elige «No, asígnenme» y te acomodamos en uno. Se opera en equipos de 3 a 5, porque los puestos del quirófano se reparten y ninguno funciona sin los demás.</p>
+          <p>Sí. El registro es por persona: si no tienes equipo, elige «No tengo equipo, agrégame a uno» y te acomodamos en uno. Se opera en equipos de 3 a 5, porque los puestos del quirófano se reparten y ninguno funciona sin los demás.</p>
         </details>
         <details>
           <summary>¿Qué hacen con mis datos?</summary>
@@ -793,7 +848,7 @@
         </details>
         <details>
           <summary>¿Qué llevo?</summary>
-          <p>Al menos una laptop por equipo — con dos o tres van más cómodos. Cargador. Nada más. Todo lo demás corre en el navegador.</p>
+          <p>Una laptop por participante, como mínimo, que se pueda conectar a la red wifi del Tec, y su cargador. Nada más: todo lo demás corre en el navegador.</p>
         </details>
         <details>
           <summary>¿De qué carrera tengo que ser?</summary>

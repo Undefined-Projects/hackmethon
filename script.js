@@ -454,14 +454,17 @@ const Monitor = (function monitor(){
 /* — 7. Consentimiento informado: la inscripción —
        Una persona por registro (Paso 1 de FORMULARIO_REGISTRO_HACKMETHON_2026.md).
        Va al servidor (/api/registro), que es el que valida de verdad.
-       Quien ya tiene equipo escribe su nombre; los equipos se juntan
-       después por ese nombre, desde el panel. — */
+       Sobre el equipo hay tres caminos: unirse a uno de la lista con su
+       contraseña, crear uno (nombre, contraseña y logo de 16 × 16) o pedir
+       que lo acomoden en uno desde el panel. — */
 (function alta(){
   const form = document.getElementById("alta");
   if (!form) return;
 
   const EDAD = { min: 12, max: 99, mayor: 18 };
-  const PERIODO_MAX = { semestre: 12, anio: 5 };
+  // cuántos periodos puede llevar cada forma de contar, y cómo se llama
+  const PERIODO_MAX = { semestre: 12, cuatrimestre: 15, tetramestre: 15, anio: 5 };
+  const PERIODO_NOMBRE = { semestre: "SEMESTRE", cuatrimestre: "CUATRIMESTRE", tetramestre: "TETRAMESTRE", anio: "AÑO" };
 
   /* ---- CURP: formato, dígito verificador y fecha (igual que el servidor) ---- */
   const ENTIDADES = "AS BC BS CC CL CM CS CH DF DG GT GR HG JC MC MN MS NT NL OC PL QT QR SP SL SR TC TS TL VZ YN ZS NE".split(" ");
@@ -496,24 +499,270 @@ const Monitor = (function monitor(){
     if (d.length === 12 && d.startsWith("52")) d = d.slice(2);
     return d.length === 10 ? d : null;
   };
-  // para comparar la firma con el nombre: sin acentos, mayúsculas ni espacios de más
-  const plano = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
   const el = n => form.elements[n];
   const val = n => (el(n)?.value || "").trim();
   const elegido = n => form.querySelector(`input[name="${n}"]:checked`)?.value || "";
 
+  /* ---- «Ya tengo equipo»: la lista de equipos registrados ----
+     Se pide al servidor al elegir la opción (y con «ACTUALIZAR»). Los
+     llenos se ven pero no se pueden elegir. */
+  const eqUnirse = document.getElementById("eq-unirse"), eqCrear = document.getElementById("eq-crear");
+  const eqLista = document.getElementById("eq-lista"), eqEstado = document.getElementById("eq-estado");
+  const plano = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  let equipos = null, pedidos = 0, idElegido = "";
+
+  async function cargaEquipos(forzar){
+    if (!forzar && Date.now() - pedidos < 15000) return;
+    pedidos = Date.now();
+    if (!equipos) eqEstado.textContent = "... BUSCANDO EQUIPOS";
+    try {
+      const r = await fetch(API + "/equipos", { cache: "no-store" });
+      const d = await r.json();
+      if (!r.ok || !Array.isArray(d.equipos)) throw new Error();
+      equipos = d;
+      pintaEquipos();
+    } catch {
+      pedidos = 0;
+      eqEstado.textContent = equipos
+        ? "NO SE PUDO ACTUALIZAR LA LISTA."
+        : "NO SE PUDO CARGAR LA LISTA DE EQUIPOS. DALE A «ACTUALIZAR».";
+    }
+  }
+
+  function pintaEquipos(){
+    if (!equipos) return;
+    const { max } = equipos, todos = equipos.equipos, filtro = plano(val("buscaEquipo"));
+    // el elegido se queda a la vista aunque no coincida con la búsqueda
+    const vistos = todos.filter(e => String(e.id) === idElegido || plano(e.nombre).includes(filtro));
+    if (idElegido && !todos.some(e => String(e.id) === idElegido)) idElegido = "";
+    eqLista.textContent = "";
+    for (const e of vistos){
+      const lleno = e.integrantes >= max;
+      const op = document.createElement("label");
+      op.className = "eq-op";
+      const radio = document.createElement("input");
+      radio.type = "radio"; radio.name = "equipoId"; radio.value = e.id;
+      radio.disabled = lleno || !!form.dataset.cerrado;
+      radio.checked = String(e.id) === idElegido;
+      const logo = pintaLogo(document.createElement("canvas"), e.logo);
+      logo.setAttribute("aria-hidden", "true");
+      const nombre = document.createElement("span");
+      nombre.className = "eq-op__n"; nombre.textContent = e.nombre;
+      const cuenta = document.createElement("span");
+      cuenta.className = "eq-op__c"; cuenta.textContent = lleno ? `${max}/${max} · LLENO` : `${e.integrantes}/${max}`;
+      op.append(radio, logo, nombre, cuenta);
+      eqLista.appendChild(op);
+    }
+    const n = todos.length;
+    eqEstado.textContent =
+      !n ? "TODAVÍA NO HAY EQUIPOS. QUIEN LO VA A CREAR SE REGISTRA PRIMERO CON «CREAR UN EQUIPO»." :
+      !vistos.length ? "NINGÚN EQUIPO SE LLAMA ASÍ." :
+      `${n} EQUIPO${n === 1 ? "" : "S"}. ¿NO ESTÁ EL TUYO? QUIEN LO CREA TIENE QUE REGISTRARSE PRIMERO.`;
+  }
+
+  el("buscaEquipo").addEventListener("input", pintaEquipos);
+  // Enter en la búsqueda no manda el formulario
+  el("buscaEquipo").addEventListener("keydown", e => { if (e.key === "Enter") e.preventDefault(); });
+  document.getElementById("eq-recarga").addEventListener("click", () => cargaEquipos(true));
+  form.addEventListener("change", e => {
+    if (e.target.name !== "equipoId") return;
+    idElegido = e.target.value;
+    eqLista.removeAttribute("aria-invalid");
+  });
+
+  /* ---- «Crear un equipo»: el editor del logo, 16 × 16 ----
+     Un arreglo de 256 índices de LOGO.paleta (config.js); se manda como
+     texto. Lápiz con trazo continuo, bote de pintura, espejo horizontal y
+     deshacer. Clic derecho borra. Con el teclado: flechas, espacio, 0–7
+     para el color y Ctrl+Z. */
+  const N = LOGO.lado;
+  const px = new Array(N * N).fill(0);
+  const historia = [];
+  let color = 1, herramienta = "lapiz", espejo = false, cursor = { x: 0, y: 0 }, trazo = null;
+
+  const lienzo = document.getElementById("px-lienzo"), ctx = lienzo.getContext("2d");
+  const CEL = lienzo.width / N;
+  const vistas = [document.getElementById("px-vista1"), document.getElementById("px-vista3")];
+  const posicion = document.getElementById("px-pos");
+  const botones = Object.fromEntries([...eqCrear.querySelectorAll("[data-px]")].map(b => [b.dataset.px, b]));
+
+  function dibuja(){
+    ctx.fillStyle = "#0a070c";
+    ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+    px.forEach((c, i) => {
+      if (!c) return;
+      ctx.fillStyle = LOGO.paleta[c];
+      ctx.fillRect((i % N) * CEL, Math.floor(i / N) * CEL, CEL, CEL);
+    });
+    // retícula, con el eje del espejo más marcado
+    for (let k = 1; k < N; k++){
+      ctx.fillStyle = k === N / 2 && espejo ? "rgba(79,134,238,.75)" : "rgba(250,57,186,.16)";
+      ctx.fillRect(k * CEL, 0, 1, lienzo.height);
+      ctx.fillStyle = "rgba(250,57,186,.16)";
+      ctx.fillRect(0, k * CEL, lienzo.width, 1);
+    }
+    // el cursor del teclado, solo cuando se llega con el teclado
+    if (lienzo.matches(":focus-visible")){
+      ctx.strokeStyle = "#ffd3ee"; ctx.lineWidth = 2;
+      ctx.strokeRect(cursor.x * CEL + 1, cursor.y * CEL + 1, CEL - 2, CEL - 2);
+    }
+    const logo = px.join("");
+    vistas.forEach(v => pintaLogo(v, logo));
+    botones.deshacer.disabled = !historia.length;
+    botones.limpiar.disabled = !px.some(Boolean);
+  }
+
+  const pon = (x, y, c) => {
+    px[y * N + x] = c;
+    if (espejo) px[y * N + (N - 1 - x)] = c;
+  };
+  // relleno por contigüidad (4 vecinos) del color que había en (x, y)
+  function rellena(x, y, c){
+    const viejo = px[y * N + x];
+    if (viejo === c) return;
+    const pila = [[x, y]];
+    while (pila.length){
+      const [i, j] = pila.pop();
+      if (i < 0 || j < 0 || i >= N || j >= N || px[j * N + i] !== viejo) continue;
+      px[j * N + i] = c;
+      pila.push([i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]);
+    }
+    if (espejo) rellena(N - 1 - x, y, c);
+  }
+  // Un cambio terminado (trazo, relleno, limpiar) se puede deshacer.
+  function termina(antes){
+    if (antes.some((v, i) => v !== px[i])){
+      historia.push(antes);
+      if (historia.length > 60) historia.shift();
+      lienzo.removeAttribute("aria-invalid");
+    }
+    dibuja();
+  }
+  function deshacer(){
+    if (!historia.length) return;
+    px.splice(0, px.length, ...historia.pop());
+    dibuja();
+  }
+
+  const celda = e => {
+    const r = lienzo.getBoundingClientRect();
+    const a = v => Math.max(0, Math.min(N - 1, Math.floor(v * N)));
+    return { x: a((e.clientX - r.left) / r.width), y: a((e.clientY - r.top) / r.height) };
+  };
+  lienzo.addEventListener("pointerdown", e => {
+    if (form.dataset.cerrado || e.button > 2) return;
+    e.preventDefault();
+    lienzo.focus({ preventScroll: true });
+    const p = celda(e), c = e.button === 2 ? 0 : color, antes = px.slice();
+    cursor = p;
+    if (herramienta === "bote"){ rellena(p.x, p.y, c); return termina(antes); }
+    lienzo.setPointerCapture(e.pointerId);
+    trazo = { antes, c, ultimo: p };
+    pon(p.x, p.y, c);
+    dibuja();
+  });
+  lienzo.addEventListener("pointermove", e => {
+    if (!trazo) return;
+    // Bresenham entre la celda anterior y esta: un trazo rápido no deja huecos
+    const p = celda(e);
+    let { x, y } = trazo.ultimo;
+    const dx = Math.abs(p.x - x), dy = -Math.abs(p.y - y), sx = x < p.x ? 1 : -1, sy = y < p.y ? 1 : -1;
+    let err = dx + dy;
+    while (true){
+      pon(x, y, trazo.c);
+      if (x === p.x && y === p.y) break;
+      const e2 = 2 * err;
+      if (e2 >= dy){ err += dy; x += sx; }
+      if (e2 <= dx){ err += dx; y += sy; }
+    }
+    trazo.ultimo = cursor = p;
+    dibuja();
+  });
+  const suelta = () => { if (trazo){ termina(trazo.antes); trazo = null; } };
+  lienzo.addEventListener("pointerup", suelta);
+  lienzo.addEventListener("pointercancel", suelta);
+  lienzo.addEventListener("contextmenu", e => e.preventDefault());
+  lienzo.addEventListener("focus", dibuja);
+  lienzo.addEventListener("blur", () => { posicion.textContent = "LOGO · 16 × 16"; dibuja(); });
+
+  const FLECHAS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  lienzo.addEventListener("keydown", e => {
+    if (form.dataset.cerrado) return;
+    const mov = FLECHAS[e.key];
+    if (mov){
+      e.preventDefault();
+      cursor = { x: Math.max(0, Math.min(N - 1, cursor.x + mov[0])), y: Math.max(0, Math.min(N - 1, cursor.y + mov[1])) };
+      const c = LOGO.nombres[px[cursor.y * N + cursor.x]];
+      posicion.textContent = `FILA ${cursor.y + 1} · COLUMNA ${cursor.x + 1} · ${px[cursor.y * N + cursor.x] ? c : "VACÍO"}`;
+      dibuja();
+    } else if (e.key === " " || e.key === "Enter"){
+      e.preventDefault();
+      const antes = px.slice();
+      if (herramienta === "bote") rellena(cursor.x, cursor.y, color); else pon(cursor.x, cursor.y, color);
+      termina(antes);
+    } else if (/^[0-7]$/.test(e.key)){
+      eligeColor(Number(e.key));
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z"){
+      e.preventDefault();
+      deshacer();
+    }
+  });
+
+  // paleta: los siete colores y al final el borrador
+  const paleta = document.getElementById("px-paleta");
+  const muestras = [];
+  [1, 2, 3, 4, 5, 6, 7, 0].forEach(i => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pixel__color" + (LOGO.paleta[i] ? "" : " pixel__color--vacio");
+    b.setAttribute("role", "radio");
+    b.setAttribute("aria-label", `${LOGO.nombres[i]} (tecla ${i})`);
+    b.title = LOGO.nombres[i];
+    if (LOGO.paleta[i]) b.style.setProperty("--c", LOGO.paleta[i]);
+    b.addEventListener("click", () => eligeColor(i));
+    muestras[i] = b;
+    paleta.appendChild(b);
+  });
+  function eligeColor(i){
+    color = i;
+    muestras.forEach((b, k) => b.setAttribute("aria-checked", String(k === i)));
+  }
+  eligeColor(1);
+
+  for (const [h, b] of Object.entries(botones)){
+    b.addEventListener("click", () => {
+      if (h === "lapiz" || h === "bote"){
+        herramienta = h;
+        botones.lapiz.setAttribute("aria-pressed", String(h === "lapiz"));
+        botones.bote.setAttribute("aria-pressed", String(h === "bote"));
+      } else if (h === "espejo"){
+        espejo = !espejo;
+        b.setAttribute("aria-pressed", String(espejo));
+        dibuja();
+      } else if (h === "deshacer") deshacer();
+      else if (h === "limpiar"){ const antes = px.slice(); px.fill(0); termina(antes); }
+    });
+  }
+  dibuja();
+
   /* ---- lo que se muestra según lo que se contesta ---- */
-  const escuela = document.getElementById("escuela"), otra = document.getElementById("otra");
-  const equipo = document.getElementById("equipo"), tutor = document.getElementById("tutor");
+  const escuela = document.getElementById("escuela");
+  const tutor = document.getElementById("tutor");
   const periodoT = document.getElementById("periodo-t");
   function acomoda(){
     escuela.hidden = elegido("estudia") !== "si";
-    otra.hidden = val("institucion") !== "otra";
-    equipo.hidden = elegido("equipoModo") !== "con_nombre";
-    const anio = val("periodo") === "anio";
-    periodoT.textContent = anio ? "AÑO QUE CURSAS" : "SEMESTRE QUE CURSAS";
-    el("semestre").max = PERIODO_MAX[anio ? "anio" : "semestre"];
+    // «¿Cuál?» solo se puede escribir si eligió «Otra»
+    const esOtra = val("institucion") === "otra";
+    el("otra").disabled = !esOtra;
+    if (!esOtra) el("otra").value = "";
+    const modo = elegido("equipoModo");
+    eqUnirse.hidden = modo !== "unirse";
+    eqCrear.hidden = modo !== "crear";
+    if (modo === "unirse") cargaEquipos();
+    const periodo = val("periodo") in PERIODO_MAX ? val("periodo") : "semestre";
+    periodoT.textContent = `${PERIODO_NOMBRE[periodo]} QUE CURSAS`;
+    el("semestre").max = PERIODO_MAX[periodo];
     const edad = edadDe(val("nacimiento"));
     tutor.hidden = !(edad != null && edad < EDAD.mayor);
   }
@@ -571,19 +820,36 @@ const Monitor = (function monitor(){
       if (!val("carrera")) return falla("carrera", "FALTA TU CARRERA.");
       const tope = PERIODO_MAX[val("periodo")], n = Number(val("semestre"));
       if (!Number.isInteger(n) || n < 1 || n > tope)
-        return falla("semestre", val("periodo") === "anio" ? "EL AÑO VA DE 1 A 5." : "EL SEMESTRE VA DE 1 A 12.");
+        return falla("semestre", `EL ${PERIODO_NOMBRE[val("periodo")]} VA DE 1 A ${tope}.`);
     }
 
     const modo = elegido("equipoModo");
     if (!modo) return falla("equipoModo", "DINOS SI YA TIENES EQUIPO.");
-    if (modo === "con_nombre" && val("equipo").length < 2) return falla("equipo", "FALTA EL NOMBRE DE TU EQUIPO.");
+    if (modo === "unirse"){
+      if (!idElegido){
+        eqLista.setAttribute("aria-invalid", "true");
+        (eqLista.querySelector("input:not(:disabled)") || el("buscaEquipo")).focus();
+        return equipos && !equipos.equipos.length
+          ? "TODAVÍA NO HAY EQUIPOS: QUIEN LO VA A CREAR TIENE QUE REGISTRARSE PRIMERO."
+          : "ELIGE TU EQUIPO DE LA LISTA.";
+      }
+      if (!el("claveUnirse").value) return falla("claveUnirse", "FALTA LA CONTRASEÑA DE TU EQUIPO.");
+    }
+    if (modo === "crear"){
+      if (val("equipo").length < 2) return falla("equipo", "FALTA EL NOMBRE DE TU EQUIPO.");
+      if (el("claveCrear").value.length < 4)
+        return falla("claveCrear", "LA CONTRASEÑA DEL EQUIPO DEBE TENER AL MENOS 4 CARACTERES.");
+      if (!px.some(Boolean)){
+        lienzo.setAttribute("aria-invalid", "true");
+        lienzo.focus();
+        return "DIBUJA EL LOGO DE TU EQUIPO.";
+      }
+    }
 
     if (!el("privacidad").checked) return falla("privacidad", "FALTA ACEPTAR EL AVISO DE PRIVACIDAD.");
     if (edad < EDAD.mayor && !el("tutor").checked)
       return falla("tutor", "ERES MENOR DE EDAD: FALTA CONFIRMAR LA AUTORIZACIÓN DE TU TUTOR.");
     if (!el("responsiva").checked) return falla("responsiva", "FALTA ACEPTAR LA RESPONSIVA.");
-    if (plano(val("firma")) !== plano(`${val("nombre")} ${val("apellidos")}`))
-      return falla("firma", "LA FIRMA DEBE SER TU NOMBRE COMPLETO, IGUAL QUE ARRIBA.");
     return null;
   }
 
@@ -597,17 +863,30 @@ const Monitor = (function monitor(){
       carrera: estudia ? val("carrera") : "",
       periodo: estudia ? val("periodo") : "",
       semestre: estudia ? Number(val("semestre")) : null,
-      equipoModo: elegido("equipoModo"), equipo: val("equipo"),
+      ...equipoDe(elegido("equipoModo")),
       privacidad: el("privacidad").checked, tutor: el("tutor").checked,
-      responsiva: el("responsiva").checked, firma: val("firma"),
+      responsiva: el("responsiva").checked,
       empresa: val("empresa"),
     };
   }
 
+  // Solo lo del camino elegido. La contraseña va tal cual: sin espacios
+  // recortados, para que sea la misma que escriben los demás.
+  function equipoDe(modo){
+    if (modo === "unirse")
+      return { equipoModo: modo, equipoId: Number(idElegido), equipoClave: el("claveUnirse").value };
+    if (modo === "crear")
+      return { equipoModo: modo, equipo: val("equipo"), equipoClave: el("claveCrear").value, logo: px.join("") };
+    return { equipoModo: modo };
+  }
+  const nombreEquipo = p =>
+    p.equipoModo === "crear" ? p.equipo :
+    p.equipoModo === "unirse" ? equipos?.equipos.find(e => e.id === p.equipoId)?.nombre || "" : "";
+
   // La ficha del correo de respaldo. La CURP, el código postal y la fecha
   // de nacimiento no van: un correo viaja por muchos servidores. Se piden
   // después, al confirmar.
-  const EQUIPO_TEXTO = { con_nombre: "Sí, con nombre", sin_nombre: "Sí, sin nombre todavía", asignar: "No, que me asignen" };
+  const EQUIPO_TEXTO = { unirse: "Ya tengo equipo", crear: "Crear un equipo", asignar: "No tengo, agréguenme a uno" };
   function ficha(){
     const p = paquete();
     return [
@@ -616,10 +895,11 @@ const Monitor = (function monitor(){
       `NOMBRE ......... ${p.nombre} ${p.apellidos}`,
       `CORREO ......... ${p.correo}`,
       `TELÉFONO ....... ${p.telefono}`,
-      `ESTUDIA ........ ${p.estudia ? `${p.institucion} · ${p.carrera} · ${p.periodo === "anio" ? "año" : "semestre"} ${p.semestre}` : "No"}`,
-      `EQUIPO ......... ${EQUIPO_TEXTO[p.equipoModo] || "—"}${p.equipo && p.equipoModo === "con_nombre" ? ` — ${p.equipo}` : ""}`,
+      `ESTUDIA ........ ${p.estudia ? `${p.institucion} · ${p.carrera} · ${PERIODO_NOMBRE[p.periodo].toLowerCase()} ${p.semestre}` : "No"}`,
+      `EQUIPO ......... ${EQUIPO_TEXTO[p.equipoModo] || "—"}${nombreEquipo(p) ? ` — ${nombreEquipo(p)}` : ""}`,
       "",
       "(La CURP no va en este correo: se la pedimos al confirmar.)",
+      ...(p.equipoModo === "crear" ? ["(El logo y la contraseña del equipo los pedimos al confirmar.)"] : []),
       "Acepto el aviso de privacidad y la responsiva.",
     ].join("\n");
   }
@@ -629,8 +909,8 @@ const Monitor = (function monitor(){
      desde el disco, o el servidor caído) nadie se queda sin registrarse. */
   const boton = form.querySelector('button[type="submit"]');
   function bloquea(){
-    form.querySelectorAll("input, select").forEach(c => { c.disabled = true; });
-    boton.disabled = true;
+    form.dataset.cerrado = "1";
+    form.querySelectorAll("input, select, button").forEach(c => { c.disabled = true; });
   }
 
   function abreCorreo(){
@@ -662,7 +942,9 @@ const Monitor = (function monitor(){
 
       if (r.ok){
         bloquea();
-        avisa(`REGISTRO ACEPTADO. TU FOLIO ES ${datos.folio}. TE ESCRIBIMOS A TU CORREO.`, false);
+        const p = paquete();
+        avisa(`REGISTRO ACEPTADO. TU FOLIO ES ${datos.folio}. TE ESCRIBIMOS A TU CORREO.` +
+          (p.equipoModo === "crear" ? ` «${p.equipo.replace(/\s+/g, " ").toUpperCase()}» YA APARECE EN LA LISTA: PÁSALES LA CONTRASEÑA A TUS COMPAÑEROS.` : ""), false);
         pintaCupo(datos.quedan);
         return;
       }
@@ -670,6 +952,11 @@ const Monitor = (function monitor(){
       if (r.status === 400 || r.status === 409){
         avisa(datos.mensaje || "REGISTRO RECHAZADO.", true);
         if (datos.lleno) bloquea(); else boton.disabled = false;
+        // Si el problema fue el equipo, se señala ahí (y la lista se pone al día).
+        const m = String(datos.mensaje), modo = elegido("equipoModo");
+        if (modo === "unirse" && /CONTRASEÑA/.test(m)) el("claveUnirse").focus();
+        if (modo === "unirse" && /EQUIPO/.test(m)) cargaEquipos(true);
+        if (modo === "crear" && /YA HAY UN EQUIPO/.test(m)) el("equipo").focus();
         return;
       }
       throw new Error("HTTP " + r.status);

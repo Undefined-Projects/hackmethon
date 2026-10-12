@@ -43,6 +43,8 @@
   .grupo__t span{ font-size:11px; letter-spacing:.12em; color:var(--phos-dim); }
   .grupo__t .ok{ color:var(--clorofila); }
   .grupo__t .falta{ color:var(--magenta); }
+  .grupo__logo{ width:32px; height:32px; align-self:center; image-rendering:pixelated;
+                background:var(--screen); outline:1px solid var(--rule); }
   .grupo .eq__crew li{ border-top:1px solid var(--rule); padding:7px 0; }
   .grupo .eq__crew li:first-child{ border-top:0; }
   .grupo .eq__borrar{ flex-basis:100%; margin-top:4px; padding-top:0; border-top:0; }
@@ -245,6 +247,7 @@ async function carga(){
   return d;
 }
 
+const PERIODO = { semestre: "SEMESTRE", cuatrimestre: "CUATRIMESTRE", tetramestre: "TETRAMESTRE", anio: "AÑO" };
 const GENERO = { hombre: "HOMBRE", mujer: "MUJER", otro: "OTRO", prefiero_no_decir: "PREFIERE NO DECIR" };
 // edad a partir de "AAAA-MM-DD"
 function edadDe(fecha){
@@ -267,8 +270,8 @@ function resumen(d){
     `INSCRITOS <b>${d.registrados}</b>` +
     `<span>CUPO <b>${sinLimite ? "SIN LÍMITE" : d.cupo}</b></span>` +
     (sinLimite ? "" : `<span>QUEDAN <b>${d.quedan}</b></span>`) +
-    `<span>EQUIPOS CON NOMBRE <b>${equipos}</b></span>` +
-    `<span>SIN NOMBRE <b>${cuenta(r => r.equipo_modo === "sin_nombre")}</b></span>` +
+    `<span>EQUIPOS <b>${equipos}</b></span>` +
+    (cuenta(r => r.equipo_modo === "sin_nombre") ? `<span>SIN NOMBRE <b>${cuenta(r => r.equipo_modo === "sin_nombre")}</b></span>` : "") +
     `<span>POR ASIGNAR <b>${cuenta(r => r.equipo_modo === "asignar")}</b></span>` +
     `<span>H <b>${cuenta(r => r.genero === "hombre")}</b> · M <b>${cuenta(r => r.genero === "mujer")}</b> · OTRO <b>${cuenta(r => r.genero === "otro" || r.genero === "prefiero_no_decir")}</b></span>` +
     `<span>MENORES <b>${cuenta(r => r.tutor)}</b></span>`;
@@ -319,11 +322,13 @@ function pinta(d){
 
   const cuerpo = $("#l-cuerpo");
   cuerpo.textContent = "";
-  if (!d.registros.length){ cuerpo.innerHTML = VACIO; return; }
+  if (!d.registros.length && !(d.equipos || []).length){ cuerpo.innerHTML = VACIO; return; }
 
-  // Equipos con nombre (juntados por el nombre, sin acentos ni mayúsculas),
-  // luego quienes tienen equipo sin nombre y al final quienes piden uno.
+  // Equipos (juntados por el nombre, sin acentos ni mayúsculas), luego los
+  // creados que se quedaron sin nadie, quienes tienen equipo sin nombre
+  // (registros de antes de los logos) y al final quienes piden uno.
   const { min, max } = d.equipo || { min: 3, max: 5 };
+  const logos = new Map((d.equipos || []).map(e => [e.equipo_key, e]));
   const equipos = new Map();
   for (const r of d.registros.filter(r => r.equipo_key)){
     if (!equipos.has(r.equipo_key)) equipos.set(r.equipo_key, []);
@@ -332,7 +337,11 @@ function pinta(d){
   const grupos = [...equipos.values()]
     .sort((a, b) => a[0].equipo.localeCompare(b[0].equipo, "es"))
     .map(g => ({ titulo: g[0].equipo, gente: g,
+                 logo: logos.get(g[0].equipo_key)?.logo,
                  estado: g.length >= min ? ["ok", `${g.length}/${max} · COMPLETO`] : ["falta", `${g.length}/${max} · FALTAN ${min - g.length} PARA ${min}`] }));
+  for (const e of d.equipos || [])
+    if (!equipos.has(e.equipo_key))
+      grupos.push({ titulo: e.nombre, logo: e.logo, gente: [], vacio: e, estado: ["falta", `0/${max} · SIN NADIE`] });
   const sinNombre = d.registros.filter(r => r.equipo_modo === "sin_nombre");
   const asignar = d.registros.filter(r => r.equipo_modo === "asignar");
   if (sinNombre.length) grupos.push({ titulo: "TIENEN EQUIPO, SIN NOMBRE", gente: sinNombre, estado: ["", `${sinNombre.length} · HAY QUE PREGUNTARLES CON QUIÉN VIENEN`] });
@@ -345,11 +354,17 @@ function pinta(d){
     t.className = "grupo__t";
     const b = document.createElement("b"); b.textContent = g.titulo;
     const e = document.createElement("span"); e.className = g.estado[0]; e.textContent = g.estado[1];
+    if (g.logo){
+      const logo = pintaLogo(document.createElement("canvas"), g.logo);
+      logo.className = "grupo__logo";
+      t.appendChild(logo);
+    }
     t.append(b, e);
     const ul = document.createElement("ul");
     ul.className = "eq__crew";
     g.gente.forEach(r => ul.appendChild(persona(r)));
     caja.append(t, ul);
+    if (g.vacio) caja.appendChild(zonaBorrarEquipo(g.vacio));
     cuerpo.appendChild(caja);
   }
 }
@@ -368,7 +383,7 @@ function persona(r){
   det.append(
     `${r.folio} · ${fecha} · ${edad} AÑOS${r.tutor ? " (MENOR: TUTOR AUTORIZÓ)" : ""} · ${GENERO[r.genero] || r.genero} · ` +
     `${r.curp} · NAC. ${r.nacimiento} · CP ${r.cp} · ` +
-    (r.estudia ? `${r.institucion} · ${r.carrera} · ${r.periodo === "anio" ? "AÑO" : "SEMESTRE"} ${r.semestre}` : "NO ESTUDIA") + " · ");
+    (r.estudia ? `${r.institucion} · ${r.carrera} · ${PERIODO[r.periodo] || r.periodo} ${r.semestre}` : "NO ESTUDIA") + " · ");
   const c = document.createElement("a");
   c.href = "mailto:" + r.correo; c.textContent = r.correo;
   det.appendChild(c);
@@ -436,6 +451,53 @@ function zonaBorrar(r, fila){
     }
   };
 
+  reposo();
+  return zona;
+}
+
+/* Un equipo sin nadie (por ejemplo, si se borró la inscripción de quien
+   lo creó) sigue en la lista de la portada hasta que se borra aquí. El
+   servidor no borra uno que tenga integrantes. */
+function zonaBorrarEquipo(eq){
+  const zona = document.createElement("p");
+  zona.className = "eq__borrar";
+  let reloj = null;
+  const reposo = () => {
+    zona.textContent = "";
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = "BORRAR EQUIPO";
+    b.addEventListener("click", preguntar);
+    zona.appendChild(b);
+  };
+  const preguntar = () => {
+    zona.textContent = "";
+    const aviso = document.createElement("span");
+    aviso.className = "aviso";
+    aviso.textContent = `¿Borrar el equipo «${eq.nombre}»? Deja de salir en la portada.`;
+    const si = document.createElement("button");
+    si.type = "button"; si.className = "si"; si.textContent = "SÍ, BORRAR";
+    si.addEventListener("click", () => { clearTimeout(reloj); borrar(); });
+    const no = document.createElement("button");
+    no.type = "button"; no.textContent = "CANCELAR";
+    no.addEventListener("click", () => { clearTimeout(reloj); reposo(); });
+    zona.append(aviso, si, no);
+    reloj = setTimeout(reposo, 8000);
+  };
+  const borrar = async () => {
+    zona.textContent = "Borrando...";
+    try {
+      const r = await fetch(`${API}/registros?equipo=${eq.id}`, {
+        method: "DELETE", headers: { authorization: "Bearer " + token() },
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.mensaje || ("HTTP " + r.status));
+      datos.equipos = datos.equipos.filter(x => x.id !== eq.id);
+      pinta(datos);
+    } catch (e) {
+      zona.textContent = "No se pudo borrar: " + e.message;
+      setTimeout(reposo, 4000);
+    }
+  };
   reposo();
   return zona;
 }
@@ -640,13 +702,13 @@ $("#b-csv").addEventListener("click", () => {
   const esc = v => '"' + String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""') + '"';
   const columnas = ["folio","registrado","nombre","apellidos","correo","telefono","curp","genero",
                     "nacimiento","edad","cp","estudia","institucion","carrera","periodo","semestre",
-                    "tiene_equipo","equipo","privacidad","responsiva","firma","tutor"];
+                    "tiene_equipo","equipo","privacidad","responsiva","tutor"];
   const filas = [columnas];
   for (const r of datos.registros){
     filas.push([r.folio, r.creado, r.nombre, r.apellidos, r.correo, r.telefono, r.curp, r.genero,
                 r.nacimiento, edadDe(r.nacimiento), r.cp, r.estudia ? "si" : "no", r.institucion, r.carrera,
-                r.periodo === "anio" ? "año" : r.periodo, r.semestre, r.equipo_modo, r.equipo,
-                r.privacidad, r.responsiva, r.firma, r.tutor ? "si" : "no"].map(esc));
+                (PERIODO[r.periodo] || r.periodo || "").toLowerCase(), r.semestre, r.equipo_modo, r.equipo,
+                r.privacidad, r.responsiva, r.tutor ? "si" : "no"].map(esc));
   }
   // BOM para que Excel abra los acentos bien
   const blob = new Blob(["﻿" + filas.map(f => f.join(",")).join("\r\n")],

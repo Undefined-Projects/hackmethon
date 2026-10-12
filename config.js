@@ -88,3 +88,27 @@ const EVENTO = {
 const API = EVENTO.api
   ? EVENTO.api.replace(/\/+$/, "") + "/api"
   : location.pathname.replace(/[^/]*$/, "") + "api";
+
+/* El logo de cada equipo: 16 × 16 pixeles guardados como 256 caracteres,
+   uno por pixel, de izquierda a derecha y de arriba abajo. Cada carácter es
+   un índice de esta paleta; 0 = vacío. El servidor solo acepta 0–7
+   (LOGO_COLORES en servidor/lib/db.js): si cambia el largo, cambia allá. */
+const LOGO = {
+  lado: 16,
+  paleta: [null, "#fa39ba", "#ffd3ee", "#b0559b", "#a32198", "#4f86ee", "#21498e", "#3ddc97"],
+  nombres: ["BORRADOR", "MAGENTA", "ROSA CLARO", "ROSA OSCURO", "VIOLETA", "AZUL", "AZUL OSCURO", "VERDE"],
+};
+
+/* Pinta un logo en un canvas de 16 × 16 (el CSS lo agranda pixelado). */
+function pintaLogo(canvas, logo){
+  const n = LOGO.lado, ctx = canvas.getContext("2d");
+  canvas.width = canvas.height = n;
+  ctx.clearRect(0, 0, n, n);
+  for (let i = 0; i < n * n; i++){
+    const color = LOGO.paleta[Number(logo[i])];
+    if (!color) continue;
+    ctx.fillStyle = color;
+    ctx.fillRect(i % n, Math.floor(i / n), 1, 1);
+  }
+  return canvas;
+}
