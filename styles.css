@@ -1147,6 +1147,45 @@ main{ animation:sacudida 11s steps(1) infinite; }
   97.9%{ opacity:0; }
 }
 
+/* «RETO CONFIDENCIAL» en la agenda: lo que tiene cada incisión no se
+   dice antes de tiempo. A diferencia del resto del glitch, este sí se nota:
+   dos copias del texto (magenta y azul) se asoman en tiras y el renglón
+   salta. Cada renglón con su desfase (--i) para que no parpadeen juntos. */
+.secreto{
+  position:relative; display:inline-block;
+  font-family:var(--f-mono); font-size:13px; font-weight:600; letter-spacing:.18em;
+  color:var(--phos-hi); text-shadow:var(--fringe);
+  animation:secreto-salto 3.1s steps(1) infinite;
+  animation-delay:calc(var(--i, 0) * -.53s);
+}
+.secreto::before, .secreto::after{
+  content:attr(data-text); content:attr(data-text) / "";
+  position:absolute; inset:0; pointer-events:none; opacity:0;
+  animation:inherit; animation-name:secreto-tira;
+}
+.secreto::before{ color:var(--magenta); }
+.secreto::after{ color:var(--blue-hi); animation-direction:reverse; animation-duration:2.3s; }
+@keyframes secreto-salto{
+  0%, 86%, 100%{ transform:none; }
+  87%{ transform:translateX(-2px) skewX(-6deg); }
+  89%{ transform:translateX(2px); }
+  91%{ transform:none; }
+  95%{ transform:translateX(1px) skewX(4deg); }
+  96%{ transform:none; }
+}
+@keyframes secreto-tira{
+  0%, 82%, 100%{ opacity:0; }
+  83%{ opacity:1; clip-path:inset(0 0 62% 0); transform:translateX(-4px); }
+  86%{ opacity:1; clip-path:inset(55% 0 10% 0); transform:translateX(3px); }
+  89%{ opacity:1; clip-path:inset(20% 0 45% 0); transform:translateX(-2px); }
+  92%{ opacity:0; }
+  95%{ opacity:1; clip-path:inset(70% 0 0 0); transform:translateX(5px); }
+  97%{ opacity:0; }
+}
+@media (prefers-reduced-motion:reduce){
+  .secreto, .secreto::before, .secreto::after{ animation:none; }
+}
+
 /* ── mapa ───────────────────────────────────────────────── */
 .coords{ font-variant-numeric:tabular-nums; }
 .maplink{ margin:14px 0 0; font-size:12.5px; }
