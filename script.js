@@ -451,87 +451,17 @@ const Monitor = (function monitor(){
   actualizar();
 })();
 
-/* — 7. Consentimiento informado: integrantes, marca y envío —
-       El registro va al servidor (/api/registro), que es el que valida de
-       verdad. Cuántos integrantes lleva cada equipo lo decide el panel de
-       administración y llega con /api/cupo; mientras tanto se usa el
-       último conocido o EVENTO.integrantes. Por persona se pide nombre,
-       correo, CURP, escuela (opcional), edad y teléfono. — */
+/* — 7. Consentimiento informado: la inscripción —
+       Una persona por registro (Paso 1 de FORMULARIO_REGISTRO_HACKMETHON_2026.md).
+       Va al servidor (/api/registro), que es el que valida de verdad.
+       Quien ya tiene equipo escribe su nombre; los equipos se juntan
+       después por ese nombre, desde el panel. — */
 (function alta(){
   const form = document.getElementById("alta");
   if (!form) return;
 
-  const N          = 12;                                   // celdas por lado
-  const FONDO      = "#0d0410";
-  const TINTAS     = [null, "#ff2d95", "#a855f7", "#ffd9ee", "#3ddc97"];
-  const EDAD       = { min: 12, max: 99, mayor: 18 };
-
-  /* ---- cuántos por equipo ---- */
-  const tamanoValido = n => Number.isInteger(n) && n >= 1 && n <= 6;
-  let INTEGRANTES = tamanoValido(EVENTO.integrantes) ? EVENTO.integrantes : 3;
-  try {
-    const visto = Number(localStorage.getItem("hmt2-tamano"));
-    if (tamanoValido(visto)) INTEGRANTES = visto;
-  } catch {}
-
-  // Los textos que dicen cuántos son: data-tam lleva la plantilla con {n}
-  // y data-tam1 la versión para una sola persona.
-  const PALABRA = ["", "uno", "dos", "tres", "cuatro", "cinco", "seis"];
-  function textosTamano(n){
-    document.querySelectorAll("[data-tam]").forEach(el => {
-      const t = n === 1 && el.hasAttribute("data-tam1") ? el.dataset.tam1 : el.dataset.tam;
-      el.textContent = t.replace("{n}", PALABRA[n]);
-      el.hidden = !el.textContent;
-    });
-  }
-
-  /* ---- integrantes: una ficha por persona ---- */
-  const crew = document.getElementById("crew");
-  const CAMPOS = [
-    { k: "nombre",  t: "NOMBRE COMPLETO", tipo: "text",   max: 80, ph: "NOMBRE Y APELLIDOS", ancho: true, auto: "name" },
-    { k: "correo",  t: "CORREO",          tipo: "email",  max: 120, ph: "tu@correo.com", ancho: true, auto: "email" },
-    { k: "curp",    t: "CURP",            tipo: "text",   max: 18, ph: "18 CARACTERES" },
-    { k: "edad",    t: "EDAD",            tipo: "number", ph: "18", medio: true },
-    { k: "tel",     t: "TELÉFONO",        tipo: "tel",    max: 16, ph: "10 DÍGITOS", medio: true, auto: "tel" },
-    { k: "escuela", t: "ESCUELA (SI APLICA)", tipo: "text", max: 80, ph: "OPCIONAL", ancho: true },
-  ];
-  function armaCrew(n){
-    // lo ya escrito se conserva si el número cambia
-    const antes = {};
-    crew.querySelectorAll("input").forEach(i => { antes[i.name] = i.type === "radio" ? i.checked : i.value; });
-    crew.textContent = "";
-    for (let i = 1; i <= n; i++){
-      const f = document.createElement("fieldset");
-      f.className = "crew__ficha";
-      f.innerHTML = `
-        <legend class="crew__top">
-          <span class="crew__num">INTEGRANTE 0${i}</span>
-          <label class="crew__lead" ${n === 1 ? "hidden" : ""}>
-            <input type="radio" name="lider" value="${i}" ${i === 1 ? "checked" : ""}
-                   aria-label="Marcar al integrante ${i} como líder">
-            <span>LÍDER</span>
-          </label>
-        </legend>
-        <div class="crew__campos">${CAMPOS.map(c => `
-          <label class="crew__campo${c.ancho ? " crew__campo--ancho" : ""}${c.medio ? " crew__campo--medio" : ""}">
-            <span>${c.t}</span>
-            <input type="${c.tipo}" name="${c.k}${i}" ${c.max ? `maxlength="${c.max}"` : `min="${EDAD.min}" max="${EDAD.max}" inputmode="numeric"`}
-                   autocomplete="${c.auto && i === 1 ? c.auto : "off"}" placeholder="${c.ph}"
-                   ${c.k === "curp" ? 'autocapitalize="characters" spellcheck="false"' : ""}>
-          </label>`).join("")}
-        </div>`;
-      crew.appendChild(f);
-    }
-    crew.querySelectorAll("input").forEach(i => {
-      if (!(i.name in antes)) return;
-      if (i.type === "radio") i.checked = antes[i.name]; else i.value = antes[i.name];
-    });
-    if (!crew.querySelector('input[name="lider"]:checked')) crew.querySelector('input[name="lider"]').checked = true;
-    if (form.elements.lider) form.elements.lider.value ||= "1";
-    INTEGRANTES = n;
-    textosTamano(n);
-    revisaTutor();
-  }
+  const EDAD = { min: 12, max: 99, mayor: 18 };
+  const PERIODO_MAX = { semestre: 12, anio: 5 };
 
   /* ---- CURP: formato, dígito verificador y fecha (igual que el servidor) ---- */
   const ENTIDADES = "AS BC BS CC CL CM CS CH DF DG GT GR HG JC MC MN MS NT NL OC PL QT QR SP SL SR TC TS TL VZ YN ZS NE".split(" ");
@@ -552,11 +482,13 @@ const Monitor = (function monitor(){
     for (let i = 0; i < 17; i++) suma += DIC_CURP.indexOf(curp[i]) * (18 - i);
     return (10 - (suma % 10)) % 10 === Number(curp[17]);
   }
-  function edadDe(curp){
-    const f = nacimiento(curp), hoy = new Date();
-    if (!f) return null;
-    let e = hoy.getUTCFullYear() - f.getUTCFullYear();
-    if (hoy.getUTCMonth() < f.getUTCMonth() || (hoy.getUTCMonth() === f.getUTCMonth() && hoy.getUTCDate() < f.getUTCDate())) e--;
+  // edad a partir de "AAAA-MM-DD"
+  function edadDe(fecha){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha || "");
+    if (!m) return null;
+    const hoy = new Date();
+    let e = hoy.getFullYear() - m[1];
+    if (hoy.getMonth() + 1 < +m[2] || (hoy.getMonth() + 1 === +m[2] && hoy.getDate() < +m[3])) e--;
     return e;
   }
   const limpiaTel = v => {
@@ -564,326 +496,131 @@ const Monitor = (function monitor(){
     if (d.length === 12 && d.startsWith("52")) d = d.slice(2);
     return d.length === 10 ? d : null;
   };
+  // para comparar la firma con el nombre: sin acentos, mayúsculas ni espacios de más
+  const plano = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
-  // Con una CURP válida, la edad se llena sola (y se puede corregir).
-  crew.addEventListener("change", e => {
-    const m = /^curp(\d)$/.exec(e.target.name);
-    if (m){
-      e.target.value = limpiaCurp(e.target.value);
-      const campo = form.elements["edad" + m[1]];
-      if (curpValida(e.target.value) && !campo.value) campo.value = edadDe(e.target.value);
+  const el = n => form.elements[n];
+  const val = n => (el(n)?.value || "").trim();
+  const elegido = n => form.querySelector(`input[name="${n}"]:checked`)?.value || "";
+
+  /* ---- lo que se muestra según lo que se contesta ---- */
+  const escuela = document.getElementById("escuela"), otra = document.getElementById("otra");
+  const equipo = document.getElementById("equipo"), tutor = document.getElementById("tutor");
+  const periodoT = document.getElementById("periodo-t");
+  function acomoda(){
+    escuela.hidden = elegido("estudia") !== "si";
+    otra.hidden = val("institucion") !== "otra";
+    equipo.hidden = elegido("equipoModo") !== "con_nombre";
+    const anio = val("periodo") === "anio";
+    periodoT.textContent = anio ? "AÑO QUE CURSAS" : "SEMESTRE QUE CURSAS";
+    el("semestre").max = PERIODO_MAX[anio ? "anio" : "semestre"];
+    const edad = edadDe(val("nacimiento"));
+    tutor.hidden = !(edad != null && edad < EDAD.mayor);
+  }
+  form.addEventListener("change", acomoda);
+  form.addEventListener("input", e => { if (e.target.name === "nacimiento") acomoda(); });
+
+  // Con una CURP válida, la fecha de nacimiento se llena sola (y se puede corregir).
+  el("curp").addEventListener("change", () => {
+    el("curp").value = limpiaCurp(el("curp").value);
+    const curp = el("curp").value;
+    if (curpValida(curp) && !val("nacimiento")){
+      el("nacimiento").value = nacimiento(curp).toISOString().slice(0, 10);
+      acomoda();
     }
-    revisaTutor();
   });
-  crew.addEventListener("input", e => { if (/^edad\d$/.test(e.target.name)) revisaTutor(); });
+  acomoda();
 
-  // Con algún menor de edad aparece la casilla de la autorización del tutor.
-  const tutor = document.getElementById("tutor");
-  function hayMenores(){
-    for (let i = 1; i <= INTEGRANTES; i++){
-      const v = (form.elements["edad" + i]?.value || "").trim();
-      if (v && Number(v) < EDAD.mayor) return true;
-    }
-    return false;
-  }
-  function revisaTutor(){ if (tutor) tutor.hidden = !hayMenores(); }
-
-  armaCrew(INTEGRANTES);
-
-  /* ---- cuadrícula del emblema ---- */
-  const grid   = document.getElementById("grid");
-  const celdas = [];
-  let lienzo   = new Array(N * N).fill(0);
-  let tinta    = 1;
-  let simetria = true;
-
-  for (let i = 0; i < N * N; i++){
-    const b = document.createElement("button");
-    b.type = "button";
-    b.dataset.v = "0";
-    b.dataset.i = String(i);
-    b.setAttribute("aria-label", `Celda ${Math.floor(i / N) + 1}, ${(i % N) + 1}`);
-    grid.appendChild(b);
-    celdas.push(b);
-  }
-
-  function pinta(i, valor){
-    const fila = Math.floor(i / N), col = i % N;
-    const destinos = simetria ? [i, fila * N + (N - 1 - col)] : [i];
-    for (const d of destinos){
-      lienzo[d] = valor;
-      celdas[d].dataset.v = String(valor);
-    }
-  }
-
-  let pintando = false;
-  grid.addEventListener("pointerdown", e => {
-    const b = e.target.closest("button");
-    if (!b) return;
-    e.preventDefault();
-    pintando = true;
-    pinta(+b.dataset.i, tinta);
-    dibujaPrevia();
-  });
-  grid.addEventListener("pointerover", e => {
-    if (!pintando) return;
-    const b = e.target.closest("button");
-    if (b){ pinta(+b.dataset.i, tinta); dibujaPrevia(); }
-  });
-  window.addEventListener("pointerup", () => { pintando = false; });
-  // teclado: Enter o Espacio sobre una celda la pinta
-  grid.addEventListener("click", e => {
-    const b = e.target.closest("button");
-    if (b && !pintando){ pinta(+b.dataset.i, tinta); dibujaPrevia(); }
-  });
-
-  /* ---- paleta y acciones ---- */
-  document.querySelectorAll(".sw").forEach(sw => {
-    sw.addEventListener("click", () => {
-      tinta = +sw.dataset.tinta;
-      document.querySelectorAll(".sw").forEach(o =>
-        o.setAttribute("aria-pressed", String(o === sw)));
-    });
-  });
-
-  const bSim = document.getElementById("b-sim");
-  bSim.addEventListener("click", () => {
-    simetria = !simetria;
-    bSim.setAttribute("aria-pressed", String(simetria));
-    bSim.textContent = `SIMETRÍA: ${simetria ? "SÍ" : "NO"}`;
-  });
-
-  document.getElementById("b-clr").addEventListener("click", () => {
-    lienzo = new Array(N * N).fill(0);
-    celdas.forEach(c => { c.dataset.v = "0"; });
-    dibujaPrevia();
-  });
-
-  document.getElementById("b-rnd").addEventListener("click", () => {
-    // Solo la mitad izquierda y se espeja: un emblema simétrico
-    // sale reconocible casi siempre, uno al azar puro no.
-    lienzo = new Array(N * N).fill(0);
-    for (let f = 0; f < N; f++){
-      for (let c = 0; c < N / 2; c++){
-        const r = Math.random();
-        const v = r < 0.58 ? 0 : r < 0.82 ? 1 : r < 0.95 ? 2 : 3;
-        lienzo[f * N + c] = v;
-        lienzo[f * N + (N - 1 - c)] = v;
-      }
-    }
-    celdas.forEach((c, i) => { c.dataset.v = String(lienzo[i]); });
-    dibujaPrevia();
-  });
-
-  /* ---- SEMILLA: la marca crece sola ----
-     Un tallo sube por el centro, echa ramas de circuito hacia los lados
-     con hojas y puntos de soldadura en las puntas, y abre una flor arriba.
-     Se dibuja solo la mitad izquierda y se espeja, como ALEATORIO. Las
-     celdas se pintan una por una para que se vea crecer. */
-  let creciendo = null;
-  function semilla(){
-    const pasos = [];                       // [fila, col, tinta] en orden de crecimiento
-    const M = N / 2 - 1;                    // columna del tallo (5); su espejo es la 6
-    const r = Math.random;
-    const alto = 4 + Math.floor(r() * 3);   // dónde termina el tallo: fila 4 a 6
-    // raíces
-    pasos.push([N - 1, M, 2], [N - 1, M - 1, 2]);
-    if (r() < .6) pasos.push([N - 1, M - 3, 2], [N - 2, M - 2, 2]);
-    // tallo
-    for (let f = N - 2; f >= alto; f--) pasos.push([f, M, 4]);
-    // ramas de circuito
-    const ramas = 2 + Math.floor(r() * 2);
-    for (let k = 0; k < ramas; k++){
-      let f = alto + 1 + Math.floor(r() * (N - alto - 4)), c = M;
-      const largo = 2 + Math.floor(r() * 3);
-      for (let i = 0; i < largo && c > 0; i++){
-        c--; if (r() < .55 && f > 1) f--;
-        pasos.push([f, c, 1]);
-      }
-      if (r() < .65){
-        pasos.push([f, Math.max(0, c - 1), 4]);
-        if (f > 0) pasos.push([f - 1, c, 4]);
-      } else {
-        pasos.push([f, Math.max(0, c - 1), 3]);
-      }
-    }
-    // la flor
-    const fc = alto - 2;
-    pasos.push([alto - 1, M, 4], [fc + 1, M - 1, r() < .5 ? 1 : 2], [fc - 1, M, r() < .5 ? 1 : 2],
-               [fc, M - 1, r() < .5 ? 1 : 2], [fc, M, 3]);
-    return pasos.filter(([f, c]) => f >= 0 && c >= 0);
-  }
-
-  document.getElementById("b-sem").addEventListener("click", () => {
-    clearInterval(creciendo);
-    lienzo = new Array(N * N).fill(0);
-    celdas.forEach(c => { c.dataset.v = "0"; });
-    const pasos = semilla();
-    const pon = ([f, c, v]) => {
-      for (const col of [c, N - 1 - c]){
-        lienzo[f * N + col] = v;
-        celdas[f * N + col].dataset.v = String(v);
-      }
-    };
-    if (reducedMotion){ pasos.forEach(pon); dibujaPrevia(); return; }
-    let i = 0;
-    creciendo = setInterval(() => {
-      pon(pasos[i++]); dibujaPrevia();
-      if (i >= pasos.length) clearInterval(creciendo);
-    }, 45);
-  });
-  // Si alguien pinta o limpia a media siembra, la siembra se detiene.
-  grid.addEventListener("pointerdown", () => clearInterval(creciendo));
-  ["b-clr", "b-rnd"].forEach(id =>
-    document.getElementById(id).addEventListener("click", () => clearInterval(creciendo)));
-
-  /* ---- vista previa ---- */
-  const prev  = document.getElementById("prev");
-  const pctx  = prev.getContext("2d");
-  const pName = document.getElementById("prev-name");
-
-  function dibujaEn(ctx, lado){
-    const paso = lado / N;
-    ctx.fillStyle = FONDO;
-    ctx.fillRect(0, 0, lado, lado);
-    for (let i = 0; i < N * N; i++){
-      const v = lienzo[i];
-      if (!v) continue;
-      ctx.fillStyle = TINTAS[v];
-      ctx.fillRect((i % N) * paso, Math.floor(i / N) * paso, Math.ceil(paso), Math.ceil(paso));
-    }
-  }
-  function dibujaPrevia(){ dibujaEn(pctx, prev.width); }
-  dibujaPrevia();
-
-  const iEquipo = document.getElementById("f-equipo");
-  iEquipo.addEventListener("input", () => {
-    pName.textContent = iEquipo.value.trim().toUpperCase() || "SIN NOMBRE";
-  });
-
-  /* ---- PNG del emblema ---- */
-  const bPng = document.getElementById("b-png");
-
-  function componePng(){
-    const lado = 480, alto = lado + 92;
-    const c = document.createElement("canvas");
-    c.width = lado; c.height = alto;
-    const ctx = c.getContext("2d");
-    ctx.fillStyle = FONDO;
-    ctx.fillRect(0, 0, lado, alto);
-    dibujaEn(ctx, lado);
-    ctx.fillStyle = "#ffd9ee";
-    ctx.font = "600 30px 'IBM Plex Mono', monospace";
-    ctx.textAlign = "center";
-    ctx.fillText((iEquipo.value.trim().toUpperCase() || "SIN NOMBRE").slice(0, 22), lado / 2, lado + 44);
-    ctx.fillStyle = "#a86ab8";
-    ctx.font = "400 16px 'IBM Plex Mono', monospace";
-    ctx.fillText("HACK(ME)THON 2.0 · THE ANATOMY OF A MACHINE", lado / 2, lado + 74);
-    return c;
-  }
-  const nombrePng = () =>
-    "marca-" + (iEquipo.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "equipo") + ".png";
-
-  // En un hosting propio no existe window.claude y basta con <a download>.
-  // Dentro del visor de Artifacts esa descarga está bloqueada, así que ahí
-  // se usa la capacidad "downloads"; si no la conceden, se esconde el botón.
-  const enVisor = typeof window.claude?.use === "function";
-  let guardar = null;
-
-  if (!enVisor){
-    bPng.hidden = false;
-    bPng.addEventListener("click", () => {
-      const a = document.createElement("a");
-      a.download = nombrePng();
-      a.href = componePng().toDataURL("image/png");
-      a.click();
-    });
-  } else {
-    window.claude.use("downloads").then(d => {
-      if (!d) return;                       // no concedida: el botón se queda oculto
-      guardar = d;
-      bPng.hidden = false;
-    }).catch(() => {});
-    bPng.addEventListener("click", () => {
-      if (!guardar) return;
-      componePng().toBlob(blob => {
-        guardar.save({ filename: nombrePng(), data: blob })
-          .catch(() => avisa("NO SE PUDO GUARDAR EL PNG.", true));
-      }, "image/png");
-    });
-  }
-
-  /* ---- ficha, validación y envío ---- */
+  /* ---- validación y envío ---- */
   const msg = document.getElementById("msg");
   function avisa(texto, error){
     msg.textContent = texto ? (error ? ">>> " : "*** ") + texto : "";
     msg.className = "msg " + (texto ? (error ? "msg--err" : "msg--ok") : "");
   }
 
-  const val = n => (form.elements[n]?.value || "").trim();
-
   // Marca el campo, lo enfoca y devuelve el mensaje.
   function falla(nombre, texto){
-    const el = form.elements[nombre];
-    el.setAttribute("aria-invalid", "true");
-    el.focus();
+    const c = el(nombre);
+    const campo = c instanceof RadioNodeList ? c[0] : c;
+    campo.setAttribute("aria-invalid", "true");
+    campo.focus();
     return texto;
   }
   function revisa(){
-    [...form.querySelectorAll("input")].forEach(i => i.removeAttribute("aria-invalid"));
-    if (!val("equipo")) return falla("equipo", "FALTA EL NOMBRE DEL EQUIPO.");
-    const curps = [], correos = [];
-    for (let i = 1; i <= INTEGRANTES; i++){
-      const q = `INTEGRANTE 0${i}:`;
-      if (val("nombre" + i).split(/\s+/).filter(Boolean).length < 2)
-        return falla("nombre" + i, `${q} ESCRIBE EL NOMBRE COMPLETO.`);
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val("correo" + i)))
-        return falla("correo" + i, `${q} EL CORREO NO ES VÁLIDO.`);
-      const curp = limpiaCurp(val("curp" + i));
-      if (!curpValida(curp)) return falla("curp" + i, `${q} LA CURP NO ES VÁLIDA. REVÍSALA LETRA POR LETRA.`);
-      const edad = Number(val("edad" + i));
-      if (!val("edad" + i) || !Number.isInteger(edad) || edad < EDAD.min || edad > EDAD.max)
-        return falla("edad" + i, `${q} LA EDAD DEBE IR DE ${EDAD.min} A ${EDAD.max} AÑOS.`);
-      if (Math.abs(edadDe(curp) - edad) > 1)
-        return falla("edad" + i, `${q} LA EDAD NO COINCIDE CON LA CURP.`);
-      if (!limpiaTel(val("tel" + i)))
-        return falla("tel" + i, `${q} EL TELÉFONO DEBE TENER 10 DÍGITOS.`);
-      if (curps.includes(curp)) return falla("curp" + i, `${q} ESA CURP YA LA PUSISTE EN OTRO INTEGRANTE.`);
-      if (correos.includes(val("correo" + i).toLowerCase()))
-        return falla("correo" + i, `${q} ESE CORREO YA LO PUSISTE EN OTRO INTEGRANTE.`);
-      curps.push(curp); correos.push(val("correo" + i).toLowerCase());
+    form.querySelectorAll("[aria-invalid]").forEach(i => i.removeAttribute("aria-invalid"));
+    if (!val("nombre"))    return falla("nombre", "FALTA TU NOMBRE.");
+    if (!val("apellidos")) return falla("apellidos", "FALTAN TUS APELLIDOS.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val("correo"))) return falla("correo", "EL CORREO NO ES VÁLIDO.");
+    if (!limpiaTel(val("tel"))) return falla("tel", "EL TELÉFONO DEBE TENER 10 DÍGITOS.");
+    const curp = limpiaCurp(val("curp"));
+    if (!curpValida(curp)) return falla("curp", "LA CURP NO ES VÁLIDA. REVÍSALA LETRA POR LETRA.");
+    if (!val("genero")) return falla("genero", "ELIGE UNA OPCIÓN DE GÉNERO.");
+    if (!val("nacimiento")) return falla("nacimiento", "FALTA TU FECHA DE NACIMIENTO.");
+    if (nacimiento(curp).toISOString().slice(0, 10) !== val("nacimiento"))
+      return falla("nacimiento", "LA FECHA DE NACIMIENTO NO COINCIDE CON TU CURP.");
+    const edad = edadDe(val("nacimiento"));
+    if (edad < EDAD.min || edad > EDAD.max)
+      return falla("nacimiento", `LA EDAD DEBE IR DE ${EDAD.min} A ${EDAD.max} AÑOS.`);
+    if (!/^\d{5}$/.test(val("cp"))) return falla("cp", "EL CÓDIGO POSTAL DEBE TENER 5 DÍGITOS.");
+
+    const estudia = elegido("estudia");
+    if (!estudia) return falla("estudia", "DINOS SI ESTUDIAS ACTUALMENTE.");
+    if (estudia === "si"){
+      if (!val("institucion")) return falla("institucion", "ELIGE TU UNIVERSIDAD O INSTITUCIÓN.");
+      if (val("institucion") === "otra" && !val("otra")) return falla("otra", "ESCRIBE EL NOMBRE DE TU ESCUELA.");
+      if (!val("carrera")) return falla("carrera", "FALTA TU CARRERA.");
+      const tope = PERIODO_MAX[val("periodo")], n = Number(val("semestre"));
+      if (!Number.isInteger(n) || n < 1 || n > tope)
+        return falla("semestre", val("periodo") === "anio" ? "EL AÑO VA DE 1 A 5." : "EL SEMESTRE VA DE 1 A 12.");
     }
-    if (!form.elements.privacidad.checked)
-      return falla("privacidad", "FALTA ACEPTAR EL AVISO DE PRIVACIDAD.");
-    if (hayMenores() && !form.elements.tutor.checked)
-      return falla("tutor", "HAY MENORES DE EDAD: FALTA CONFIRMAR LA AUTORIZACIÓN DE SU TUTOR.");
-    const firma = form.elements.consiento;
-    if (firma && !firma.checked) return falla("consiento", "FALTA FIRMAR EL CONSENTIMIENTO.");
+
+    const modo = elegido("equipoModo");
+    if (!modo) return falla("equipoModo", "DINOS SI YA TIENES EQUIPO.");
+    if (modo === "con_nombre" && val("equipo").length < 2) return falla("equipo", "FALTA EL NOMBRE DE TU EQUIPO.");
+
+    if (!el("privacidad").checked) return falla("privacidad", "FALTA ACEPTAR EL AVISO DE PRIVACIDAD.");
+    if (edad < EDAD.mayor && !el("tutor").checked)
+      return falla("tutor", "ERES MENOR DE EDAD: FALTA CONFIRMAR LA AUTORIZACIÓN DE TU TUTOR.");
+    if (!el("responsiva").checked) return falla("responsiva", "FALTA ACEPTAR LA RESPONSIVA.");
+    if (plano(val("firma")) !== plano(`${val("nombre")} ${val("apellidos")}`))
+      return falla("firma", "LA FIRMA DEBE SER TU NOMBRE COMPLETO, IGUAL QUE ARRIBA.");
     return null;
   }
 
-  // La ficha del correo de respaldo. La CURP no va: un correo viaja por
-  // muchos servidores. Se pide después, al confirmar.
+  function paquete(){
+    const estudia = elegido("estudia") === "si";
+    return {
+      nombre: val("nombre"), apellidos: val("apellidos"), correo: val("correo"),
+      telefono: val("tel"), curp: limpiaCurp(val("curp")), genero: val("genero"),
+      nacimiento: val("nacimiento"), cp: val("cp"), estudia,
+      institucion: estudia ? (val("institucion") === "otra" ? val("otra") : val("institucion")) : "",
+      carrera: estudia ? val("carrera") : "",
+      periodo: estudia ? val("periodo") : "",
+      semestre: estudia ? Number(val("semestre")) : null,
+      equipoModo: elegido("equipoModo"), equipo: val("equipo"),
+      privacidad: el("privacidad").checked, tutor: el("tutor").checked,
+      responsiva: el("responsiva").checked, firma: val("firma"),
+      empresa: val("empresa"),
+    };
+  }
+
+  // La ficha del correo de respaldo. La CURP, el código postal y la fecha
+  // de nacimiento no van: un correo viaja por muchos servidores. Se piden
+  // después, al confirmar.
+  const EQUIPO_TEXTO = { con_nombre: "Sí, con nombre", sin_nombre: "Sí, sin nombre todavía", asignar: "No, que me asignen" };
   function ficha(){
-    const lider = +(form.elements.lider?.value || 1);
-    const filas = [];
-    for (let i = 1; i <= INTEGRANTES; i++){
-      filas.push(`  0${i} ${i === lider ? "[LÍDER]" : "       "} ${val("nombre" + i)} — ${val("edad" + i)} años — ${val("tel" + i)} — ${val("correo" + i)}`
-        + (val("escuela" + i) ? `\n             ${val("escuela" + i)}` : ""));
-    }
+    const p = paquete();
     return [
       "REGISTRO HACK(ME)THON 2.0",
       "=========================",
-      `EQUIPO ......... ${val("equipo")}`,
+      `NOMBRE ......... ${p.nombre} ${p.apellidos}`,
+      `CORREO ......... ${p.correo}`,
+      `TELÉFONO ....... ${p.telefono}`,
+      `ESTUDIA ........ ${p.estudia ? `${p.institucion} · ${p.carrera} · ${p.periodo === "anio" ? "año" : "semestre"} ${p.semestre}` : "No"}`,
+      `EQUIPO ......... ${EQUIPO_TEXTO[p.equipoModo] || "—"}${p.equipo && p.equipoModo === "con_nombre" ? ` — ${p.equipo}` : ""}`,
       "",
-      "INTEGRANTES:",
-      ...filas,
-      "",
-      "(La CURP no va en este correo: nos la pasan cuando les confirmemos.)",
-      `Aceptamos el aviso de privacidad.${hayMenores() ? " Los menores tienen autorización de su tutor." : ""}`,
-      "",
-      `MARCA (${N}x${N}, 0=apagado 1=magenta 2=violeta 3=brillo 4=clorofila):`,
-      lienzo.join(""),
+      "(La CURP no va en este correo: se la pedimos al confirmar.)",
+      "Acepto el aviso de privacidad y la responsiva.",
     ].join("\n");
   }
 
@@ -891,33 +628,14 @@ const Monitor = (function monitor(){
      recurso: si no hay API (vista previa del artifact, archivo abierto
      desde el disco, o el servidor caído) nadie se queda sin registrarse. */
   const boton = form.querySelector('button[type="submit"]');
-
-  function paquete(){
-    const lider = +(form.elements.lider?.value || 1);
-    const integrantes = [];
-    for (let i = 1; i <= INTEGRANTES; i++){
-      integrantes.push({
-        nombre: val("nombre" + i), correo: val("correo" + i), curp: limpiaCurp(val("curp" + i)),
-        escuela: val("escuela" + i), edad: Number(val("edad" + i)), telefono: val("tel" + i),
-      });
-    }
-    return {
-      equipo: val("equipo"), lider, integrantes,
-      privacidad: form.elements.privacidad.checked, tutor: !!form.elements.tutor?.checked,
-      emblema: lienzo.join(""), empresa: val("empresa"),
-    };
-  }
-
   function bloquea(){
-    form.querySelectorAll("input, .grid button, #b-sim, #b-rnd, #b-sem, #b-clr, .sw")
-        .forEach(el => { el.disabled = true; });
+    form.querySelectorAll("input, select").forEach(c => { c.disabled = true; });
     boton.disabled = true;
-    // El PNG se deja vivo: el emblema es suyo y se lo pueden llevar.
   }
 
   function abreCorreo(){
     const destino = (EVENTO.registros || EVENTO.contacto).replace(/^mailto:/, "");
-    const asunto  = `Registro HACK(ME)THON 2.0 — ${val("equipo")}`;
+    const asunto  = `Registro HACK(ME)THON 2.0 — ${val("nombre")} ${val("apellidos")}`;
     window.location.href =
       `mailto:${destino}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(ficha())}`;
     avisa("EL SERVIDOR NO RESPONDE. SE ABRIÓ TU CORREO CON LA FICHA: MÁNDALA ASÍ.", true);
@@ -944,7 +662,7 @@ const Monitor = (function monitor(){
 
       if (r.ok){
         bloquea();
-        avisa(`REGISTRO ACEPTADO. FOLIO ${datos.folio}. LE ESCRIBIMOS AL CORREO DEL LÍDER.`, false);
+        avisa(`REGISTRO ACEPTADO. TU FOLIO ES ${datos.folio}. TE ESCRIBIMOS A TU CORREO.`, false);
         pintaCupo(datos.quedan);
         return;
       }
@@ -973,15 +691,11 @@ const Monitor = (function monitor(){
   }
   ESTADO
     .then(d => {
-      if (d && tamanoValido(d.tamano)){
-        try { localStorage.setItem("hmt2-tamano", String(d.tamano)); } catch {}
-        if (d.tamano !== INTEGRANTES) armaCrew(d.tamano);
-      }
       if (!d || d.quedan == null) return;
       pintaCupo(d.quedan);
       if (d.quedan === 0){
         bloquea();
-        avisa(`CUPO LLENO: LOS ${d.cupo} EQUIPOS YA ESTÁN REGISTRADOS.`, true);
+        avisa(`CUPO LLENO: LOS ${d.cupo} LUGARES YA ESTÁN OCUPADOS.`, true);
       }
     })
     .catch(() => {});

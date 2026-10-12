@@ -36,6 +36,16 @@
   .eq__crew .det{ flex-basis:100%; font-size:11.5px; color:var(--phos-dim); padding-left:.2ch; }
   .eq__crew .det a{ color:var(--blue-hi); }
   .eq__meta .marca{ font-size:11px; color:var(--phos-dim); }
+  /* inscripciones agrupadas por equipo */
+  .grupo{ border:2px solid var(--rule); margin-bottom:2px; padding:12px clamp(12px,2vw,18px); }
+  .grupo__t{ display:flex; flex-wrap:wrap; align-items:baseline; gap:0 1.5ch; margin:0 0 8px; }
+  .grupo__t b{ font-family:var(--f-mono); font-weight:600; font-size:16px; color:var(--phos-hi); text-shadow:var(--bloom); word-break:break-word; }
+  .grupo__t span{ font-size:11px; letter-spacing:.12em; color:var(--phos-dim); }
+  .grupo__t .ok{ color:var(--clorofila); }
+  .grupo__t .falta{ color:var(--magenta); }
+  .grupo .eq__crew li{ border-top:1px solid var(--rule); padding:7px 0; }
+  .grupo .eq__crew li:first-child{ border-top:0; }
+  .grupo .eq__borrar{ flex-basis:100%; margin-top:4px; padding-top:0; border-top:0; }
 
   .vacio{ border:1px dashed var(--rule); padding:36px; text-align:center; color:var(--phos-dim); font-size:13px; }
 
@@ -126,26 +136,17 @@
   <section class="panel" id="lista" hidden style="padding-inline:0">
     <header class="panel__bar">
       <span class="panel__id">PANEL 08</span>
-      <span class="panel__name">EQUIPOS REGISTRADOS</span>
+      <span class="panel__name">INSCRITOS</span>
       <span class="panel__stat" id="l-stat">—</span>
     </header>
     <div class="panel__body">
       <p class="adm__sum" id="l-sum"></p>
 
       <p class="ajuste">
-        <label for="f-cupo">CUPO DE EQUIPOS</label>
-        <input id="f-cupo" type="number" min="0" max="500" step="1" inputmode="numeric">
+        <label for="f-cupo">CUPO DE PERSONAS</label>
+        <input id="f-cupo" type="number" min="0" max="2000" step="1" inputmode="numeric">
         <button class="key key--sm" id="b-cupo" type="button">GUARDAR</button>
         <span class="nota" id="cupo-msg">0 = sin límite.</span>
-      </p>
-
-      <!-- Integrantes por equipo: lo lee el formulario de la portada. Los
-           equipos ya registrados se quedan como están. -->
-      <p class="ajuste">
-        <label for="f-tamano">INTEGRANTES POR EQUIPO</label>
-        <input id="f-tamano" type="number" min="1" max="6" step="1" inputmode="numeric">
-        <button class="key key--sm" id="b-tamano" type="button">GUARDAR</button>
-        <span class="nota" id="tamano-msg">De 1 a 6. No cambia a los equipos ya registrados.</span>
       </p>
 
       <!-- Modo próximamente: la portada solo enseña la primera pantalla
@@ -225,10 +226,6 @@
 
 <script src="config.js"></script>
 <script>
-const TINTAS = [null, "#ff2d95", "#a855f7", "#ffd9ee", "#3ddc97"];
-const FONDO  = "#0d0410";
-const N      = 12;
-
 const $ = s => document.querySelector(s);
 const puerta = $("#puerta"), lista = $("#lista"), pmsg = $("#p-msg");
 let datos = null;
@@ -248,25 +245,33 @@ async function carga(){
   return d;
 }
 
-function emblema(cv, codigo){
-  const ctx = cv.getContext("2d"), paso = cv.width / N;
-  ctx.fillStyle = FONDO; ctx.fillRect(0, 0, cv.width, cv.height);
-  for (let i = 0; i < N * N; i++){
-    const v = +codigo[i] || 0;
-    if (!v) continue;
-    ctx.fillStyle = TINTAS[v];
-    ctx.fillRect((i % N) * paso, Math.floor(i / N) * paso, Math.ceil(paso), Math.ceil(paso));
-  }
+const GENERO = { hombre: "HOMBRE", mujer: "MUJER", otro: "OTRO", prefiero_no_decir: "PREFIERE NO DECIR" };
+// edad a partir de "AAAA-MM-DD"
+function edadDe(fecha){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha || "");
+  if (!m) return null;
+  const hoy = new Date();
+  let e = hoy.getFullYear() - m[1];
+  if (hoy.getMonth() + 1 < +m[2] || (hoy.getMonth() + 1 === +m[2] && hoy.getDate() < +m[3])) e--;
+  return e;
 }
 
 function resumen(d){
   const sinLimite = !(d.cupo > 0);
+  const regs = d.registros || datos.registros || [];
+  const cuenta = f => regs.filter(f).length;
+  // el reporte cuenta «prefiero no decir» dentro de «otro»
+  const equipos = new Set(regs.filter(r => r.equipo_key).map(r => r.equipo_key)).size;
   $("#l-stat").textContent = sinLimite ? `${d.registrados} · SIN LÍMITE` : `${d.registrados} / ${d.cupo}`;
   $("#l-sum").innerHTML =
-    `REGISTRADOS <b>${d.registrados}</b>` +
+    `INSCRITOS <b>${d.registrados}</b>` +
     `<span>CUPO <b>${sinLimite ? "SIN LÍMITE" : d.cupo}</b></span>` +
     (sinLimite ? "" : `<span>QUEDAN <b>${d.quedan}</b></span>`) +
-    `<span>OPERADORES <b>${(d.registros || datos.registros || []).reduce((n, r) => n + r.integrantes.length, 0)}</b></span>`;
+    `<span>EQUIPOS CON NOMBRE <b>${equipos}</b></span>` +
+    `<span>SIN NOMBRE <b>${cuenta(r => r.equipo_modo === "sin_nombre")}</b></span>` +
+    `<span>POR ASIGNAR <b>${cuenta(r => r.equipo_modo === "asignar")}</b></span>` +
+    `<span>H <b>${cuenta(r => r.genero === "hombre")}</b> · M <b>${cuenta(r => r.genero === "mujer")}</b> · OTRO <b>${cuenta(r => r.genero === "otro" || r.genero === "prefiero_no_decir")}</b></span>` +
+    `<span>MENORES <b>${cuenta(r => r.tutor)}</b></span>`;
 }
 
 /* ── modo próximamente ─────────────────────────────────── */
@@ -304,78 +309,72 @@ async function cambiaModo(){
   }
 }
 
+const VACIO = '<p class="vacio">TODAVÍA NO HAY NADIE INSCRITO.</p>';
+
 function pinta(d){
   datos = d;
   $("#f-cupo").value = d.cupo;
-  if (d.tamano) $("#f-tamano").value = d.tamano;
   pintaModo(d.proximamente);
   resumen(d);
 
   const cuerpo = $("#l-cuerpo");
   cuerpo.textContent = "";
-  if (!d.registros.length){
-    cuerpo.innerHTML = '<p class="vacio">TODAVÍA NO HAY EQUIPOS REGISTRADOS.</p>';
-    return;
+  if (!d.registros.length){ cuerpo.innerHTML = VACIO; return; }
+
+  // Equipos con nombre (juntados por el nombre, sin acentos ni mayúsculas),
+  // luego quienes tienen equipo sin nombre y al final quienes piden uno.
+  const { min, max } = d.equipo || { min: 3, max: 5 };
+  const equipos = new Map();
+  for (const r of d.registros.filter(r => r.equipo_key)){
+    if (!equipos.has(r.equipo_key)) equipos.set(r.equipo_key, []);
+    equipos.get(r.equipo_key).push(r);
   }
+  const grupos = [...equipos.values()]
+    .sort((a, b) => a[0].equipo.localeCompare(b[0].equipo, "es"))
+    .map(g => ({ titulo: g[0].equipo, gente: g,
+                 estado: g.length >= min ? ["ok", `${g.length}/${max} · COMPLETO`] : ["falta", `${g.length}/${max} · FALTAN ${min - g.length} PARA ${min}`] }));
+  const sinNombre = d.registros.filter(r => r.equipo_modo === "sin_nombre");
+  const asignar = d.registros.filter(r => r.equipo_modo === "asignar");
+  if (sinNombre.length) grupos.push({ titulo: "TIENEN EQUIPO, SIN NOMBRE", gente: sinNombre, estado: ["", `${sinNombre.length} · HAY QUE PREGUNTARLES CON QUIÉN VIENEN`] });
+  if (asignar.length) grupos.push({ titulo: "PARA ASIGNAR", gente: asignar, estado: ["falta", `${asignar.length} · NO TIENEN EQUIPO`] });
 
-  for (const r of d.registros){
-    const fila = document.createElement("article");
-    fila.className = "eq";
-
-    const cv = document.createElement("canvas");
-    cv.width = cv.height = 84;
-    fila.appendChild(cv);
-
-    const info = document.createElement("div");
-    const fecha = new Date(r.creado).toLocaleString("es-MX",
-      { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-    info.innerHTML =
-      `<p class="eq__id">${r.folio} &middot; ${fecha}</p>` +
-      `<p class="eq__name"></p>` +
-      `<p class="eq__meta"><a href="mailto:"></a></p>` +
-      `<p class="eq__meta marca"></p>`;
-    info.querySelector(".marca").textContent =
-      (r.privacidad ? "AVISO DE PRIVACIDAD ACEPTADO" : "SIN ACEPTACIÓN DEL AVISO (REGISTRO ANTIGUO)") +
-      (r.tutor ? " · CON MENORES: AUTORIZACIÓN DE TUTOR CONFIRMADA" : "");
-    info.querySelector(".eq__name").textContent = r.equipo;
-    const a = info.querySelector("a");
-    a.textContent = r.correo;
-    a.href = "mailto:" + r.correo;
-    fila.appendChild(info);
-
+  for (const g of grupos){
+    const caja = document.createElement("article");
+    caja.className = "grupo";
+    const t = document.createElement("p");
+    t.className = "grupo__t";
+    const b = document.createElement("b"); b.textContent = g.titulo;
+    const e = document.createElement("span"); e.className = g.estado[0]; e.textContent = g.estado[1];
+    t.append(b, e);
     const ul = document.createElement("ul");
     ul.className = "eq__crew";
-    r.integrantes.forEach((i, n) => {
-      const li = document.createElement("li");
-      const b = document.createElement("b");
-      b.textContent = i.nombre;
-      if (n + 1 === r.lider){
-        const tag = document.createElement("span");
-        tag.className = "tag"; tag.textContent = "LÍDER";
-        li.appendChild(tag);
-      }
-      li.appendChild(b);
-      const tel = document.createElement("span");
-      tel.className = "tel"; tel.textContent = i.telefono || "—";
-      li.appendChild(tel);
-      // los datos de la 2.0 (los registros viejos solo traen nombre y teléfono)
-      if (i.curp){
-        const det = document.createElement("span");
-        det.className = "det";
-        det.append(`${i.edad} AÑOS${i.edad < 18 ? " (MENOR)" : ""} · ${i.curp}${i.escuela ? " · " + i.escuela : ""} · `);
-        const c = document.createElement("a");
-        c.href = "mailto:" + i.correo; c.textContent = i.correo;
-        det.appendChild(c);
-        li.appendChild(det);
-      }
-      ul.appendChild(li);
-    });
-    fila.appendChild(ul);
-    fila.appendChild(zonaBorrar(r, fila));
-
-    cuerpo.appendChild(fila);
-    emblema(cv, r.emblema);
+    g.gente.forEach(r => ul.appendChild(persona(r)));
+    caja.append(t, ul);
+    cuerpo.appendChild(caja);
   }
+}
+
+function persona(r){
+  const li = document.createElement("li");
+  const b = document.createElement("b");
+  b.textContent = `${r.nombre} ${r.apellidos}`;
+  const tel = document.createElement("span");
+  tel.className = "tel"; tel.textContent = r.telefono;
+  const fecha = new Date(r.creado).toLocaleString("es-MX",
+    { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const edad = edadDe(r.nacimiento);
+  const det = document.createElement("span");
+  det.className = "det";
+  det.append(
+    `${r.folio} · ${fecha} · ${edad} AÑOS${r.tutor ? " (MENOR: TUTOR AUTORIZÓ)" : ""} · ${GENERO[r.genero] || r.genero} · ` +
+    `${r.curp} · NAC. ${r.nacimiento} · CP ${r.cp} · ` +
+    (r.estudia ? `${r.institucion} · ${r.carrera} · ${r.periodo === "anio" ? "AÑO" : "SEMESTRE"} ${r.semestre}` : "NO ESTUDIA") + " · ");
+  const c = document.createElement("a");
+  c.href = "mailto:" + r.correo; c.textContent = r.correo;
+  det.appendChild(c);
+  li.append(b, tel, det);
+  li.appendChild(zonaBorrar(r, li));
+  return li;
 }
 
 /* Borrar es irreversible, así que va en dos pasos y el aviso dice a quién
@@ -388,7 +387,7 @@ function zonaBorrar(r, fila){
     zona.textContent = "";
     const b = document.createElement("button");
     b.type = "button";
-    b.textContent = "BORRAR EQUIPO";
+    b.textContent = "BORRAR INSCRIPCIÓN";
     b.addEventListener("click", preguntar);
     zona.appendChild(b);
   };
@@ -398,7 +397,7 @@ function zonaBorrar(r, fila){
     zona.textContent = "";
     const aviso = document.createElement("span");
     aviso.className = "aviso";
-    aviso.textContent = `¿Borrar «${r.equipo}»? No se puede deshacer.`;
+    aviso.textContent = `¿Borrar a «${r.nombre} ${r.apellidos}»? No se puede deshacer.`;
     const si = document.createElement("button");
     si.type = "button"; si.className = "si"; si.textContent = "SÍ, BORRAR";
     si.addEventListener("click", () => { clearTimeout(reloj); borrar(); });
@@ -425,13 +424,8 @@ function zonaBorrar(r, fila){
 
       fila.classList.add("eq--fuera");
       datos.registros = datos.registros.filter(x => x.id !== r.id);
-      resumen({ cupo: d.cupo, registrados: d.registrados, quedan: d.quedan });
-      $("#f-cupo").value = d.cupo;
-      setTimeout(() => {
-        fila.remove();
-        if (!datos.registros.length)
-          $("#l-cuerpo").innerHTML = '<p class="vacio">TODAVÍA NO HAY EQUIPOS REGISTRADOS.</p>';
-      }, 400);
+      Object.assign(datos, { cupo: d.cupo, registrados: d.registrados, quedan: d.quedan });
+      setTimeout(() => pinta(datos), 400);
     } catch (e) {
       zona.textContent = "";
       const err = document.createElement("span");
@@ -453,8 +447,8 @@ async function guardaCupo(){
   const n = Number(campo.value);
   const di = (t, clase) => { nota.textContent = t; nota.className = "nota " + (clase || ""); };
 
-  if (campo.value.trim() === "" || !Number.isInteger(n) || n < 0 || n > 500)
-    return di("Tiene que ser un entero entre 0 (sin límite) y 500.", "err");
+  if (campo.value.trim() === "" || !Number.isInteger(n) || n < 0 || n > 2000)
+    return di("Tiene que ser un entero entre 0 (sin límite) y 2000.", "err");
 
   boton.disabled = true;
   di("Guardando...");
@@ -467,38 +461,12 @@ async function guardaCupo(){
     const d = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(d.mensaje || ("HTTP " + resp.status));
 
+    if (datos) Object.assign(datos, { cupo: d.cupo, registrados: d.registrados, quedan: d.quedan });
     resumen({ cupo: d.cupo, registrados: d.registrados, quedan: d.quedan });
-    if (datos) datos.cupo = d.cupo;
     di(d.cerrado
-      ? `Cupo en ${d.cupo}. Ya hay ${d.registrados} equipos: el registro queda CERRADO.`
+      ? `Cupo en ${d.cupo}. Ya hay ${d.registrados} inscritos: el registro queda CERRADO.`
       : d.cupo > 0 ? `Cupo en ${d.cupo}. Quedan ${d.quedan} lugares.`
                    : "Sin límite de cupo: el registro no se cierra por cupo.", "ok");
-  } catch (e) {
-    di("No se pudo guardar: " + e.message, "err");
-  } finally {
-    boton.disabled = false;
-  }
-}
-
-/* Integrantes por equipo. Igual que el cupo: va a la base y aplica ya. */
-async function guardaTamano(){
-  const campo = $("#f-tamano"), nota = $("#tamano-msg"), boton = $("#b-tamano");
-  const n = Number(campo.value);
-  const di = (t, clase) => { nota.textContent = t; nota.className = "nota " + (clase || ""); };
-  if (!Number.isInteger(n) || n < 1 || n > 6) return di("Tiene que ser un entero de 1 a 6.", "err");
-  boton.disabled = true;
-  di("Guardando...");
-  try {
-    const resp = await fetch(API + "/ajustes", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: "Bearer " + token() },
-      body: JSON.stringify({ tamano: n }),
-    });
-    const d = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(d.mensaje || ("HTTP " + resp.status));
-    if (datos) datos.tamano = d.tamano;
-    campo.value = d.tamano;
-    di(`Equipos de ${d.tamano}. La portada lo nota en unos 15 segundos (al recargar).`, "ok");
   } catch (e) {
     di("No se pudo guardar: " + e.message, "err");
   } finally {
@@ -638,7 +606,7 @@ async function abre(){
     cargaTorneo();
     $("#oia-pos").textContent = d.cupo > 0
       ? `${d.registrados}/${String(d.cupo).padStart(3, "0")}`
-      : `${d.registrados} EQUIPOS`;
+      : `${d.registrados} INSCRITOS`;
     avisa("");
   } catch (e) {
     puerta.hidden = false;
@@ -660,8 +628,6 @@ $("#f-puerta").addEventListener("submit", e => {
 $("#b-refresh").addEventListener("click", abre);
 $("#b-cupo").addEventListener("click", guardaCupo);
 $("#b-modo").addEventListener("click", cambiaModo);
-$("#b-tamano").addEventListener("click", guardaTamano);
-$("#f-tamano").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); guardaTamano(); } });
 $("#f-cupo").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); guardaCupo(); } });
 $("#b-salir").addEventListener("click", () => {
   sessionStorage.removeItem("hmt_token");
@@ -672,21 +638,22 @@ $("#b-csv").addEventListener("click", () => {
   if (!datos) return;
   // Un apóstrofo delante de = + - @ evita que Excel lo tome como fórmula.
   const esc = v => '"' + String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""') + '"';
-  const filas = [["folio","equipo","correo_contacto","registrado","privacidad","tutor",
-                  "integrante","correo","curp","edad","escuela","telefono","lider","emblema"]];
+  const columnas = ["folio","registrado","nombre","apellidos","correo","telefono","curp","genero",
+                    "nacimiento","edad","cp","estudia","institucion","carrera","periodo","semestre",
+                    "tiene_equipo","equipo","privacidad","responsiva","firma","tutor"];
+  const filas = [columnas];
   for (const r of datos.registros){
-    r.integrantes.forEach((i, n) => {
-      filas.push([r.folio, r.equipo, r.correo, r.creado, r.privacidad ? "si" : "no", r.tutor ? "si" : "no",
-                  i.nombre, i.correo, i.curp, i.edad, i.escuela, i.telefono,
-                  n + 1 === r.lider ? "si" : "no", n === 0 ? r.emblema : ""].map(esc));
-    });
+    filas.push([r.folio, r.creado, r.nombre, r.apellidos, r.correo, r.telefono, r.curp, r.genero,
+                r.nacimiento, edadDe(r.nacimiento), r.cp, r.estudia ? "si" : "no", r.institucion, r.carrera,
+                r.periodo === "anio" ? "año" : r.periodo, r.semestre, r.equipo_modo, r.equipo,
+                r.privacidad, r.responsiva, r.firma, r.tutor ? "si" : "no"].map(esc));
   }
   // BOM para que Excel abra los acentos bien
   const blob = new Blob(["﻿" + filas.map(f => f.join(",")).join("\r\n")],
                         { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "hackmethon-equipos.csv";
+  a.download = "hackmethon-inscritos.csv";
   a.click();
   URL.revokeObjectURL(a.href);
 });

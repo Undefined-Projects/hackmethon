@@ -298,9 +298,8 @@
           <em>programar</em>. Nadie va a decir la palabra “tutorial” en toda la noche.
         </p>
         <p>
-          <span data-tam="Trabajan en equipos de {n}. Ninguno puede operar solo: a cada quien le tocó una parte distinta del procedimiento."
-                data-tam1="Cada quien opera su propio quirófano: le tocan todas las partes del procedimiento.">Trabajan en equipos de tres. Ninguno puede operar solo: a cada quien le
-          tocó una parte distinta del procedimiento.</span>
+          Trabajan en equipos de 3 a 5. Ninguno puede operar solo: a cada quien le
+          tocó una parte distinta del procedimiento.
         </p>
       </div>
     </div>
@@ -567,7 +566,7 @@
       </p>
       <ol class="sched">
         <li><span class="sched__t">H+0:00</span><span class="sched__n">ASEPSIA</span><span class="sched__d">Se apagan las luces. Llega la historia clínica del paciente.</span></li>
-        <li><span class="sched__t">H+0:20</span><span class="sched__n">EQUIPO QUIRÚRGICO</span><span class="sched__d"><span data-tam="Equipos de {n}." data-tam1="Una persona por quirófano.">Equipos de tres.</span> Cada quien recibe su acceso y su restricción.</span></li>
+        <li><span class="sched__t">H+0:20</span><span class="sched__n">EQUIPO QUIRÚRGICO</span><span class="sched__d">Equipos de 3 a 5. Cada quien recibe su acceso y su restricción.</span></li>
         <li><span class="sched__t">H+0:40</span><span class="sched__n">INCISIÓN 1</span><span class="sched__d">Sistema nervioso. Operadores lógicos.</span></li>
         <li><span class="sched__t">H+1:00</span><span class="sched__n">INCISIÓN 2</span><span class="sched__d">Arco reflejo. Condicionales.</span></li>
         <li><span class="sched__t">H+1:25</span><span class="sched__n">INCISIÓN 3</span><span class="sched__d">Corazón. Ciclos.</span></li>
@@ -592,9 +591,10 @@
     <div class="panel__body">
       <h2 class="h2">Cupo: <span data-cfg="cupo">—</span></h2>
       <p class="section-lead">
-        <span data-tam="El ingreso es por equipo quirúrgico, no individual. Junta a los {n} integrantes de tu equipo antes de llenar esto: no se opera con el equipo incompleto."
-              data-tam1="El ingreso es individual: cada quien opera su propio quirófano.">El ingreso es por equipo quirúrgico, no individual. Junta a los tres
-        integrantes de tu equipo antes de llenar esto: no se opera con el equipo incompleto.</span>
+        El registro es por persona y toma dos minutos. Si ya tienes equipo,
+        cada integrante se registra y todos escriben el mismo nombre de equipo.
+        Si no tienes, elige «No, asígnenme» y te acomodamos en uno. Los equipos
+        son de 3 a 5 personas.
       </p>
 
       <form class="alta" id="alta" novalidate>
@@ -604,55 +604,91 @@
         </p>
 
         <fieldset class="fs">
-          <legend>&#9656; DATOS DEL EQUIPO</legend>
-          <div class="fld">
-            <label for="f-equipo">NOMBRE DEL EQUIPO</label>
-            <input id="f-equipo" name="equipo" type="text" maxlength="32" required
-                   autocomplete="off" placeholder="LOS SIN PULSO">
+          <legend>&#9656; TUS DATOS</legend>
+          <p class="fs__hint">Todos son obligatorios. La fecha de nacimiento tiene que coincidir con tu CURP.</p>
+          <div class="crew__campos">
+            <label class="crew__campo crew__campo--ancho"><span>NOMBRE(S)</span>
+              <input type="text" name="nombre" maxlength="60" autocomplete="given-name" placeholder="NOMBRE(S)"></label>
+            <label class="crew__campo crew__campo--ancho"><span>APELLIDOS</span>
+              <input type="text" name="apellidos" maxlength="80" autocomplete="family-name" placeholder="APELLIDOS"></label>
+            <label class="crew__campo crew__campo--ancho"><span>CORREO</span>
+              <input type="email" name="correo" maxlength="120" autocomplete="email" placeholder="tu@correo.com"></label>
+            <label class="crew__campo crew__campo--ancho"><span>TELÉFONO (WHATSAPP)</span>
+              <input type="tel" name="tel" maxlength="16" autocomplete="tel" placeholder="10 DÍGITOS"></label>
+            <label class="crew__campo crew__campo--ancho"><span>CURP</span>
+              <input type="text" name="curp" maxlength="18" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="18 CARACTERES"></label>
+            <label class="crew__campo crew__campo--ancho"><span>GÉNERO</span>
+              <select name="genero">
+                <option value="">ELIGE UNA OPCIÓN</option>
+                <option value="hombre">Hombre</option>
+                <option value="mujer">Mujer</option>
+                <option value="otro">Otro</option>
+                <option value="prefiero_no_decir">Prefiero no decir</option>
+              </select></label>
+            <label class="crew__campo crew__campo--ancho"><span>FECHA DE NACIMIENTO</span>
+              <input type="date" name="nacimiento" autocomplete="bday" min="1925-01-01"></label>
+            <label class="crew__campo crew__campo--ancho"><span>CÓDIGO POSTAL</span>
+              <input type="text" name="cp" maxlength="5" inputmode="numeric" autocomplete="postal-code" placeholder="5 DÍGITOS"></label>
           </div>
         </fieldset>
 
         <fieldset class="fs">
-          <legend>&#9656; INTEGRANTES</legend>
-          <p class="fs__hint">
-            <span data-tam="Los {n} son obligatorios." data-tam1="">Los tres son obligatorios.</span>
-            Todos los datos se piden por persona; la escuela solo si aplica.
-            Marca quién es el líder: su correo es el de contacto del equipo.
-          </p>
-          <div class="crew" id="crew"></div>
+          <legend>&#9656; ESCUELA</legend>
+          <p class="fs__hint">¿Estudias actualmente?</p>
+          <div class="opciones">
+            <label class="consent"><input type="radio" name="estudia" value="si"><span>Sí</span></label>
+            <label class="consent"><input type="radio" name="estudia" value="no"><span>No</span></label>
+          </div>
+          <div class="crew__campos escuela" id="escuela" hidden>
+            <label class="crew__campo crew__campo--ancho"><span>UNIVERSIDAD / INSTITUCIÓN</span>
+              <select name="institucion">
+                <option value="">ELIGE TU ESCUELA</option>
+                <option>UTCH</option>
+                <option>Tec de Monterrey</option>
+                <option>Politécnico (UPCH)</option>
+                <option>UACH</option>
+                <option>UTCH Sur</option>
+                <option>ULSA</option>
+                <option value="otra">Otra</option>
+              </select></label>
+            <label class="crew__campo crew__campo--ancho" id="otra" hidden><span>¿CUÁL?</span>
+              <input type="text" name="otra" maxlength="80" placeholder="NOMBRE DE TU ESCUELA"></label>
+            <label class="crew__campo crew__campo--ancho"><span>CARRERA</span>
+              <input type="text" name="carrera" maxlength="80" list="carreras" autocomplete="off" placeholder="TU CARRERA"></label>
+            <label class="crew__campo crew__campo--medio"><span>CUENTO EN</span>
+              <select name="periodo">
+                <option value="semestre">Semestres</option>
+                <option value="anio">Años</option>
+              </select></label>
+            <label class="crew__campo crew__campo--medio"><span id="periodo-t">SEMESTRE QUE CURSAS</span>
+              <input type="number" name="semestre" min="1" max="12" inputmode="numeric" placeholder="1"></label>
+          </div>
+          <datalist id="carreras">
+            <option>Ingeniería en Software</option>
+            <option>Ingeniería en Sistemas Computacionales</option>
+            <option>Ingeniería en Tecnologías de la Información</option>
+            <option>Ingeniería en Ciencias de la Computación</option>
+            <option>Ingeniería en Desarrollo de Software</option>
+            <option>Ingeniería Mecatrónica</option>
+            <option>Ingeniería Industrial</option>
+            <option>Ingeniería en Electrónica</option>
+            <option>Licenciatura en Informática</option>
+            <option>Desarrollo de Software Multiplataforma</option>
+          </datalist>
         </fieldset>
 
         <fieldset class="fs">
-          <legend>&#9656; MARCA DE IDENTIFICACIÓN</legend>
-          <p class="fs__hint">
-            Doce por doce celdas de fósforo: es la marca con la que su equipo
-            aparece en los monitores de la sala. Pinta arrastrando. Con la
-            simetría encendida, lo que dibujas de un lado aparece del otro.
-            SEMILLA la hace crecer sola.
-          </p>
-          <div class="emblem">
-            <div class="emblem__main">
-              <div class="palette" role="radiogroup" aria-label="Color de fósforo">
-                <button type="button" class="sw" data-tinta="0" aria-pressed="false"><i></i>APAGADO</button>
-                <button type="button" class="sw" data-tinta="1" aria-pressed="true"><i></i>MAGENTA</button>
-                <button type="button" class="sw" data-tinta="2" aria-pressed="false"><i></i>VIOLETA</button>
-                <button type="button" class="sw" data-tinta="3" aria-pressed="false"><i></i>BRILLO</button>
-                <button type="button" class="sw" data-tinta="4" aria-pressed="false"><i></i>CLOROFILA</button>
-              </div>
-              <div class="grid" id="grid" aria-label="Cuadrícula de la marca, 12 por 12"></div>
-              <div class="emblem__acts">
-                <button type="button" id="b-sim" aria-pressed="true">SIMETRÍA: SÍ</button>
-                <button type="button" id="b-rnd">ALEATORIO</button>
-                <button type="button" id="b-sem">SEMILLA</button>
-                <button type="button" id="b-clr">LIMPIAR</button>
-              </div>
-            </div>
-            <div class="emblem__side">
-              <p class="emblem__cap">VISTA PREVIA</p>
-              <canvas id="prev" width="200" height="200" aria-label="Vista previa de la marca"></canvas>
-              <p class="emblem__team" id="prev-name">SIN NOMBRE</p>
-              <button type="button" id="b-png" class="key key--sm" hidden>DESCARGAR PNG</button>
-            </div>
+          <legend>&#9656; EQUIPO</legend>
+          <p class="fs__hint">¿Ya tienes equipo? Los equipos son de 3 a 5 personas.</p>
+          <div class="opciones">
+            <label class="consent"><input type="radio" name="equipoModo" value="con_nombre"><span>Sí, y ya tiene nombre</span></label>
+            <label class="consent"><input type="radio" name="equipoModo" value="sin_nombre"><span>Sí, pero todavía no tiene nombre</span></label>
+            <label class="consent"><input type="radio" name="equipoModo" value="asignar"><span>No, asígnenme uno</span></label>
+          </div>
+          <div class="crew__campos" id="equipo" hidden>
+            <label class="crew__campo crew__campo--ancho"><span>NOMBRE DEL EQUIPO</span>
+              <input type="text" name="equipo" maxlength="32" autocomplete="off" placeholder="LOS SIN PULSO"></label>
+            <p class="fs__hint crew__campo--ancho">Todos los integrantes lo escriben igual: así los juntamos.</p>
           </div>
         </fieldset>
 
@@ -661,42 +697,54 @@
           <div class="privado">
             <p class="privado__clave">TUS DATOS NO SE COMPARTEN CON TERCEROS.</p>
             <p>
-              Los usamos solo para registrar a tu equipo, darte acceso a la sede
-              y escribirte sobre el evento. La CURP sirve para confirmar que cada
-              persona es quien dice ser y que nadie está en dos equipos. No los
-              vendemos, rentamos, prestamos ni compartimos con patrocinadores,
-              escuelas ni ninguna otra organización, y puedes pedir verlos,
-              corregirlos o borrarlos cuando quieras.
+              Los usamos solo para registrarte, darte acceso a la sede y
+              escribirte sobre el evento, y para estadística sin nombres. La CURP
+              sirve para confirmar que eres quien dices ser y que nadie se
+              registra dos veces. No los vendemos, rentamos, prestamos ni
+              compartimos con patrocinadores, escuelas ni ninguna otra
+              organización, y puedes pedir verlos, corregirlos o borrarlos cuando
+              quieras.
             </p>
             <p><a href="privacidad.html" target="_blank" rel="noopener">LEER EL AVISO DE PRIVACIDAD COMPLETO ↗</a></p>
           </div>
           <label class="consent">
             <input type="checkbox" name="privacidad" id="f-privacidad">
-            <span>
-              Cada integrante leyó el aviso de privacidad y acepta que sus datos
-              se usen para lo que ahí se describe.
-            </span>
+            <span>Leí el aviso de privacidad y acepto que mis datos se usen para lo que ahí se describe.</span>
           </label>
           <label class="consent" id="tutor" hidden>
             <input type="checkbox" name="tutor" id="f-tutor">
             <span>
-              Hay integrantes menores de 18 años: su madre, padre o tutor
-              conoce el evento y autoriza su participación y el uso de sus
-              datos. Podemos pedir esa autorización por escrito.
+              Soy menor de 18 años: mi madre, padre o tutor conoce el evento y
+              autoriza mi participación y el uso de mis datos. Pueden pedir esa
+              autorización por escrito.
             </span>
           </label>
         </fieldset>
 
         <fieldset class="fs fs--consent">
-          <legend>&#9656; CONSENTIMIENTO</legend>
+          <legend>&#9656; RESPONSIVA</legend>
+          <div class="privado">
+            <p>Al participar en el HACK(ME)THON 2.0 me comprometo a:</p>
+            <ul class="responsiva">
+              <li>Seguir las reglas del evento y las indicaciones del equipo organizador.</li>
+              <li>Tratar con respeto a participantes, mentores, staff y a la sede. El acoso o la discriminación son motivo de salida inmediata.</li>
+              <li>Usar la infraestructura, las redes y las herramientas solo dentro del entorno del evento y para los retos del evento: nada de atacar, escanear ni entrar a sistemas ajenos.</li>
+              <li>Cuidar el equipo y las instalaciones que me presten.</li>
+            </ul>
+            <p>
+              Acepto que durante el evento se tomen fotos, video y audio en los
+              que puedo aparecer, y que se usen para difundir el evento y en sus
+              reportes.
+            </p>
+          </div>
           <label class="consent">
-            <input type="checkbox" name="consiento" id="f-consiento">
-            <span>
-              Entendemos que el paciente no puede desconectarse, que lo vamos a
-              operar en vivo y que apagarlo va a sentirse como algo más que
-              apagar una máquina.
-            </span>
+            <input type="checkbox" name="responsiva" id="f-responsiva">
+            <span>Leí la responsiva y la acepto.</span>
           </label>
+          <div class="crew__campos firma">
+            <label class="crew__campo crew__campo--ancho"><span>FIRMA: ESCRIBE TU NOMBRE COMPLETO</span>
+              <input type="text" name="firma" maxlength="150" autocomplete="off" placeholder="NOMBRE(S) Y APELLIDOS"></label>
+          </div>
         </fieldset>
 
         <p class="cmd">
@@ -708,8 +756,7 @@
           <button type="submit" class="key key--go">ENTER &middot; FIRMAR E INGRESAR</button>
         </p>
         <p class="note">
-          El registro se manda solo y te devuelve un folio. Guarda el PNG de
-          la marca: lo vas a necesitar el día del evento. Acceso: <span data-cfg="costo">—</span>.
+          El registro se manda solo y te devuelve un folio: guárdalo. Acceso: <span data-cfg="costo">—</span>.
         </p>
       </form>
     </div>
@@ -734,8 +781,7 @@
         </details>
         <details>
           <summary>¿Puedo ir solo, sin equipo?</summary>
-          <p data-tam="No. El registro es únicamente por equipos de {n}, porque los puestos del quirófano se reparten dentro del equipo y ninguno funciona sin los demás. Si te falta gente, búscala antes de registrarte: cualquiera de nuevo ingreso cuenta."
-             data-tam1="Sí. En esta edición cada persona se registra y opera por su cuenta.">No. El registro es únicamente por equipos de tres, porque los puestos del quirófano se reparten dentro del equipo y ninguno funciona sin los demás. Si te falta gente, búscala antes de registrarte: cualquiera de nuevo ingreso cuenta.</p>
+          <p>Sí. El registro es por persona: si no tienes equipo, elige «No, asígnenme» y te acomodamos en uno. Se opera en equipos de 3 a 5, porque los puestos del quirófano se reparten y ninguno funciona sin los demás.</p>
         </details>
         <details>
           <summary>¿Qué hacen con mis datos?</summary>

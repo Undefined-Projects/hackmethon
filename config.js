@@ -20,9 +20,9 @@ const EVENTO = {
   duracion:  "6 horas · 16:00 a 22:00",
   sede:      "Auditorio MENLO · Tec de Monterrey, Campus Chihuahua",
 
-  // Sin límite de equipos y sin costo. Si algún día se pone un tope, va
-  // aquí el texto (p. ej. "10 equipos · 30 integrantes") y el número en el
-  // panel; con un tope, la portada agrega sola "· quedan N".
+  // Sin límite y sin costo. El registro es por persona: si algún día se
+  // pone un tope, va aquí el texto (p. ej. "120 lugares") y el número en
+  // el panel; con un tope, la portada agrega sola "· quedan N".
   cupo:      "Sin límite",
   costo:     "Gratuito · sin costo alguno",
 
@@ -49,10 +49,6 @@ const EVENTO = {
   // Correo general del pie de página. Puede ser el mismo que registros.
   contacto:  "mailto:contacto@undefinedclub.org",
 
-  // Integrantes por equipo cuando el servidor no contesta. El que manda
-  // es el del panel de administración (1 a 6).
-  integrantes: 3,
-
   // Aviso de privacidad (privacidad.html). ⚠ Que lo revise alguien con
   // conocimiento legal antes de abrir el registro, sobre todo el
   // responsable y el domicilio.
@@ -60,7 +56,7 @@ const EVENTO = {
     responsable: "Startup Chihuahua y Undefined",
     domicilio:   "Chihuahua, Chihuahua, México",
     correo:      "contacto@undefinedclub.org",   // para ejercer derechos ARCO
-    actualizado: "8 de octubre de 2026",
+    actualizado: "12 de octubre de 2026",
   },
 
   // OPCIONAL. Déjalo en "#" para que los botones lleven al formulario de la
