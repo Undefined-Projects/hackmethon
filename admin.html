@@ -20,6 +20,34 @@
   .adm__sum{ display:flex; flex-wrap:wrap; gap:0 2ch; font-size:12.5px; letter-spacing:.1em; color:var(--phos-dim); margin:0 0 18px; }
   .adm__sum b{ color:var(--phos-hi); font-weight:600; }
 
+  /* inscritos por semana, hasta el día del evento */
+  .sem{ position:relative; margin:0 0 22px; border:2px solid var(--rule); border-left:3px solid var(--blue);
+        padding:14px clamp(12px,2vw,18px) 10px; }
+  .sem__t{ margin:0; font-size:12px; letter-spacing:.14em; color:var(--phos-hi); }
+  .sem__sub{ margin:2px 0 8px; font-size:11.5px; letter-spacing:.06em; color:var(--phos-dim); }
+  .sem svg{ display:block; width:100%; height:auto; overflow:visible; }
+  .sem text{ font-family:var(--f-mono); fill:var(--phos-dim); font-size:11px; letter-spacing:.06em; }
+  .sem .eje{ stroke:rgba(250,57,186,.16); stroke-width:1; }
+  .sem .base{ stroke:rgba(250,57,186,.4); stroke-width:1; }
+  .sem .barra{ fill:var(--phos); }
+  .sem .hoy text, .sem text.valor{ fill:var(--phos-hi); }
+  .sem .futura text{ fill:rgba(176,85,155,.55); }
+  .sem .evento{ stroke:var(--clorofila); stroke-width:1; }
+  .sem text.evento-t{ fill:var(--clorofila); }
+  .sem .golpe{ fill:transparent; cursor:default; outline:none; }
+  .sem .golpe:hover, .sem .golpe:focus-visible{ fill:rgba(250,57,186,.08); }
+  .sem .golpe:focus-visible{ stroke:var(--uv); stroke-width:2; }
+  .sem__tip{ position:absolute; pointer-events:none; z-index:2; min-width:15ch;
+             background:var(--screen); border:1px solid var(--phos-dim); padding:6px 10px;
+             font-size:11.5px; letter-spacing:.06em; color:var(--phos-dim); white-space:nowrap; }
+  .sem__tip b{ display:block; font-size:18px; color:var(--phos-hi); font-weight:600; letter-spacing:0; }
+  .sem details{ margin-top:6px; font-size:11.5px; letter-spacing:.08em; color:var(--phos-dim); }
+  .sem summary{ cursor:pointer; width:max-content; }
+  .sem table{ border-collapse:collapse; margin-top:8px; font-variant-numeric:tabular-nums; }
+  .sem th, .sem td{ text-align:left; padding:3px 2ch 3px 0; border-bottom:1px solid var(--rule); font-weight:400; }
+  .sem td{ color:var(--phos-soft); }
+  .sem td.n{ text-align:right; }
+
   .eq{ border:2px solid var(--rule); margin-bottom:2px; display:grid;
        grid-template-columns:auto minmax(0,1fr) minmax(0,1fr); gap:0 clamp(14px,2vw,24px);
        padding:14px clamp(12px,2vw,18px); align-items:start; }
@@ -146,6 +174,21 @@
     </header>
     <div class="panel__body">
       <p class="adm__sum" id="l-sum"></p>
+
+      <!-- inscritos por semana hasta el día del evento: la arma pintaSemanas() -->
+      <figure class="sem" id="sem">
+        <p class="sem__t">INSCRITOS POR SEMANA</p>
+        <p class="sem__sub" id="sem-sub"></p>
+        <div id="sem-graf"></div>
+        <div class="sem__tip" id="sem-tip" hidden></div>
+        <details>
+          <summary>VER TABLA</summary>
+          <table id="sem-tabla">
+            <thead><tr><th>SEMANA</th><th>NUEVOS</th><th>ACUMULADO</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </details>
+      </figure>
 
       <p class="ajuste">
         <label for="f-cupo">CUPO DE PERSONAS</label>
@@ -317,11 +360,134 @@ async function cambiaModo(){
 
 const VACIO = '<p class="vacio">TODAVÍA NO HAY NADIE INSCRITO.</p>';
 
+/* ── inscritos por semana ─────────────────────────────────
+   Una barra por semana (de lunes a domingo, hora de este navegador)
+   desde la primera inscripción, o desde esta semana si todavía no hay,
+   hasta la semana del evento (EVENTO.inicio en config.js). Las que no
+   han llegado se ven vacías. Números solo en esta semana y en la mayor;
+   el resto, al pasar el mouse o con el teclado, y en la tabla. */
+const MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+const DIA = 864e5;
+const lunesDe = f => { const d = new Date(f.getFullYear(), f.getMonth(), f.getDate()); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d; };
+const diaMes = d => `${d.getDate()} ${MESES[d.getMonth()]}`;
+
+function semanasDe(regs){
+  const evento = new Date(EVENTO.inicio), hoy = new Date();
+  const fechas = regs.map(r => new Date(r.creado)).filter(f => !isNaN(f));
+  let ini = lunesDe(hoy);
+  for (const f of fechas) if (f < ini) ini = lunesDe(f);
+  const fin = lunesDe(isNaN(evento) ? hoy : evento);
+  const lista = [];
+  for (let d = new Date(ini); d <= fin || !lista.length; d.setDate(d.getDate() + 7))
+    lista.push({ desde: new Date(d), hasta: new Date(d.getFullYear(), d.getMonth(), d.getDate() + 6), n: 0 });
+  for (const f of fechas){
+    const i = Math.min(lista.length - 1, Math.round((lunesDe(f) - ini) / (7 * DIA)));
+    lista[i].n++;
+  }
+  const hoyL = lunesDe(hoy).getTime();
+  let acumulado = 0;
+  for (const s of lista){
+    acumulado += s.n;
+    s.acumulado = acumulado;
+    s.hoy = s.desde.getTime() === hoyL;
+    s.futura = s.desde.getTime() > hoyL;
+    s.evento = !isNaN(evento) && evento >= s.desde && evento < new Date(s.hasta.getTime() + DIA);
+  }
+  return { lista, evento };
+}
+
+function pintaSemanas(regs){
+  const { lista, evento } = semanasDe(regs || []);
+  const caja = $("#sem-graf"), tip = $("#sem-tip");
+  const fmt = n => n.toLocaleString("es-MX");
+  $("#sem-sub").textContent = isNaN(evento) ? "Falta la fecha del evento en config.js." :
+    `${diaMes(lista[0].desde)} al ${diaMes(evento)} (día del evento) · ${fmt(lista.at(-1).acumulado)} en total`;
+
+  // tabla: los mismos números, siempre a la mano
+  const tb = $("#sem-tabla tbody");
+  tb.textContent = "";
+  for (const s of lista){
+    const tr = document.createElement("tr");
+    [`${diaMes(s.desde)} a ${diaMes(s.hasta)}${s.hoy ? " (esta semana)" : ""}${s.evento ? " (evento)" : ""}`,
+     s.futura ? "" : fmt(s.n), s.futura ? "" : fmt(s.acumulado)].forEach((v, i) => {
+      const td = document.createElement("td"); td.textContent = v; if (i) td.className = "n"; tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  }
+
+  // la gráfica, al ancho real (así el texto no se encoge en el teléfono)
+  const W = Math.max(280, caja.clientWidth || 600), H = 220;
+  const m = { top: 28, right: 8, bottom: 40, left: 34 };
+  const ancho = W - m.left - m.right, alto = H - m.top - m.bottom;
+  const max = Math.max(...lista.map(s => s.n));
+  // ticks enteros y redondos
+  const paso = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500].find(p => Math.ceil(Math.max(max, 1) / p) <= 4) || 1000;
+  const tope = Math.max(paso, Math.ceil(max / paso) * paso);
+  const y = v => m.top + alto - v / tope * alto;
+  const banda = ancho / lista.length, grosor = Math.min(24, banda * .5);
+  const ns = "http://www.w3.org/2000/svg";
+  const el = (tag, at, padre) => { const e = document.createElementNS(ns, tag); for (const k in at) e.setAttribute(k, at[k]); padre && padre.appendChild(e); return e; };
+  const txt = (str, at, padre) => { const e = el("text", at, padre); e.textContent = str; return e; };
+
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img",
+    "aria-label": `Inscritos por semana: ${lista.map(s => `${diaMes(s.desde)} ${s.futura ? "por venir" : s.n}`).join(", ")}` });
+  for (let v = 0; v <= tope; v += paso){
+    el("line", { class: v ? "eje" : "base", x1: m.left, x2: W - m.right, y1: y(v), y2: y(v) }, svg);
+    txt(fmt(v), { x: m.left - 8, y: y(v) + 4, "text-anchor": "end" }, svg);
+  }
+  const mayor = lista.reduce((a, s, i) => !s.futura && s.n > (lista[a]?.n ?? -1) ? i : a, -1);
+  const corto = banda < 64;   // con poco espacio, una etiqueta sí y una no
+  lista.forEach((s, i) => {
+    const cx = m.left + banda * (i + .5);
+    const g = el("g", { class: [s.hoy && "hoy", s.futura && "futura"].filter(Boolean).join(" ") }, svg);
+    // la semana del evento: una línea vertical en el día
+    if (s.evento){
+      const ex = m.left + banda * i + banda * ((evento - s.desde) / (7 * DIA));
+      el("line", { class: "evento", x1: ex, x2: ex, y1: m.top - 6, y2: m.top + alto }, g);
+      txt("EVENTO", { class: "evento-t", x: Math.min(ex, W - m.right), y: m.top - 12, "text-anchor": "end" }, g);
+    }
+    if (s.n > 0){
+      // columna con la punta redondeada (4px) y la base recta
+      const h = Math.max(2, m.top + alto - y(s.n)), x0 = cx - grosor / 2, y0 = y(s.n), r = Math.min(4, h, grosor / 2);
+      el("path", { class: "barra", d: `M${x0},${y0 + h}V${y0 + r}Q${x0},${y0} ${x0 + r},${y0}H${x0 + grosor - r}Q${x0 + grosor},${y0} ${x0 + grosor},${y0 + r}V${y0 + h}Z` }, g);
+    }
+    if ((s.hoy || i === mayor) && !s.futura)
+      txt(fmt(s.n), { class: "valor", x: cx, y: y(s.n) - 7, "text-anchor": "middle" }, g);
+    if (!corto || i % 2 === 0 || s.hoy)
+      txt(diaMes(s.desde), { x: cx, y: H - m.bottom + 16, "text-anchor": "middle" }, g);
+    if (s.hoy) txt("HOY", { x: cx, y: H - m.bottom + 30, "text-anchor": "middle" }, g);
+
+    // zona de hover y foco: toda la columna, no solo la barra
+    const golpe = el("rect", { class: "golpe", x: m.left + banda * i, y: m.top, width: banda, height: alto, tabindex: 0,
+      "aria-label": `Semana del ${diaMes(s.desde)} al ${diaMes(s.hasta)}: ${s.futura ? "por venir" : `${s.n} nuevos, ${s.acumulado} acumulados`}` }, g);
+    const muestra = () => {
+      tip.textContent = "";
+      const b = document.createElement("b");
+      b.textContent = s.futura ? "por venir" : `${fmt(s.n)} nuevo${s.n === 1 ? "" : "s"}`;
+      tip.append(b, `${diaMes(s.desde)} a ${diaMes(s.hasta)}`);
+      if (!s.futura) tip.append(document.createElement("br"), `${fmt(s.acumulado)} acumulados`);
+      tip.hidden = false;
+      const izq = caja.offsetLeft + cx - tip.offsetWidth / 2;
+      tip.style.left = Math.max(4, Math.min(izq, caja.offsetLeft + W - tip.offsetWidth - 4)) + "px";
+      tip.style.top = caja.offsetTop + Math.max(0, y(Math.max(s.n, 0)) - tip.offsetHeight - 12) + "px";
+    };
+    const oculta = () => { tip.hidden = true; };
+    golpe.addEventListener("pointerenter", muestra);
+    golpe.addEventListener("focus", muestra);
+    golpe.addEventListener("pointerleave", oculta);
+    golpe.addEventListener("blur", oculta);
+  });
+  caja.textContent = "";
+  caja.appendChild(svg);
+}
+addEventListener("resize", () => { if (datos) pintaSemanas(datos.registros); });
+
 function pinta(d){
   datos = d;
   $("#f-cupo").value = d.cupo;
   pintaModo(d.proximamente);
   resumen(d);
+  pintaSemanas(d.registros);
 
   const cuerpo = $("#l-cuerpo");
   cuerpo.textContent = "";
