@@ -142,7 +142,7 @@
     <header class="panel__bar">
       <span class="panel__id">PANEL 08</span>
       <span class="panel__name">INSCRITOS</span>
-      <span class="panel__stat" id="l-stat">—</span>
+      <span class="panel__stat" id="l-stat">…</span>
     </header>
     <div class="panel__body">
       <p class="adm__sum" id="l-sum"></p>
@@ -158,7 +158,7 @@
            (título, monitor y minijuego) y el registro queda cerrado. -->
       <p class="ajuste">
         <label for="b-modo">MODO PRÓXIMAMENTE</label>
-        <button class="key key--sm" id="b-modo" type="button" aria-pressed="false">—</button>
+        <button class="key key--sm" id="b-modo" type="button" aria-pressed="false">…</button>
         <span class="nota" id="modo-msg"></span>
       </p>
       <div id="l-cuerpo"></div>
@@ -176,7 +176,7 @@
     <header class="panel__bar">
       <span class="panel__id">PANEL 09</span>
       <span class="panel__name">TORNEO BYPASS</span>
-      <span class="panel__stat" id="t-stat">—</span>
+      <span class="panel__stat" id="t-stat">…</span>
     </header>
     <div class="panel__body">
       <p class="adm__sum" id="t-sum"></p>
@@ -217,7 +217,7 @@
 <div class="oia" aria-hidden="true">
   <span class="oia__cell"><b id="oia-sys"></b></span>
   <span class="oia__cell">PANEL DE CONTROL</span>
-  <span class="oia__cell oia__pos" id="oia-pos">—</span>
+  <span class="oia__cell oia__pos" id="oia-pos">…</span>
 </div>
 
 </div>
@@ -283,7 +283,7 @@ function resumen(d){
 /* ── modo próximamente ─────────────────────────────────── */
 function pintaModo(activo){
   const b = $("#b-modo"), nota = $("#modo-msg");
-  if (typeof activo !== "boolean"){ b.textContent = "—"; nota.textContent = "El servidor no dice el modo: actualízalo."; return; }
+  if (typeof activo !== "boolean"){ b.textContent = "…"; nota.textContent = "El servidor no dice el modo: actualízalo."; return; }
   b.setAttribute("aria-pressed", String(activo));
   b.textContent = activo ? "ACTIVO · APAGAR" : "APAGADO · ACTIVAR";
   nota.className = "nota";

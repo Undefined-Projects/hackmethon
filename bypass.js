@@ -799,8 +799,8 @@
         : paso ? ` Superaste ${superadas === 1 ? "la prueba" : `las ${superadas} pruebas`} del monitor: puedes registrarla.`
         : e.prueba ? " No superaste una prueba del monitor: esta partida no entra a la tabla."
         : "";                                   // la prueba es sorpresa: no se anuncia
-      const porque = motivo === "furia" ? " La furia del chiwuacornio te alcanzó."
-                   : motivo === "virus" ? " Un virus del chiwuacornio alcanzó el pulso."
+      const porque = motivo === "furia" ? " La furia del Chihuacornio te alcanzó."
+                   : motivo === "virus" ? " Un virus del Chihuacornio alcanzó el pulso."
                    : " El reflejo ya se armó.";
       muestra(motivo === "valvula" ? "PARO" : "INFECTADO", fin + porque + nota, "TOCA PARA REANIMAR");
       $("j-ir-tabla").hidden = !(completo && registrable);

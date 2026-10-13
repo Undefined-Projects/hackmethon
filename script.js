@@ -917,7 +917,7 @@ const Monitor = (function monitor(){
       `CORREO ......... ${p.correo}`,
       `TELÉFONO ....... ${p.telefono}`,
       `ESTUDIA ........ ${p.estudia ? `${p.institucion} · ${p.carrera} · ${PERIODO_NOMBRE[p.periodo].toLowerCase()} ${p.semestre}` : "No"}`,
-      `EQUIPO ......... ${EQUIPO_TEXTO[p.equipoModo] || "—"}${nombreEquipo(p) ? ` — ${nombreEquipo(p)}` : ""}`,
+      `EQUIPO ......... ${EQUIPO_TEXTO[p.equipoModo] || "Sin contestar"}${nombreEquipo(p) ? `: ${nombreEquipo(p)}` : ""}`,
       "",
       "(La CURP no va en este correo: se la pedimos al confirmar.)",
       ...(p.equipoModo === "crear" ? ["(El logo y la contraseña del equipo los pedimos al confirmar.)"] : []),
@@ -936,7 +936,7 @@ const Monitor = (function monitor(){
 
   function abreCorreo(){
     const destino = (EVENTO.registros || EVENTO.contacto).replace(/^mailto:/, "");
-    const asunto  = `Registro HACK(ME)THON 2.0 — ${val("nombre")} ${val("apellidos")}`;
+    const asunto  = `Registro HACK(ME)THON 2.0 · ${val("nombre")} ${val("apellidos")}`;
     window.location.href =
       `mailto:${destino}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(ficha())}`;
     avisa("EL SERVIDOR NO RESPONDE. SE ABRIÓ TU CORREO CON LA FICHA: MÁNDALA ASÍ.", true);
