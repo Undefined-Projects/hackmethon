@@ -7,14 +7,9 @@
    pasar entre válvulas de circuito y enredadera mientras el chiwuacornio
    (la mascota: un chihuahua con camisa y cuerno de unicornio), en el borde
    derecho, le escupe virus. Cada 10 válvulas el chiwuacornio
-   se enfurece y lanza tres muros de virus. Cada 20, el mundo se
-   voltea de izquierda a derecha (y a los 40 regresa).
-
-   El volteo es un ESPEJO DEL DIBUJO, no física: el motor sigue igual
-   y la pantalla gira sobre el eje vertical (se refleja de izquierda a
-   derecha). Para quien juega, el chiwuacornio pasa a la izquierda y las
-   válvulas llegan desde ahí; la gravedad no cambia. El servidor, que
-   vuelve a jugar las partidas con el motor, no tiene que saberlo.
+   se enfurece y lanza tres muros de virus. Cada 20, se desespera:
+   llora, sacude la cabeza y agita las orejas, suspira y vuelve a la
+   normalidad. Es solo dibujo; el mundo ya no se voltea.
 
    La física vive en bypass-motor.js y es determinista. Este archivo
    solo dibuja lo que el motor dice, junta los toques y habla con el
@@ -44,8 +39,9 @@
    precalculados (un drawImage cada uno), y el bucle solo corre con el
    juego a la vista y la pestaña abierta.
 
-   Cada volteo trae 3 s de calma: el motor despeja la pantalla y no
-   sale nada, para darle tiempo a reaccionar.
+   Cada 20 válvulas hay 3 s de calma (el motor lo llama "giro" por
+   herencia): despeja la pantalla y no sale nada mientras el
+   chiwuacornio se desespera.
 
    Las pruebas del monitor (contra bots): desde la válvula 6 el juego
    pregunta al servidor, válvula por válvula, si toca una
@@ -212,8 +208,8 @@
      se pinta una sola vez (ver sprite()). La clave es
      "respira,ojos,boca,oreja":
        respira  0 · 1        (1: la cabeza baja un pixel)
-       ojos     abiertos · cerrados · felices · enojados
-       boca     cerrada · abierta · grande
+       ojos     abiertos · cerrados · felices · enojados · llorando (><) · desorbitados
+       boca     cerrada · abierta · grande · temblando
        oreja    no · izq · der (la punta de esa oreja baja un pixel) */
   const CHIWUA_OJO = [[11,18],[12,18],[10,19],[11,19],[12,19],[13,19],[10,20],[11,20],[12,20],[13,20],[11,21],[12,21]];
   function poseChiwua(clave){
@@ -229,6 +225,19 @@
       ambos(d => { CHIWUA_OJO.forEach(([x, y]) => y > 18 && pon(x + d, y, "E")); pon(12 + d, 19, "H"); });
       for (const [x, y] of [[9,16],[10,16],[11,17],[12,17],[13,18]]){ pon(x, y, "D"); pon(35 - x, y, "D"); }
     }
+    if (ojos === "llorando"){
+      // > <, apretados, con una lágrima en la orilla de abajo
+      for (const [x, y] of [[10,18],[11,18],[12,19],[13,19],[10,20],[11,20]]){ pon(x, y, "E"); pon(35 - x, y, "E"); }
+      pon(10, 21, "T"); pon(25, 21, "T");
+      // cejas de preocupación: suben hacia el centro
+      for (const [x, y] of [[9,17],[10,17],[11,16],[12,16]]){ pon(x, y, "D"); pon(35 - x, y, "D"); }
+    }
+    if (ojos === "desorbitados"){
+      // blancos y abiertos de más, con la pupila chiquita
+      ambos(d => { CHIWUA_OJO.forEach(([x, y]) => pon(x + d, y, "H")); pon(9 + d, 19, "E"); pon(9 + d, 20, "E");
+                   pon(14 + d, 19, "E"); pon(14 + d, 20, "E"); pon(11 + d, 17, "E"); pon(12 + d, 17, "E");
+                   pon(11 + d, 22, "E"); pon(12 + d, 22, "E"); pon(12 + d, 20, "E"); });
+    }
     if (boca === "abierta"){
       for (let x = 16; x <= 19; x++) pon(x, 25, "K");
       pon(16, 26, "M"); pon(17, 26, "L"); pon(18, 26, "L"); pon(19, 26, "M");
@@ -236,6 +245,10 @@
     if (boca === "grande"){
       for (let x = 15; x <= 20; x++){ pon(x, 25, "K"); pon(x, 26, x === 17 || x === 18 ? "L" : "K"); }
       for (let x = 16; x <= 19; x++) pon(x, 27, "M");
+    }
+    if (boca === "temblando"){
+      // una boquita en zigzag: a punto de llorar
+      for (let x = 14; x <= 21; x++) pon(x, x % 2 ? 25 : 26, "K");
     }
     if (oreja !== "no"){
       const [x0, x1] = oreja === "izq" ? [0, 9] : [26, 35];
@@ -300,6 +313,7 @@
     G: "#2f6b2e", Y: "#e8c23a", R: "#d8573a", A: "#3f7fd0",
     g: "#8fd07e", v: "#a48ad0", a: "#86b0e0", p: "#f0a8b4",
     K: "#3a1218", L: "#f08a9a",   // boca abierta y lengua
+    T: "#7fd0ff",                 // lágrimas
   };
   const CUERNO_LUZ = { g: "#ffffff", v: C.hi, a: "#ffffff", p: C.hi };
   const ENOJADO = { B: C.phos, C: C.violeta, b: C.violeta, D: C.fondo, O: C.sangre, M: C.sangre, z: C.violeta };
@@ -309,6 +323,7 @@
     cargaLuz: { ...MASCOTA, ...CUERNO_LUZ, M: C.sangre },
     furia:    { ...MASCOTA, ...ENOJADO },
     furiaLuz: { ...MASCOTA, ...ENOJADO, B: C.sangre, ...CUERNO_LUZ },
+    palido:   { ...MASCOTA, B: "#f7dcb0", C: "#e3b886", O: "#f0a8b4" },   // desesperado: se le va el color
   };
   const spriteChiwua = (pose, tinta) => sprite("chiwua" + pose + tinta, poseChiwua(pose), TINTAS_CHIWUA[tinta]);
   function precalienta(){
@@ -321,6 +336,12 @@
       for (const t of ["furia", "furiaLuz"]) spriteChiwua(`${r},enojados,grande,no`, t);
       spriteChiwua(`${r},abiertos,grande,no`, "calma");
       spriteChiwua(`${r},felices,grande,no`, "calma");
+      for (const oreja of ["izq", "der"]){
+        spriteChiwua(`${r},llorando,temblando,${oreja}`, "palido");
+        spriteChiwua(`${r},desorbitados,grande,${oreja}`, "palido");
+      }
+      spriteChiwua(`${r},desorbitados,grande,no`, "palido");
+      spriteChiwua(`${r},cerrados,cerrada,no`, "calma");
     }
   }
 
@@ -342,14 +363,15 @@
   // animación del chiwuacornio (solo dibujo): cuenta regresiva al próximo
   // parpadeo y movimiento de oreja (negativa = está pasando), y lo que dura
   // la boca abierta después de cada disparo
-  const chiwua = { parpadeo: 2, oreja: 4, lado: "izq", disparo: 0 };
+  // `desespera` cuenta los segundos de su ataque de nervios (0: tranquilo)
+  const chiwua = { parpadeo: 2, oreja: 4, lado: "izq", disparo: 0, desespera: 0 };
 
-  /* El volteo: cada GIRO puntos el espejo cambia de lado. `espejo` va de
-     1 (normal) a −1 (invertido) y en medio pasa por 0: la escena se
-     encoge hacia la línea del centro y se abre reflejada, como una
-     tarjeta que gira sobre el eje vertical. */
-  const GIRO = M.GIRO, GIRO_DUR = .45;
-  let espejo = 1, espejoDesde = 1, espejoHacia = 1, giroT = 1;
+  /* La desesperación: cada GIRO puntos el chiwuacornio pierde los nervios
+     durante DESESPERO segundos, lo mismo que dura la calma del motor:
+       sorpresa (ojos desorbitados y un brinco) → llanto (> <, cabeza que
+       se sacude, orejas que aletean, lágrimas y sudor) → suspiro (ojos
+       cerrados) → vuelve a la normalidad. */
+  const GIRO = M.GIRO, DESESPERO = 3;
   let avisoGiroT = 0;
   let latidos = [], latePendiente = false;
   let partida = null;       // { semilla, token?, oficial, tramos, local? }
@@ -381,7 +403,7 @@
     preguntadas = new Set(); pruebaFinT = 0; tics = new Set(); apariciones = [];
     latidos = []; rastro = []; chispas = [];
     destello = sacudida = 0; plano = null;
-    espejo = espejoDesde = espejoHacia = 1; giroT = 1;     // cada partida empieza derecha
+    chiwua.desespera = 0;
     escondeGiro();
     ptsEl.textContent = pad3(0);
     estado = "jugando";
@@ -437,7 +459,7 @@
       case "punto":
         ptsEl.textContent = pad3(e.puntos);
         preguntaPrueba(e.puntos);
-        if (e.puntos % GIRO === 0) volteaMundo();
+        if (e.puntos % GIRO === 0) desespera();
         else if (e.puntos % FURIA.cada) suena("punto");      // en la décima suena la furia
         break;
       case "disparo":
@@ -541,8 +563,6 @@
   const metaPrueba = pr => pr.tipo === "franja" ? M.PRUEBA.franjaNecesita
                          : pr.tipo === "ritmo" ? pr.golpes.length
                          : pr.tipo === "marcas" ? pr.marcas.length : pr.ventanas.filter(v => v.verde).length;
-  // de coordenadas del mundo a la pantalla, contando el espejo del volteo
-  const aPantalla = (x, y) => [W / 2 + (x - W / 2) * espejo, y];
   // Antes de cada rojo, un anillo rojo se cierra sobre el pulso durante
   // AVISO_ROJO pasos (0.6 s): da tiempo de un último latido y de soltar.
   const AVISO_ROJO = 72;
@@ -559,7 +579,7 @@
     return !v ? "" : !v.verde ? "rojo" : v.ok ? "" : "verde";
   };
 
-  // Lo que va pegado al mundo (se voltea con él): franja, marcas y anillo.
+  // Lo que va pegado al mundo: franja, marcas y anillo.
   function dibujaPruebaMundo(){
     const pr = e.prueba;
     if (!pr || pr.estado !== "activa") return;
@@ -607,7 +627,7 @@
     }
   }
 
-  // El recuadro de la instrucción: encima de todo y sin espejo, siempre se lee.
+  // El recuadro de la instrucción: encima de todo, siempre se lee.
   let pruebaFinT = 0;
   function dibujaPrueba(){
     const pr = e.prueba;
@@ -616,7 +636,7 @@
     const x = 30, y = 4, w = W - 60, h = 25;
     // Si el pulso pasa por debajo del recuadro, el recuadro se vuelve casi
     // transparente: nunca lo tapa (y moverlo taparía las marcas de abajo).
-    const sy = aPantalla(e.pulso.x, e.pulso.y)[1];
+    const sy = e.pulso.y;
     ctx.save();
     if (sy < y + h + 6) ctx.globalAlpha = .3;
     const color = pr.estado === "ok" ? C.verde : pr.estado === "falla" ? C.sangre
@@ -651,9 +671,9 @@
       ctx.fillStyle = leyendo ? C.hi : pr.tipo === "franja" ? C.verde : color;
       ctx.fillRect(x + 2, y + h - 3, Math.round((w - 4) * k), 1);
       ctx.restore();
-      // los números de las marcas, legibles aunque el mundo esté volteado
+      // los números de las marcas
       if (pr.tipo === "marcas") pr.marcas.forEach((m, i) => {
-        const [sx, sy] = aPantalla(e.pulso.x + 11, m.y);
+        const sx = e.pulso.x + 11, sy = m.y;
         ctx.fillStyle = m.ok ? C.verde : C.hi;
         ctx.textBaseline = "middle";
         ctx.fillText(String(i + 1), sx, sy);
@@ -673,15 +693,11 @@
       chispas.push({ x, y, vx: (Math.random() - .5) * 90, vy: -Math.random() * 70,
                      v: .3 + Math.random() * .3, c: color });
   }
-  function volteaMundo(){
-    const invertido = Math.floor(e.puntos / GIRO) % 2 === 1;
-    espejoDesde = espejo;
-    espejoHacia = invertido ? -1 : 1;
-    giroT = quieto ? 1 : 0;
-    if (quieto) espejo = espejoHacia;
+  function desespera(){
+    chiwua.desespera = DESESPERO;
     suena("giro");
     if (avisoGiro){
-      avisoGiro.textContent = invertido ? "\u25C0 MUNDO INVERTIDO" : "\u25B6 MUNDO NORMAL";
+      avisoGiro.textContent = "\u00A1EL CHIHUACORNIO SE DESESPERA!";
       avisoGiro.hidden = false;
       avisoGiroT = 1.8;
     }
@@ -699,11 +715,8 @@
   function cosmeticos(dt){
     reloj += dt;
     if (e.prueba && e.prueba.estado !== "activa") pruebaFinT += dt;
-    if (giroT < 1){
-      giroT = Math.min(1, giroT + dt / GIRO_DUR);
-      const k = giroT < .5 ? 2 * giroT * giroT : 1 - 2 * (1 - giroT) ** 2;   // entra y sale suave
-      espejo = espejoDesde + (espejoHacia - espejoDesde) * k;
-    }
+    if (chiwua.desespera > 0) lagrimas(dt);
+    chiwua.desespera = Math.max(0, chiwua.desespera - dt);
     if (avisoGiroT > 0){ avisoGiroT -= dt; if (avisoGiroT <= 0) escondeGiro(); }
     for (const c of chispas){ c.vy += 300 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.v -= dt; }
     chispas = chispas.filter(c => c.v > 0);
@@ -811,16 +824,10 @@
   function dibuja(){
     ctx.setTransform(K, 0, 0, K, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    // el velo va antes del espejo: mientras la escena gira, el fondo no se encoge
     ctx.fillStyle = velo;
     ctx.fillRect(0, 0, W, H);
     ctx.save();
     if (sacudida > 0) ctx.translate(Math.round((Math.random() - .5) * 4), Math.round((Math.random() - .5) * 3));
-    if (espejo !== 1){
-      ctx.translate(W / 2, 0);
-      ctx.scale(espejo, 1);
-      ctx.translate(-W / 2, 0);
-    }
 
     // cuánto adelantar el dibujo: solo mientras se juega
     const ad = estado === "jugando" && !congelado ? adelanto : 0;
@@ -905,9 +912,35 @@
   // La boca queda donde el motor hace nacer los virus (g.x − 12, g.y).
   // Es grande: se dibuja ANTES que las válvulas para que nunca las tape,
   // y en los extremos de su recorrido se sale un poco de la pantalla.
+  // En qué parte de la desesperación va (ver DESESPERO): "" si no está.
+  function faseDesespero(){
+    const t = DESESPERO - chiwua.desespera;      // segundos desde que empezó
+    if (chiwua.desespera <= 0 || estado !== "jugando") return { fase: "", t };
+    return { fase: t < .4 ? "susto" : t < 2.2 ? "llanto" : t < 2.85 ? "suspiro" : "", t };
+  }
+  // Lágrimas que salen volando a los lados y gotas de sudor (como chispas).
+  let goteo = 0;
+  function lagrimas(dt){
+    const { fase } = faseDesespero();
+    if (fase !== "llanto" && fase !== "susto" || quieto || ligero) return;
+    goteo -= dt;
+    if (goteo > 0) return;
+    goteo = .07;
+    const g = e.gusano, cx = g.x - 12, cy = g.y - CHIWUA_BOCA - 1;
+    const lado = Math.random() < .5 ? -1 : 1;
+    // de los ojos (filas 20-21) salen disparadas hacia afuera
+    chispas.push({ x: cx + lado * 7, y: cy + 21, vx: lado * (40 + Math.random() * 50), vy: -40 - Math.random() * 60,
+                   v: .45 + Math.random() * .25, c: Math.random() < .3 ? "#ffffff" : "#7fd0ff" });
+    // y de vez en cuando una gota de sudor de la frente
+    if (Math.random() < .35) chispas.push({ x: cx + lado * (10 + Math.random() * 4), y: cy + 12, vx: lado * 25, vy: -50,
+                                            v: .4, c: "#bfe6ff" });
+  }
+
   function dibujaChiwua(){
     const g = e.gusano;
     const jugando = estado === "jugando";
+    const nervios = faseDesespero();
+    if (nervios.fase) return dibujaChiwuaDesesperado(g, nervios.fase, nervios.t);
     const enojado = !!e.furia && jugando;
     const riendo = estado === "paro";                       // ganó: el pulso se detuvo
     const escupe = chiwua.disparo > 0 && jugando;
@@ -944,6 +977,50 @@
     }
   }
 
+
+  function dibujaChiwuaDesesperado(g, fase, t){
+    const mueve = !quieto;
+    let ojos, boca, oreja = "no", tinta = "palido", dx = 0, dy = 0, respira = 0;
+    if (fase === "susto"){
+      // se le salen los ojos y pega un brinco
+      ojos = "desorbitados"; boca = "grande";
+      dy = mueve ? -Math.round(Math.sin(t / .4 * Math.PI) * 5) : 0;
+      dx = mueve ? Math.round((Math.random() - .5) * 2) : 0;
+    } else if (fase === "llanto"){
+      // llora a moco tendido: sacude la cabeza, aletea las orejas y de
+      // vez en cuando abre los ojos desorbitados
+      const k = t - .4;
+      const asoma = Math.floor(k / .55) % 3 === 2 && (k % .55) < .22;
+      ojos = asoma ? "desorbitados" : "llorando";
+      boca = asoma ? "grande" : "temblando";
+      oreja = Math.floor(k / .09) % 2 ? "izq" : "der";
+      respira = Math.floor(k / .11) % 2;
+      dx = mueve ? Math.round(Math.sin(k * 26) * 3) : 0;
+      dy = mueve ? Math.round(Math.abs(Math.sin(k * 13)) * -2) : 0;
+    } else {
+      // suspira: cierra los ojos, se desinfla un pixel y se le pasa
+      ojos = "cerrados"; boca = "cerrada"; tinta = "calma";
+      respira = 1;
+      dy = mueve ? 1 : 0;
+    }
+    const gx = R(g.x - 12 - CHIWUA_W / 2) + dx, gy = R(g.y - CHIWUA_BOCA - 1) + dy;
+    ctx.drawImage(spriteChiwua(`${respira},${ojos},${boca},${oreja}`, tinta), gx, gy);
+    if (fase === "suspiro"){
+      // el suspiro: tres puntitos que salen de la boca y se desvanecen
+      const k = (t - 2.2) / .65;
+      ctx.fillStyle = C.hi;
+      ctx.globalAlpha = Math.max(0, 1 - k);
+      for (let i = 0; i < 3; i++) if (k > i * .2) ctx.fillRect(gx + 10 - i * 4, gy + CHIWUA_BOCA - 1 - i * 2 - Math.round(k * 4), 2, 2);
+      ctx.globalAlpha = 1;
+      return;
+    }
+    // "!!" encima de la cabeza (o "?!" en el susto), parpadeando
+    if (Math.floor(t * 8) % 2 === 0 || quieto){
+      const sx = gx + CHIWUA_W / 2 - 4, sy = Math.max(0, gy - 8);
+      ctx.fillStyle = fase === "susto" ? C.hi : C.sangre;
+      for (const ox of [0, 5]){ ctx.fillRect(sx + ox, sy, 2, 4); ctx.fillRect(sx + ox, sy + 5, 2, 2); }
+    }
+  }
 
   function valvula(v, dx = 0){
     const x = R(v.x + dx), arriba = Math.round(v.centro - v.hueco / 2), abajo = Math.round(v.centro + v.hueco / 2);
@@ -1230,7 +1307,7 @@
     pruebaFinT = 0; tics = new Set();
     latidos = []; rastro = []; chispas = [];
     destello = sacudida = 0; plano = null; enParo = 0;
-    espejo = espejoDesde = espejoHacia = 1; giroT = 1;
+    chiwua.desespera = 0;
     escondeGiro(); terminaFuria();
     ptsEl.textContent = pad3(0);
     estado = "jugando";

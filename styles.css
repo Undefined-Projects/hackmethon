@@ -486,7 +486,7 @@ img{ max-width:100%; image-rendering:pixelated; }
   animation:blink .5s steps(1) infinite; pointer-events:none;
 }
 .juego__furia[hidden]{ display:none; }
-/* el aviso del volteo va abajo, para no taparse con el de la furia
+/* el aviso de la desesperación va abajo, para no taparse con el de la furia
    (a los 20 puntos llegan los dos juntos) */
 .juego__giro{
   position:absolute; bottom:10px; left:50%; transform:translateX(-50%); z-index:2;

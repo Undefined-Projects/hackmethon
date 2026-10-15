@@ -105,9 +105,11 @@
                        SFX.plano(.55, 1.3); },
     tic:       () => tono({ tipo: "square", f0: 1320, dur: .04, vol: .12 }),
     record:    () => arpegio([523, 659, 784, 1047, 1319], .085, { dur: .11, vol: .13 }),
-    giro:      () => { soplo({ dur: .45, vol: .18, f: 300, f1: 3000, q: 3 });
-                       tono({ tipo: "triangle", f0: 220, f1: 880, dur: .22, vol: .16 });
-                       tono({ tipo: "triangle", f0: 880, f1: 220, dur: .22, vol: .16, en: .22 }); },
+    // el chiwuacornio se desespera: un gemido que sube y se cae, dos veces
+    giro:      () => { tono({ tipo: "triangle", f0: 700, f1: 1100, dur: .14, vol: .15 });
+                       tono({ tipo: "triangle", f0: 1100, f1: 520, dur: .3, vol: .15, en: .14 });
+                       tono({ tipo: "triangle", f0: 650, f1: 1000, dur: .12, vol: .13, en: .55 });
+                       tono({ tipo: "triangle", f0: 1000, f1: 420, dur: .4, vol: .13, en: .67 }); },
     registro:  () => arpegio([784, 1047, 1568], .09, { tipo: "triangle", dur: .14, vol: .22 }),
     // el monitor
     plano:     (en = 0, dur = 2.4) => tono({ tipo: "sine", f0: 1000, dur, vol: .16, ataque: .01, sostener: .85, en }),
