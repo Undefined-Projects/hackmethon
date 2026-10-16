@@ -52,7 +52,8 @@
    latir en verde y nunca en rojo. Mientras dura no hay obstáculos. Se
    dibuja dentro del canvas (no es texto de la página), el motor la
    evalúa igual que el servidor, y solo entran a la tabla las partidas
-   que superan TODAS las que les salieron. Un bot no puede llevar la
+   que superan TODAS las que les salieron. Cada reto superado suma un
+   punto al puntaje, además de uno por válvula (M.puntaje). Un bot no puede llevar la
    partida ya calculada: tiene que ver y reaccionar en vivo, una y otra
    vez.
 
@@ -457,7 +458,7 @@
   function reacciona(ev){
     switch (ev.tipo){
       case "punto":
-        ptsEl.textContent = pad3(e.puntos);
+        ptsEl.textContent = pad3(M.puntaje(e));
         preguntaPrueba(e.puntos);
         if (e.puntos % GIRO === 0) desespera();
         else if (e.puntos % FURIA.cada) suena("punto");      // en la décima suena la furia
@@ -481,9 +482,11 @@
       case "acierto":
         suena("punto"); break;
       case "retoOk":
+        ptsEl.textContent = pad3(M.puntaje(e));             // cada reto superado suma uno
         suena("vuelta"); break;
       case "pruebaFin":
         pruebaFinT = 0;
+        ptsEl.textContent = pad3(M.puntaje(e));
         suena(ev.estado === "ok" ? "registro" : "alarma"); break;
       case "absorbe":
         suena("absorbe");
@@ -776,14 +779,14 @@
       chispas.push({ x: e.pulso.x, y: e.pulso.y, vx: (Math.random() - .5) * 140, vy: -Math.random() * 120,
                      v: .5 + Math.random() * .5, c: i % 3 ? C.phos : C.hi });
 
-    const puntos = e.puntos;
+    const puntos = M.puntaje(e);
     if (repeticion){
       setTimeout(() => {
         if (estado !== "paro") return;
         const ok = e.pruebas.filter(x => x === "ok").length;
         const p = !e.prueba ? "" : fallida() || M.activa(e) ? ` Pruebas del monitor: ${ok} superadas y una NO.`
                 : ` Pruebas del monitor: ${ok} de ${ok} superadas.`;
-        muestra("FIN DE LA REPETICIÓN", `${repeticion.alias} · ${pad3(puntos)} válvulas.${p}`, "TOCA PARA VERLA DE NUEVO");
+        muestra("FIN DE LA REPETICIÓN", `${repeticion.alias} · ${pad3(puntos)} puntos.${p}`, "TOCA PARA VERLA DE NUEVO");
       }, 450);
       return;
     }
@@ -807,7 +810,8 @@
     }
     setTimeout(() => {
       if (estado !== "paro") return;
-      const fin = `${pad3(puntos)} válvulas cruzadas.${nuevo ? " Nuevo récord." : ""}`;
+      const desglose = e.retos ? ` (${e.puntos} válvulas + ${e.retos} ${e.retos === 1 ? "reto" : "retos"})` : " válvulas cruzadas";
+      const fin = `${pad3(puntos)}${e.retos ? " puntos" : ""}${desglose}.${nuevo ? " Nuevo récord." : ""}`;
       const nota = !partida.oficial ? " (Sin conexión: esta partida no cuenta para la tabla.)"
         : paso ? ` Superaste ${superadas === 1 ? "la prueba" : `las ${superadas} pruebas`} del monitor: puedes registrarla.`
         : e.prueba ? " No superaste una prueba del monitor: esta partida no entra a la tabla."
@@ -1329,7 +1333,7 @@
         caja.dataset.repeticion = "";
         $("juego-nombre").textContent = `REPETICIÓN \u00B7 ${d.alias} \u00B7 ${pad3(d.puntos)}`;
         caja.scrollIntoView({ block: "center" });
-        muestra("REPETICIÓN", `La partida de ${d.alias}: ${pad3(d.puntos)} válvulas. Se reproduce tal cual la jugó.`, "TOCA PARA VERLA");
+        muestra("REPETICIÓN", `La partida de ${d.alias}: ${pad3(d.puntos)} puntos. Se reproduce tal cual la jugó.`, "TOCA PARA VERLA");
       })
       .catch(err => muestra("REPETICIÓN", err.message, "TOCA PARA JUGAR"));
   })();

@@ -143,8 +143,14 @@
       calma:   0,                 // pasos que quedan sin obstáculos
       prueba:  null,              // la prueba del monitor en curso (o la última)
       pruebas: [],                // cómo terminó cada prueba: "ok" | "falla"
+      retos:   0,                 // retos del monitor superados: cada uno suma un punto
     };
   }
+
+  /* El puntaje: una por válvula cruzada y una por reto del monitor
+     superado. e.puntos son solo las válvulas, que marcan la dificultad,
+     la furia, el volteo y en qué válvula sale cada prueba. */
+  const puntaje = e => e.puntos + e.retos;
 
   // ¿se está en un tramo sin obstáculos?
   const tranquilo = e => e.calma > 0 || (e.prueba && e.prueba.estado === "activa");
@@ -336,7 +342,8 @@
      Es lo que hace el servidor para contar los puntos él mismo.
      pruebas: [{ a, def }, …] — en qué paso apareció cada prueba del
      monitor y cuál era; se inyectan igual que las vio el jugador.
-     pasoDePunto[n] = el paso en que se cruzó la válvula n. */
+     puntos = válvulas + retos superados (ver puntaje); valvulas y retos,
+     por separado. pasoDePunto[n] = el paso en que se cruzó la válvula n. */
   function simula(semillas, latidos, tope, pruebas){
     const e = crea(semillas);
     const pasoDePunto = [0];
@@ -357,7 +364,7 @@
     // la que seguía en curso al morir cuenta como no superada
     const estados = e.pruebas.slice();
     if (activa(e)) estados.push("activa");
-    return { puntos: e.puntos, pasos: e.paso, vivo: e.vivo, motivo: e.motivo, pasoDePunto,
+    return { puntos: puntaje(e), valvulas: e.puntos, retos: e.retos, pasos: e.paso, vivo: e.vivo, motivo: e.motivo, pasoDePunto,
              pruebas: estados, nacidas: e.nacidas };
   }
 
@@ -475,6 +482,7 @@
     if (perdida){
       pr.estado = "falla";
     } else if (lista){
+      e.retos++;
       if (pr.n + 1 < pr.retos.length){
         armaReto(pr, pr.n + 1, paso);              // el siguiente, con su lectura
         ev.push({ tipo: "retoOk" });
@@ -488,5 +496,5 @@
   }
 
   return { VERSION, W, H, SUELO, DT, ANCHO, CARGA, FURIA, PULSO_X, PRUEBA, GIRO, TRAMO,
-           crea, avanza, simula, falta, semillasLocales, seno, iniciaPrueba, activa };
+           crea, avanza, simula, falta, semillasLocales, seno, iniciaPrueba, activa, puntaje };
 });
