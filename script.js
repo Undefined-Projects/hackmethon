@@ -1040,3 +1040,24 @@ const Monitor = (function monitor(){
   if (document.fonts) document.fonts.ready.then(ajusta).catch(() => {});
   addEventListener("resize", ajusta);
 })();
+
+/* — 9. El registro, siempre a un toque en el teléfono —
+   La barra de abajo (.registro-fijo) sale cuando ya pasó el botón de
+   la portada y se esconde mientras el formulario está a la vista, para
+   no tapar lo que se está llenando. En escritorio el CSS la apaga, y en
+   modo "próximamente" la apaga .solo-abierto. Quien se desplaza es
+   .tubo, no la ventana: por eso es la raíz del observador. */
+(function registroFijo(){
+  const barra = document.getElementById("registro-fijo");
+  const hero  = document.getElementById("cta-hero");
+  const panel = document.getElementById("registro");
+  if (!barra || !hero || !panel || !("IntersectionObserver" in window)) return;
+
+  const vista = { hero: true, panel: false };
+  const io = new IntersectionObserver(entradas => {
+    entradas.forEach(e => { vista[e.target === hero ? "hero" : "panel"] = e.isIntersecting; });
+    barra.hidden = vista.hero || vista.panel;
+  }, { root: document.querySelector(".tubo") });
+  io.observe(hero);
+  io.observe(panel);
+})();

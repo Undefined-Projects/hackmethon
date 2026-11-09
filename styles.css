@@ -1575,3 +1575,49 @@ html.juego-completo main,
 html.juego-completo .h2,
 html.juego-completo .banner__blk{ animation:none; transform:none; }
 .consent[hidden]{ display:none; }
+
+/* ============================================================
+   REGISTRO A LA VISTA
+   El registro se llamaba INGRESO / ENTRAR AL QUIRÓFANO y vivía
+   debajo del juego. Ahora dice lo que es, sale en la primera
+   pantalla y, en el teléfono, se queda a un toque abajo.
+   ============================================================ */
+.cta--hero{ margin:4px 0 22px; }
+.key--registro{
+  display:inline-flex; flex-direction:column; align-items:flex-start; gap:3px;
+  font-size:15px; padding:13px 24px;
+}
+.key--registro small{
+  font-size:10.5px; font-weight:500; letter-spacing:.12em; opacity:.78;
+}
+@media (max-width:700px){
+  .cta--hero .key--registro{ width:100%; align-items:center; text-align:center; }
+}
+
+.registro__datos{
+  margin:-6px 0 14px; font-size:12.5px; letter-spacing:.06em; color:var(--blue-hi);
+}
+
+.juego__evento{
+  margin:10px 0 0; padding-top:8px; border-top:1px dashed var(--phos-dim);
+  font-family:var(--f-sans); font-size:13px; color:var(--phos-dim); line-height:1.5;
+}
+.juego__evento a{ color:var(--phos-hi); font-family:var(--f-mono); font-weight:600; letter-spacing:.05em; }
+
+/* la barra fija del teléfono: encima de la línea 24, debajo del rayado */
+.registro-fijo{
+  position:fixed; z-index:56;
+  left:var(--marco); right:var(--marco); bottom:calc(var(--marco) + var(--oia));
+  display:block; text-align:center; text-decoration:none;
+  padding:13px var(--gut);
+  font-family:var(--f-mono); font-size:14px; font-weight:600; letter-spacing:.08em;
+  color:var(--screen); background:var(--phos);
+  box-shadow:0 -6px 18px rgba(0,0,0,.55);
+}
+.registro-fijo[hidden],
+html.juego-completo .registro-fijo{ display:none; }
+@media (min-width:861px){ .registro-fijo{ display:none !important; } }
+@media (max-width:860px){
+  /* que el final de la página no quede debajo de la barra */
+  html:not(.proximamente) .tubo{ padding-bottom:calc(var(--oia) + 8px + var(--marco) + 50px); }
+}

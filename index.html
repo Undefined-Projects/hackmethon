@@ -47,9 +47,10 @@
     <a href="#equipo"><b>3</b> EQUIPO</a>
     <a href="#quirofano"><b>4</b> QUIRÓFANO</a>
     <a href="#protocolo"><b>5</b> PROTOCOLO</a>
-    <a href="#faq"><b>6</b> AYUDA</a>
+    <a href="#registro"><b>6</b> REGISTRO</a>
+    <a href="#faq"><b>7</b> AYUDA</a>
   </nav>
-  <a class="menubar__go solo-abierto" data-cfg-href="registro" href="#registro">INGRESO ▸</a>
+  <a class="menubar__go solo-abierto" data-cfg-href="registro" href="#registro">REGISTRO ▸</a>
   <a class="menubar__go solo-proximo" href="#juego">BYPASS ▸</a>
 </header>
 
@@ -100,6 +101,12 @@
           desconectar: si su corazón se detiene, dispara. Ustedes tienen una
           noche, un quirófano a oscuras y ninguna experiencia previa. Van a
           tener que <strong>operarla a corazón abierto</strong>.
+        </p>
+
+        <!-- El registro, en la primera pantalla: antes estaba debajo del
+             juego y en un teléfono quedaba a casi tres pantallas. -->
+        <p class="cta cta--hero solo-abierto" id="cta-hero">
+          <a class="key key--go key--registro" data-cfg-href="registro" href="#registro">REGISTRARME &middot; GRATIS<small>ENTRAR AL QUIRÓFANO &middot; 2 MINUTOS</small></a>
         </p>
 
         <!-- ── el monitor de signos vitales, en chico ─────────
@@ -229,6 +236,7 @@
         </div>
         <ol class="juego__top" id="j-top"><li class="vacio">CARGANDO&hellip;</li></ol>
         <p class="juego__premio"><b>PREMIO</b> <span data-cfg="premio">…</span></p>
+        <p class="juego__evento solo-abierto">La tabla es solo del juego. <a data-cfg-href="registro" href="#registro">¿Ya te registraste al evento? &#9656; REGISTRO</a></p>
       </div>
     </section>
 
@@ -247,7 +255,7 @@
     </p>
 
     <p class="cta">
-      <a class="key key--go solo-abierto" data-cfg-href="registro" href="#registro">ENTER &middot; ENTRAR AL QUIRÓFANO</a>
+      <a class="key key--go solo-abierto" data-cfg-href="registro" href="#registro">ENTER &middot; REGISTRARME GRATIS</a>
       <a class="key solo-abierto" href="#diseccion">PF2 &middot; VER LA DISECCIÓN</a>
       <span class="key key--off solo-proximo">REGISTRO &middot; PRÓXIMAMENTE</span>
       <a class="key solo-proximo" href="#juego">PF5 &middot; JUGAR BYPASS</a>
@@ -600,13 +608,14 @@
   <section class="panel panel--go" id="registro">
     <header class="panel__bar">
       <span class="panel__id">PANEL 06</span>
-      <span class="panel__name">CONSENTIMIENTO INFORMADO</span>
+      <span class="panel__name">REGISTRO &middot; CONSENTIMIENTO INFORMADO</span>
       <span class="panel__stat">ABIERTO</span>
     </header>
     <div class="panel__body">
-      <h2 class="h2">Cupo: <span data-cfg="cupo">…</span></h2>
+      <h2 class="h2">Regístrate</h2>
+      <p class="registro__datos">Gratis &middot; Cupo: <span data-cfg="cupo">…</span> &middot; <span data-cfg="fecha">…</span></p>
       <p class="section-lead">
-        El registro es por persona y toma dos minutos. Una persona del equipo
+        <strong>Ten a la mano tu CURP.</strong> El registro es por persona y toma dos minutos. Una persona del equipo
         lo crea con nombre, logo y contraseña; los demás lo eligen de la lista
         con esa contraseña. Si no tienes equipo, elige «No tengo equipo» y te
         acomodamos en uno. Los equipos son de 3 a 5 personas.
@@ -913,6 +922,11 @@
   <div class="crt__tear"></div>
   <div class="crt__bloom"></div>
 </div>
+
+<!-- En el teléfono, el registro siempre a un toque. script.js la
+     muestra al pasar el botón de la portada y la esconde cuando el
+     formulario ya está a la vista. -->
+<a class="registro-fijo solo-abierto" id="registro-fijo" data-cfg-href="registro" href="#registro" hidden>REGISTRARME &middot; GRATIS &#9656;</a>
 
 <!-- La línea 24: en vez de X SYSTEM, el pulso del paciente. -->
 <div class="oia" aria-hidden="true">
