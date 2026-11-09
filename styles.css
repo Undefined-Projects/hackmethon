@@ -1621,3 +1621,11 @@ html.juego-completo .registro-fijo{ display:none; }
   /* que el final de la página no quede debajo de la barra */
   html:not(.proximamente) .tubo{ padding-bottom:calc(var(--oia) + 8px + var(--marco) + 50px); }
 }
+
+/* ayuda con el registro: el WhatsApp de la organización */
+.registro__ayuda{
+  margin:-4px 0 18px; padding:8px 12px; max-width:64ch;
+  border-left:3px solid var(--blue);
+  font-family:var(--f-sans); font-size:14px; color:var(--phos-soft); line-height:1.5;
+}
+.registro__ayuda a, .alta .note a{ color:var(--blue-hi); font-family:var(--f-mono); font-weight:600; letter-spacing:.05em; white-space:nowrap; }

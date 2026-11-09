@@ -59,10 +59,16 @@ const EVENTO = {
     actualizado: "12 de octubre de 2026",
   },
 
-  // OPCIONAL. Déjalo en "#" para que los botones lleven al formulario de la
-  // página. Si aquí pones un link externo (Google Forms, Luma), los botones
-  // del encabezado y del arranque se van a ese link en vez de al formulario.
-  registro:  "#",
+  // A dónde llevan los botones de registro de la portada. "registro.html"
+  // es la página aparte con el formulario; "#" los deja en el panel 06 de
+  // la misma portada; un link externo (Google Forms, Luma) los manda ahí.
+  registro:  "registro.html",
+
+  // Ayuda con el registro: sale en el formulario (portada y registro.html)
+  // por si algo falla o hay dudas. El número se escribe como se lee; el
+  // link es wa.me con lada 52 y sin espacios.
+  ayudaTel:  "614 123 8085",
+  ayudaWa:   "https://wa.me/526141238085?text=Hola%2C%20tengo%20una%20duda%20con%20el%20registro%20del%20HACK(ME)THON%202.0",
 
   // Dónde viven las funciones de Vercel. Sin barra final.
   //

@@ -47,10 +47,10 @@
     <a href="#equipo"><b>3</b> EQUIPO</a>
     <a href="#quirofano"><b>4</b> QUIRÓFANO</a>
     <a href="#protocolo"><b>5</b> PROTOCOLO</a>
-    <a href="#registro"><b>6</b> REGISTRO</a>
+    <a data-cfg-href="registro" href="registro.html"><b>6</b> REGISTRO</a>
     <a href="#faq"><b>7</b> AYUDA</a>
   </nav>
-  <a class="menubar__go solo-abierto" data-cfg-href="registro" href="#registro">REGISTRO ▸</a>
+  <a class="menubar__go solo-abierto" data-cfg-href="registro" href="registro.html">REGISTRO ▸</a>
   <a class="menubar__go solo-proximo" href="#juego">BYPASS ▸</a>
 </header>
 
@@ -106,7 +106,7 @@
         <!-- El registro, en la primera pantalla: antes estaba debajo del
              juego y en un teléfono quedaba a casi tres pantallas. -->
         <p class="cta cta--hero solo-abierto" id="cta-hero">
-          <a class="key key--go key--registro" data-cfg-href="registro" href="#registro">REGISTRARME &middot; GRATIS<small>ENTRAR AL QUIRÓFANO &middot; 2 MINUTOS</small></a>
+          <a class="key key--go key--registro" data-cfg-href="registro" href="registro.html">REGISTRARME &middot; GRATIS<small>ENTRAR AL QUIRÓFANO &middot; 2 MINUTOS</small></a>
         </p>
 
         <!-- ── el monitor de signos vitales, en chico ─────────
@@ -236,7 +236,7 @@
         </div>
         <ol class="juego__top" id="j-top"><li class="vacio">CARGANDO&hellip;</li></ol>
         <p class="juego__premio"><b>PREMIO</b> <span data-cfg="premio">…</span></p>
-        <p class="juego__evento solo-abierto">La tabla es solo del juego. <a data-cfg-href="registro" href="#registro">¿Ya te registraste al evento? &#9656; REGISTRO</a></p>
+        <p class="juego__evento solo-abierto">La tabla es solo del juego. <a data-cfg-href="registro" href="registro.html">¿Ya te registraste al evento? &#9656; REGISTRO</a></p>
       </div>
     </section>
 
@@ -255,7 +255,7 @@
     </p>
 
     <p class="cta">
-      <a class="key key--go solo-abierto" data-cfg-href="registro" href="#registro">ENTER &middot; REGISTRARME GRATIS</a>
+      <a class="key key--go solo-abierto" data-cfg-href="registro" href="registro.html">ENTER &middot; REGISTRARME GRATIS</a>
       <a class="key solo-abierto" href="#diseccion">PF2 &middot; VER LA DISECCIÓN</a>
       <span class="key key--off solo-proximo">REGISTRO &middot; PRÓXIMAMENTE</span>
       <a class="key solo-proximo" href="#juego">PF5 &middot; JUGAR BYPASS</a>
@@ -620,6 +620,7 @@
         con esa contraseña. Si no tienes equipo, elige «No tengo equipo» y te
         acomodamos en uno. Los equipos son de 3 a 5 personas.
       </p>
+      <p class="registro__ayuda">¿Algún problema o duda con el registro? Escríbenos: <a data-cfg-href="ayudaWa" href="https://wa.me/526141238085?text=Hola%2C%20tengo%20una%20duda%20con%20el%20registro%20del%20HACK(ME)THON%202.0" target="_blank" rel="noopener">WHATSAPP <span data-cfg="ayudaTel">614 123 8085</span> &#9656;</a></p>
 
       <form class="alta" id="alta" novalidate>
         <p class="trampa" aria-hidden="true">
@@ -836,6 +837,7 @@
         </p>
         <p class="note">
           El registro se manda solo y te devuelve un folio: guárdalo. Acceso: <span data-cfg="costo">…</span>.
+          ¿Algo no funciona? <a data-cfg-href="ayudaWa" href="https://wa.me/526141238085?text=Hola%2C%20tengo%20una%20duda%20con%20el%20registro%20del%20HACK(ME)THON%202.0" target="_blank" rel="noopener">WHATSAPP <span data-cfg="ayudaTel">614 123 8085</span> &#9656;</a>
         </p>
       </form>
     </div>
@@ -926,7 +928,7 @@
 <!-- En el teléfono, el registro siempre a un toque. script.js la
      muestra al pasar el botón de la portada y la esconde cuando el
      formulario ya está a la vista. -->
-<a class="registro-fijo solo-abierto" id="registro-fijo" data-cfg-href="registro" href="#registro" hidden>REGISTRARME &middot; GRATIS &#9656;</a>
+<a class="registro-fijo solo-abierto" id="registro-fijo" data-cfg-href="registro" href="registro.html" hidden>REGISTRARME &middot; GRATIS &#9656;</a>
 
 <!-- La línea 24: en vez de X SYSTEM, el pulso del paciente. -->
 <div class="oia" aria-hidden="true">
