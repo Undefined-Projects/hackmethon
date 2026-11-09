@@ -989,24 +989,32 @@ const Monitor = (function monitor(){
     }
   });
 
-  /* Lugares restantes. Si no hay API se queda callado: la portada
-     funciona igual sin este dato. */
-  const spanQuedan = document.getElementById("quedan");
-  function pintaCupo(quedan){
-    // con el cupo por definir, "quedan N" contradiría al texto
-    if (!spanQuedan || quedan == null || /por definir/i.test(EVENTO.cupo)) return;
-    spanQuedan.textContent = quedan > 0 ? ` · quedan ${quedan}` : " · CUPO LLENO";
-  }
+  /* Con el cupo lleno, el formulario se bloquea desde que carga. Los
+     lugares restantes de la ficha los pinta la sección 7½, que también
+     corre en la portada, donde ya no hay formulario. */
   ESTADO
     .then(d => {
       if (!d || d.quedan == null) return;
-      pintaCupo(d.quedan);
       if (d.quedan === 0){
         bloquea();
         avisa(`CUPO LLENO: LOS ${d.cupo} LUGARES YA ESTÁN OCUPADOS.`, true);
       }
     })
     .catch(() => {});
+})();
+
+/* — 7½. Lugares restantes, en la ficha del evento —
+       Si no hay API se queda callado: la página funciona igual sin este
+       dato. Va aparte del formulario porque la ficha está en la portada
+       y el formulario en registro.html. */
+(function lugares(){
+  const span = document.getElementById("quedan");
+  // con el cupo por definir, "quedan N" contradiría al texto
+  if (!span || /por definir/i.test(EVENTO.cupo)) return;
+  ESTADO.then(d => {
+    if (!d || d.quedan == null) return;
+    span.textContent = d.quedan > 0 ? ` · quedan ${d.quedan}` : " · CUPO LLENO";
+  }).catch(() => {});
 })();
 
 /* — 8. El título ASCII, siempre de una pieza y dentro del marco —
@@ -1042,22 +1050,18 @@ const Monitor = (function monitor(){
 })();
 
 /* — 9. El registro, siempre a un toque en el teléfono —
-   La barra de abajo (.registro-fijo) sale cuando ya pasó el botón de
-   la portada y se esconde mientras el formulario está a la vista, para
-   no tapar lo que se está llenando. En escritorio el CSS la apaga, y en
+   La barra de abajo (.registro-fijo) lleva a registro.html y se
+   esconde mientras el botón grande de la portada está a la vista, para
+   no repetirlo. En escritorio el CSS la apaga, y en
    modo "próximamente" la apaga .solo-abierto. Quien se desplaza es
    .tubo, no la ventana: por eso es la raíz del observador. */
 (function registroFijo(){
   const barra = document.getElementById("registro-fijo");
   const hero  = document.getElementById("cta-hero");
-  const panel = document.getElementById("registro");
-  if (!barra || !hero || !panel || !("IntersectionObserver" in window)) return;
+  if (!barra || !hero || !("IntersectionObserver" in window)) return;
 
-  const vista = { hero: true, panel: false };
   const io = new IntersectionObserver(entradas => {
-    entradas.forEach(e => { vista[e.target === hero ? "hero" : "panel"] = e.isIntersecting; });
-    barra.hidden = vista.hero || vista.panel;
+    barra.hidden = entradas[entradas.length - 1].isIntersecting;
   }, { root: document.querySelector(".tubo") });
   io.observe(hero);
-  io.observe(panel);
 })();
