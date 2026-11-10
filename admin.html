@@ -94,6 +94,20 @@
   .ajuste .nota{ font-size:11.5px; color:var(--phos-dim); }
   .ajuste .nota.ok{ color:var(--phos-hi); }
   .ajuste .nota.err{ color:var(--magenta); }
+  .conf{ margin:0 0 18px; }
+  .conf details{ margin:-4px 0 0; font-size:12px; }
+  .conf summary{ cursor:pointer; color:var(--phos-dim); letter-spacing:.1em; }
+  .conf__tabla{ width:100%; border-collapse:collapse; margin-top:8px; font-size:12px; }
+  .conf__tabla th{ text-align:left; color:var(--phos-dim); font-weight:500; letter-spacing:.1em; padding:4px 8px 4px 0; }
+  .vista{ width:min(680px, 96vw); height:min(900px, 92vh); padding:0; border:1px solid var(--phos);
+           background:#0a070c; color:var(--phos-hi); }
+  .vista::backdrop{ background:rgba(0,0,0,.75); }
+  .vista[open]{ display:flex; flex-direction:column; }
+  .vista__bar{ display:flex; gap:1.5ch; align-items:center; justify-content:space-between;
+               padding:8px 12px; font-size:12px; letter-spacing:.05em; border-bottom:1px solid rgba(250,57,186,.3); }
+  .vista__bar span{ overflow-wrap:anywhere; }
+  .vista iframe{ flex:1; width:100%; border:0; background:#0a070c; }
+  .conf__tabla td{ padding:4px 8px 4px 0; border-top:1px solid rgba(250,57,186,.15); vertical-align:top; word-break:break-word; }
   #b-modo[aria-pressed="true"]{ background:var(--sangre); border-color:var(--sangre); color:var(--screen); }
 
   /* borrar equipo */
@@ -204,6 +218,30 @@
         <button class="key key--sm" id="b-modo" type="button" aria-pressed="false">…</button>
         <span class="nota" id="modo-msg"></span>
       </p>
+      <!-- Correo de confirmación (folio, QR, equipo, WhatsApp): a quién ya le
+           llegó, y el botón para mandárselo a quien no lo tiene. -->
+      <div class="conf" id="conf">
+        <p class="ajuste">
+          <label>CORREO DE CONFIRMACIÓN</label>
+          <span class="nota" id="conf-sum">…</span>
+          <button class="key key--sm" id="b-conf" type="button" hidden>MANDAR</button>
+        </p>
+        <details id="conf-det">
+          <summary>VER A QUIÉN LE FALTA</summary>
+          <table class="conf__tabla">
+            <thead><tr><th></th><th>FOLIO</th><th>NOMBRE</th><th>CORREO</th><th>EQUIPO</th><th>MENOR</th><th></th></tr></thead>
+            <tbody id="conf-lista"></tbody>
+          </table>
+        </details>
+      </div>
+      <!-- Vista previa: el correo exacto que le llegaría a esa persona -->
+      <dialog class="vista" id="vista">
+        <div class="vista__bar">
+          <span id="vista-t">…</span>
+          <button class="key key--sm" id="vista-x" type="button">CERRAR</button>
+        </div>
+        <iframe id="vista-f" title="Vista previa del correo" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
+      </dialog>
       <div id="l-cuerpo"></div>
       <p class="cta" style="margin-top:20px">
         <button class="key" id="b-refresh" type="button">RECARGAR</button>
@@ -828,6 +866,90 @@ $("#b-tor-csv").addEventListener("click", () => {
   URL.revokeObjectURL(a.href);
 });
 
+/* ── correo de confirmación ───────────────────────────────
+   Quienes se registraron antes del 10-nov-2026 no lo recibieron, y a
+   alguien le pudo fallar Resend. Aquí se ve a quién le falta y se le
+   manda; el servidor no se lo repite a quien ya lo tiene. */
+let confPendientes = [];
+async function cargaConf(){
+  const sum = $("#conf-sum"), b = $("#b-conf"), tb = $("#conf-lista");
+  try {
+    const r = await fetch(API + "/confirmaciones", { headers: { authorization: "Bearer " + token() } });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.mensaje || ("HTTP " + r.status));
+    confPendientes = d.lista.filter(x => !x.confirmacion);
+    sum.className = "nota" + (confPendientes.length ? "" : " ok");
+    sum.textContent = `${d.enviados} con correo · ${d.pendientes} sin correo`;
+    b.hidden = !confPendientes.length;
+    b.textContent = `MANDAR A ${confPendientes.length}`;
+    $("#conf-det").hidden = !confPendientes.length;
+    tb.replaceChildren(...confPendientes.map(x => {
+      const tr = document.createElement("tr");
+      const caja = document.createElement("input");
+      caja.type = "checkbox"; caja.checked = true; caja.value = x.id;
+      caja.setAttribute("aria-label", "Mandar a " + x.nombre);
+      caja.addEventListener("change", cuentaConf);
+      const celda = v => { const td = document.createElement("td"); td.textContent = v; return td; };
+      const td0 = document.createElement("td"); td0.append(caja);
+      const ver = document.createElement("button");
+      ver.type = "button"; ver.className = "key key--sm"; ver.textContent = "VER";
+      ver.setAttribute("aria-label", "Ver el correo de " + x.nombre);
+      ver.addEventListener("click", () => vistaConf(x.id, ver));
+      const td6 = document.createElement("td"); td6.append(ver);
+      tr.append(td0, celda(x.folio), celda(x.nombre), celda(x.correo),
+                celda(x.modo === "asignar" ? "(por asignar)" : x.equipo), celda(x.menor ? "SÍ" : ""), td6);
+      return tr;
+    }));
+  } catch (e) {
+    sum.className = "nota err"; sum.textContent = "No se pudo leer: " + e.message;
+    b.hidden = true;
+  }
+}
+async function vistaConf(id, boton){
+  boton.disabled = true;
+  try {
+    const r = await fetch(`${API}/confirmaciones?vista=${id}`, { headers: { authorization: "Bearer " + token() } });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.mensaje || ("HTTP " + r.status));
+    $("#vista-t").textContent = `PARA: ${d.para} · ASUNTO: ${d.asunto}`;
+    $("#vista-f").srcdoc = d.html;
+    $("#vista").showModal();
+  } catch (e) {
+    alert("No se pudo cargar la vista previa: " + e.message);
+  } finally {
+    boton.disabled = false;
+  }
+}
+const confMarcados = () => [...document.querySelectorAll("#conf-lista input:checked")].map(c => Number(c.value));
+function cuentaConf(){
+  const n = confMarcados().length, b = $("#b-conf");
+  b.textContent = `MANDAR A ${n}`; b.disabled = !n;
+}
+async function mandaConf(){
+  const ids = confMarcados(), b = $("#b-conf"), sum = $("#conf-sum");
+  if (!ids.length) return;
+  if (!confirm(`Se va a mandar el correo de confirmación a ${ids.length} ${ids.length === 1 ? "persona" : "personas"}. ¿Seguro?`)) return;
+  b.disabled = true; sum.className = "nota"; sum.textContent = "Mandando...";
+  try {
+    let total = 0;
+    for (let i = 0; i < ids.length; i += 100){
+      const r = await fetch(API + "/confirmaciones", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: "Bearer " + token() },
+        body: JSON.stringify({ ids: ids.slice(i, i + 100) }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.mensaje || ("HTTP " + r.status));
+      total += d.enviados;
+    }
+    await cargaConf();
+    sum.className = "nota ok"; sum.textContent = `Listo: se mandaron ${total}. ` + sum.textContent;
+  } catch (e) {
+    sum.className = "nota err"; sum.textContent = "No se pudo mandar: " + e.message;
+    b.disabled = false;
+  }
+}
+
 async function abre(){
   try {
     const d = await carga();
@@ -835,6 +957,7 @@ async function abre(){
     lista.hidden = false;
     pinta(d);
     cargaTorneo();
+    cargaConf();
     $("#oia-pos").textContent = d.cupo > 0
       ? `${d.registrados}/${String(d.cupo).padStart(3, "0")}`
       : `${d.registrados} INSCRITOS`;
@@ -859,6 +982,8 @@ $("#f-puerta").addEventListener("submit", e => {
 $("#b-refresh").addEventListener("click", abre);
 $("#b-cupo").addEventListener("click", guardaCupo);
 $("#b-modo").addEventListener("click", cambiaModo);
+$("#b-conf").addEventListener("click", mandaConf);
+$("#vista-x").addEventListener("click", () => $("#vista").close());
 $("#f-cupo").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); guardaCupo(); } });
 $("#b-salir").addEventListener("click", () => {
   sessionStorage.removeItem("hmt_token");
