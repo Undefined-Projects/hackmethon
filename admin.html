@@ -119,6 +119,18 @@
                       border:1px solid var(--rule); padding:4px 10px; cursor:pointer; }
   .eq__borrar button:hover{ background:var(--magenta); color:var(--screen); border-color:var(--magenta); }
   .eq__borrar .aviso{ font-size:11.5px; color:var(--magenta); margin-right:auto; }
+  .eq__borrar button:disabled{ opacity:.4; cursor:default; background:transparent; color:var(--phos-dim); border-color:var(--rule); }
+  .eq__borrar select{ font-family:var(--f-mono); font-size:10.5px; letter-spacing:.06em; max-width:100%;
+                      background:var(--screen); color:var(--phos-soft); border:1px solid var(--rule); padding:4px 6px; }
+  .eq__crew .eq__acc{ flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px 2ch; margin-top:6px; }
+  .grupo .eq__acc .eq__borrar{ flex-basis:auto; margin:0; padding:0; border:0; }
+  .eq__acc .eq__mover{ flex:0 1 auto; }
+  .eq__borrar select{ width:auto; display:inline-block; min-width:0; }
+  .eq__clave .aviso{ margin-right:0; color:var(--phos-soft); }
+  .eq__clave code{ font-family:var(--f-mono); font-size:16px; font-weight:600; letter-spacing:.18em; color:var(--phos-hi);
+                   background:var(--screen-3); border:1px solid var(--phos); padding:3px 10px; user-select:all; text-shadow:var(--bloom); }
+  @keyframes movido{ from{ background:rgba(61,220,151,.22); } to{ background:transparent; } }
+  .eq__crew li.eq--movido{ animation:movido 2.4s ease-out; }
   .eq__borrar button.si{ background:var(--magenta); color:var(--screen); border-color:var(--magenta); font-weight:600; }
 
   /* torneo de BYPASS */
@@ -544,13 +556,15 @@ function pinta(d){
   const grupos = [...equipos.values()]
     .sort((a, b) => a[0].equipo.localeCompare(b[0].equipo, "es"))
     .map(g => ({ titulo: g[0].equipo, gente: g,
-                 logo: logos.get(g[0].equipo_key)?.logo,
+                 logo: logos.get(g[0].equipo_key)?.logo, eq: logos.get(g[0].equipo_key),
                  estado: g.length >= min ? ["ok", `${g.length}/${max} · COMPLETO`] : ["falta", `${g.length}/${max} · FALTAN ${min - g.length} PARA ${min}`] }));
   for (const e of d.equipos || [])
     if (!equipos.has(e.equipo_key))
-      grupos.push({ titulo: e.nombre, logo: e.logo, gente: [], vacio: e, estado: ["falta", `0/${max} · SIN NADIE`] });
-  const sinNombre = d.registros.filter(r => r.equipo_modo === "sin_nombre");
-  const asignar = d.registros.filter(r => r.equipo_modo === "asignar");
+      grupos.push({ titulo: e.nombre, logo: e.logo, gente: [], vacio: e, eq: e, estado: ["falta", `0/${max} · SIN NADIE`] });
+  // Quien ya tiene equipo_key ya está en un equipo, aunque al registrarse
+  // haya pedido que lo acomodaran (lo acomodó el panel).
+  const sinNombre = d.registros.filter(r => r.equipo_modo === "sin_nombre" && !r.equipo_key);
+  const asignar = d.registros.filter(r => r.equipo_modo === "asignar" && !r.equipo_key);
   if (sinNombre.length) grupos.push({ titulo: "TIENEN EQUIPO, SIN NOMBRE", gente: sinNombre, estado: ["", `${sinNombre.length} · HAY QUE PREGUNTARLES CON QUIÉN VIENEN`] });
   if (asignar.length) grupos.push({ titulo: "PARA ASIGNAR", gente: asignar, estado: ["falta", `${asignar.length} · NO TIENEN EQUIPO`] });
 
@@ -571,6 +585,7 @@ function pinta(d){
     ul.className = "eq__crew";
     g.gente.forEach(r => ul.appendChild(persona(r)));
     caja.append(t, ul);
+    if (g.eq) caja.appendChild(zonaClave(g.eq));
     if (g.vacio) caja.appendChild(zonaBorrarEquipo(g.vacio));
     cuerpo.appendChild(caja);
   }
@@ -594,9 +609,143 @@ function persona(r){
   const c = document.createElement("a");
   c.href = "mailto:" + r.correo; c.textContent = r.correo;
   det.appendChild(c);
+  li.dataset.id = r.id;
   li.append(b, tel, det);
-  li.appendChild(zonaBorrar(r, li));
+  // Cambiar de equipo y borrar, en un mismo renglón.
+  const acc = document.createElement("div");
+  acc.className = "eq__acc";
+  acc.append(zonaMover(r), zonaBorrar(r, li));
+  li.appendChild(acc);
   return li;
+}
+
+/* Cambiar a alguien de equipo, o regresarlo a «PARA ASIGNAR». No borra
+   nada y se puede deshacer moviéndolo otra vez, así que va en un solo
+   paso. Los equipos llenos salen en la lista pero no se pueden elegir. */
+function zonaMover(r){
+  const zona = document.createElement("p");
+  zona.className = "eq__borrar eq__mover";
+  const { max } = datos.equipo || { max: 5 };
+  const cuantos = new Map();
+  for (const x of datos.registros) if (x.equipo_key) cuantos.set(x.equipo_key, (cuantos.get(x.equipo_key) || 0) + 1);
+
+  const reposo = () => {
+    zona.textContent = "";
+    const sel = document.createElement("select");
+    sel.setAttribute("aria-label", `Cambiar de equipo a ${r.nombre} ${r.apellidos}`);
+    sel.add(new Option("CAMBIAR DE EQUIPO…", "", true, true));
+    sel.options[0].disabled = true;
+    for (const e of [...(datos.equipos || [])].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))){
+      const n = cuantos.get(e.equipo_key) || 0;
+      const aqui = e.equipo_key === r.equipo_key;
+      const o = new Option(`${e.nombre} · ${n}/${max}${aqui ? " · AQUÍ ESTÁ" : n >= max ? " · LLENO" : ""}`, String(e.id));
+      o.disabled = aqui || n >= max;
+      sel.add(o);
+    }
+    if (r.equipo_key) sel.add(new Option("SIN EQUIPO · PARA ASIGNAR", "null"));
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = "MOVER"; b.disabled = true;
+    sel.addEventListener("change", () => { b.disabled = !sel.value; });
+    b.addEventListener("click", () => mover(sel.value === "null" ? null : Number(sel.value)));
+    zona.append(sel, b);
+  };
+
+  const mover = async equipo => {
+    zona.textContent = "Moviendo...";
+    try {
+      const resp = await fetch(API + "/registros", {
+        method: "POST",
+        headers: { authorization: "Bearer " + token(), "content-type": "application/json" },
+        body: JSON.stringify({ accion: "mover", id: r.id, equipo }),
+      });
+      const d = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(d.mensaje || ("HTTP " + resp.status));
+      const e = equipo === null ? null : datos.equipos.find(x => x.id === equipo);
+      Object.assign(r, e
+        ? { equipo_key: e.equipo_key, equipo: e.nombre }
+        : { equipo_key: null, equipo: null, equipo_modo: "asignar" });
+      pinta(datos);
+      // Que se vea a dónde fue a dar.
+      const fila = document.querySelector(`#l-cuerpo li[data-id="${r.id}"]`);
+      if (fila){ fila.classList.add("eq--movido"); fila.scrollIntoView({ block: "center", behavior: "smooth" }); }
+    } catch (err) {
+      zona.textContent = "";
+      const aviso = document.createElement("span");
+      aviso.className = "aviso"; aviso.textContent = "No se pudo mover: " + err.message;
+      zona.appendChild(aviso);
+      setTimeout(reposo, 4000);
+    }
+  };
+
+  reposo();
+  return zona;
+}
+
+/* Contraseña nueva para un equipo: la genera el servidor y la devuelve
+   UNA sola vez (en la base solo queda el hash). Se guarda aquí, en memoria,
+   hasta que se pica LISTO, para que no se pierda si el panel se repinta
+   por otra cosa. Recargar la página sí la pierde: por eso el aviso. */
+const clavesNuevas = new Map();
+function zonaClave(eq){
+  const zona = document.createElement("p");
+  zona.className = "eq__borrar eq__clave";
+  let reloj = null;
+  const boton = (texto, accion, clase) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = texto; if (clase) b.className = clase;
+    b.addEventListener("click", accion);
+    return b;
+  };
+  const aviso = texto => { const a = document.createElement("span"); a.className = "aviso"; a.textContent = texto; return a; };
+
+  const reposo = () => {
+    zona.textContent = "";
+    if (clavesNuevas.has(eq.id)) return muestra(clavesNuevas.get(eq.id));
+    zona.appendChild(boton("CONTRASEÑA NUEVA", preguntar));
+  };
+  const preguntar = () => {
+    zona.textContent = "";
+    zona.append(
+      aviso(`¿Contraseña nueva para «${eq.nombre}»? La de ahora deja de servir para unirse.`),
+      boton("SÍ, CAMBIARLA", () => { clearTimeout(reloj); genera(); }, "si"),
+      boton("CANCELAR", () => { clearTimeout(reloj); reposo(); }));
+    reloj = setTimeout(reposo, 8000);
+  };
+  const genera = async () => {
+    zona.textContent = "Generando...";
+    try {
+      const r = await fetch(API + "/registros", {
+        method: "POST",
+        headers: { authorization: "Bearer " + token(), "content-type": "application/json" },
+        body: JSON.stringify({ accion: "clave", equipo: eq.id }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.mensaje || ("HTTP " + r.status));
+      clavesNuevas.set(eq.id, d.clave);
+      muestra(d.clave);
+    } catch (e) {
+      zona.textContent = "";
+      zona.appendChild(aviso("No se pudo cambiar: " + e.message));
+      setTimeout(reposo, 4000);
+    }
+  };
+  const muestra = clave => {
+    zona.textContent = "";
+    const c = document.createElement("code");
+    c.className = "clave"; c.textContent = clave;
+    const copiar = boton("COPIAR", async () => {
+      try { await navigator.clipboard.writeText(clave); copiar.textContent = "COPIADA"; }
+      catch { copiar.textContent = "SELECCIÓNALA Y CÓPIALA"; }
+    });
+    zona.append(
+      aviso(`Contraseña nueva de «${eq.nombre}»:`), c,
+      aviso("Pásasela al equipo ahora: no se vuelve a mostrar."),
+      copiar,
+      boton("LISTO", () => { clavesNuevas.delete(eq.id); reposo(); }));
+  };
+
+  reposo();
+  return zona;
 }
 
 /* Borrar es irreversible, así que va en dos pasos y el aviso dice a quién
