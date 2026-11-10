@@ -912,7 +912,9 @@ async function vistaConf(id, boton){
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.mensaje || ("HTTP " + r.status));
     $("#vista-t").textContent = `PARA: ${d.para} · ASUNTO: ${d.asunto}`;
-    $("#vista-f").srcdoc = d.html;
+    // Las ligas del correo se abren en otra pestaña: dentro del marco
+    // aislado el navegador no muestra el PDF de la carta ni otras páginas.
+    $("#vista-f").srcdoc = d.html.replace("<head>", '<head><base target="_blank">');
     $("#vista").showModal();
   } catch (e) {
     alert("No se pudo cargar la vista previa: " + e.message);
