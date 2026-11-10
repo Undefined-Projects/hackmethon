@@ -966,7 +966,7 @@ const Monitor = (function monitor(){
         const p = paquete();
         avisa(`REGISTRO ACEPTADO. TU FOLIO ES ${datos.folio}. TE ESCRIBIMOS A TU CORREO.` +
           (p.equipoModo === "crear" ? ` «${p.equipo.replace(/\s+/g, " ").toUpperCase()}» YA APARECE EN LA LISTA: PÁSALES LA CONTRASEÑA A TUS COMPAÑEROS.` : ""), false);
-        pintaCupo(datos.quedan);
+        try { pintaCupo(datos.quedan); } catch {}
         return;
       }
       // 400 y 409 traen un motivo concreto del servidor: se muestra tal cual.
@@ -1004,18 +1004,21 @@ const Monitor = (function monitor(){
 })();
 
 /* — 7½. Lugares restantes, en la ficha del evento —
-       Si no hay API se queda callado: la página funciona igual sin este
-       dato. Va aparte del formulario porque la ficha está en la portada
-       y el formulario en registro.html. */
-(function lugares(){
+       El tope lo manda el servidor (se pone en el panel): con tope, la
+       ficha dice "150 lugares · quedan 106"; sin tope (0), se queda el
+       texto de config.js ("Sin límite"). Si no hay API se queda callado:
+       la página funciona igual sin este dato. pintaCupo también la llama
+       el formulario al registrar a alguien, con lo que quedan ahora. */
+let cupoServidor = 0;
+function pintaCupo(quedan, cupo = cupoServidor){
+  cupoServidor = cupo;
+  const texto = document.querySelector('[data-cfg="cupo"]');
   const span = document.getElementById("quedan");
-  // con el cupo por definir, "quedan N" contradiría al texto
-  if (!span || /por definir/i.test(EVENTO.cupo)) return;
-  ESTADO.then(d => {
-    if (!d || d.quedan == null) return;
-    span.textContent = d.quedan > 0 ? ` · quedan ${d.quedan}` : " · CUPO LLENO";
-  }).catch(() => {});
-})();
+  if (!span || !(cupo > 0) || quedan == null) return;
+  if (texto) texto.textContent = `${cupo} lugares`;
+  span.textContent = quedan > 0 ? ` · quedan ${quedan}` : " · CUPO LLENO";
+}
+ESTADO.then(d => { if (d) pintaCupo(d.quedan, d.cupo); }).catch(() => {});
 
 /* — 8. El título ASCII, siempre de una pieza y dentro del marco —
    Son 69 columnas monoespaciadas repartidas en tres bloques. El CSS
