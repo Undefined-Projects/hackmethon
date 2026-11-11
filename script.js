@@ -478,6 +478,9 @@ const Monitor = (function monitor(){
   // cuántos periodos puede llevar cada forma de contar, y cómo se llama
   const PERIODO_MAX = { semestre: 12, cuatrimestre: 15, tetramestre: 15, anio: 5 };
   const PERIODO_NOMBRE = { semestre: "SEMESTRE", cuatrimestre: "CUATRIMESTRE", tetramestre: "TETRAMESTRE", anio: "AÑO" };
+  // a quién puede representar quien no viene por una escuela (igual que en api/registro.js)
+  const ORG_TIPO = { asociacion_civil: "Asociación civil", empresa: "Empresa", colectivo: "Comunidad o colectivo",
+                     gobierno: "Dependencia de gobierno", otra: "Otra" };
 
   /* ---- CURP: formato, dígito verificador y fecha (igual que el servidor) ---- */
   const ENTIDADES = "AS BC BS CC CL CM CS CH DF DG GT GR HG JC MC MN MS NT NL OC PL QT QR SP SL SR TC TS TL VZ YN ZS NE".split(" ");
@@ -764,10 +767,15 @@ const Monitor = (function monitor(){
 
   /* ---- lo que se muestra según lo que se contesta ---- */
   const escuela = document.getElementById("escuela");
+  const org = document.getElementById("org");
+  const orgCampos = document.getElementById("org-campos");
   const tutor = document.getElementById("tutor");
   const periodoT = document.getElementById("periodo-t");
   function acomoda(){
     escuela.hidden = elegido("estudia") !== "si";
+    // La organización solo se pregunta a quien no estudia.
+    org.hidden = elegido("estudia") !== "no";
+    orgCampos.hidden = org.hidden || elegido("representa") !== "si";
     // «¿Cuál?» solo se puede escribir si eligió «Otra»
     const esOtra = val("institucion") === "otra";
     el("otra").disabled = !esOtra;
@@ -841,6 +849,13 @@ const Monitor = (function monitor(){
       const tope = PERIODO_MAX[val("periodo")], n = Number(val("semestre"));
       if (!Number.isInteger(n) || n < 1 || n > tope)
         return falla("semestre", `EL ${PERIODO_NOMBRE[val("periodo")]} VA DE 1 A ${tope}.`);
+    } else {
+      const rep = elegido("representa");
+      if (!rep) return falla("representa", "DINOS SI VIENES EN REPRESENTACIÓN DE ALGUNA ORGANIZACIÓN.");
+      if (rep === "si"){
+        if (!val("orgTipo")) return falla("orgTipo", "ELIGE EL TIPO DE ORGANIZACIÓN.");
+        if (letras(val("organizacion")) < 3) return falla("organizacion", "ESCRIBE EL NOMBRE DE LA ORGANIZACIÓN.");
+      }
     }
 
     const modo = elegido("equipoModo");
@@ -884,6 +899,9 @@ const Monitor = (function monitor(){
       carrera: estudia ? val("carrera") : "",
       periodo: estudia ? val("periodo") : "",
       semestre: estudia ? Number(val("semestre")) : null,
+      representa: !estudia && elegido("representa") === "si",
+      orgTipo: !estudia && elegido("representa") === "si" ? val("orgTipo") : "",
+      organizacion: !estudia && elegido("representa") === "si" ? val("organizacion") : "",
       ...equipoDe(elegido("equipoModo")),
       privacidad: el("privacidad").checked, tutor: el("tutor").checked,
       responsiva: el("responsiva").checked,
@@ -917,6 +935,7 @@ const Monitor = (function monitor(){
       `CORREO ......... ${p.correo}`,
       `TELÉFONO ....... ${p.telefono}`,
       `ESTUDIA ........ ${p.estudia ? `${p.institucion} · ${p.carrera} · ${PERIODO_NOMBRE[p.periodo].toLowerCase()} ${p.semestre}` : "No"}`,
+      ...(p.representa ? [`REPRESENTA ..... ${p.organizacion} (${ORG_TIPO[p.orgTipo] || p.orgTipo})`] : []),
       `EQUIPO ......... ${EQUIPO_TEXTO[p.equipoModo] || "Sin contestar"}${nombreEquipo(p) ? `: ${nombreEquipo(p)}` : ""}`,
       "",
       "(La CURP no va en este correo: se la pedimos al confirmar.)",

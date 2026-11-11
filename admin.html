@@ -344,6 +344,8 @@ async function carga(){
 }
 
 const PERIODO = { semestre: "SEMESTRE", cuatrimestre: "CUATRIMESTRE", tetramestre: "TETRAMESTRE", anio: "AÑO" };
+const ORG_TIPO = { asociacion_civil: "ASOCIACIÓN CIVIL", empresa: "EMPRESA", colectivo: "COLECTIVO",
+                   gobierno: "GOBIERNO", otra: "ORGANIZACIÓN" };
 const GENERO = { hombre: "HOMBRE", mujer: "MUJER", otro: "OTRO", prefiero_no_decir: "PREFIERE NO DECIR" };
 // edad a partir de "AAAA-MM-DD"
 function edadDe(fecha){
@@ -605,7 +607,8 @@ function persona(r){
   det.append(
     `${r.folio} · ${fecha} · ${edad} AÑOS${r.tutor ? " (MENOR: TUTOR AUTORIZÓ)" : ""} · ${GENERO[r.genero] || r.genero} · ` +
     `${r.curp} · NAC. ${r.nacimiento} · CP ${r.cp} · ` +
-    (r.estudia ? `${r.institucion} · ${r.carrera} · ${PERIODO[r.periodo] || r.periodo} ${r.semestre}` : "NO ESTUDIA") + " · ");
+    (r.estudia ? `${r.institucion} · ${r.carrera} · ${PERIODO[r.periodo] || r.periodo} ${r.semestre}` : "NO ESTUDIA") + " · " +
+    (r.organizacion ? `REPRESENTA A ${ORG_TIPO[r.organizacion_tipo] || "ORGANIZACIÓN"} «${r.organizacion}» · ` : ""));
   const c = document.createElement("a");
   c.href = "mailto:" + r.correo; c.textContent = r.correo;
   det.appendChild(c);
@@ -1147,12 +1150,13 @@ $("#b-csv").addEventListener("click", () => {
   const esc = v => '"' + String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""') + '"';
   const columnas = ["folio","registrado","nombre","apellidos","correo","telefono","curp","genero",
                     "nacimiento","edad","cp","estudia","institucion","carrera","periodo","semestre",
-                    "tiene_equipo","equipo","privacidad","responsiva","tutor"];
+                    "organizacion_tipo","organizacion","tiene_equipo","equipo","privacidad","responsiva","tutor"];
   const filas = [columnas];
   for (const r of datos.registros){
     filas.push([r.folio, r.creado, r.nombre, r.apellidos, r.correo, r.telefono, r.curp, r.genero,
                 r.nacimiento, edadDe(r.nacimiento), r.cp, r.estudia ? "si" : "no", r.institucion, r.carrera,
-                (PERIODO[r.periodo] || r.periodo || "").toLowerCase(), r.semestre, r.equipo_modo, r.equipo,
+                (PERIODO[r.periodo] || r.periodo || "").toLowerCase(), r.semestre,
+                r.organizacion_tipo, r.organizacion, r.equipo_modo, r.equipo,
                 r.privacidad, r.responsiva, r.tutor ? "si" : "no"].map(esc));
   }
   // BOM para que Excel abra los acentos bien

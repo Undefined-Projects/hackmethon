@@ -1317,6 +1317,9 @@ select option{ background:var(--screen); color:var(--phos-hi); }
 select[aria-invalid="true"]{ border-bottom-color:var(--magenta); background:rgba(250,57,186,.16); }
 .opciones{ display:flex; flex-wrap:wrap; gap:10px 3ch; margin:0 0 4px; }
 .opciones + .crew__campos{ margin-top:14px; }
+/* Sin esto el display:grid le gana a [hidden] y los campos de la escuela
+   se veían aunque la persona contestara que no estudia. */
+.crew__campos[hidden]{ display:none; }
 .crew__campos .fs__hint{ margin:0; }
 .responsiva{ margin:0 0 .7em; padding-left:2.4ch; }
 .responsiva li{ margin:0 0 .35em; }

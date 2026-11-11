@@ -109,7 +109,7 @@
         </fieldset>
 
         <fieldset class="fs">
-          <legend>&#9656; ESCUELA</legend>
+          <legend>&#9656; ESCUELA U ORGANIZACIÓN</legend>
           <p class="fs__hint">¿Estudias actualmente?</p>
           <div class="opciones">
             <label class="consent"><input type="radio" name="estudia" value="si" required><span>Sí</span></label>
@@ -149,6 +149,28 @@
               </select></label>
             <label class="crew__campo crew__campo--medio"><span id="periodo-t">SEMESTRE QUE CURSAS</span>
               <input type="number" name="semestre" min="1" max="12" inputmode="numeric" placeholder="1"></label>
+          </div>
+          <!-- Quien no estudia puede venir en nombre de una asociación civil,
+               una empresa o un colectivo: así se sabe a quién representa. -->
+          <div id="org" hidden>
+            <p class="fs__hint">¿Vienes en representación de alguna organización? Por ejemplo, una asociación civil, una empresa o un colectivo.</p>
+            <div class="opciones">
+              <label class="consent"><input type="radio" name="representa" value="no"><span>No, vengo por mi cuenta</span></label>
+              <label class="consent"><input type="radio" name="representa" value="si"><span>Sí</span></label>
+            </div>
+            <div class="crew__campos" id="org-campos" hidden>
+              <label class="crew__campo crew__campo--ancho"><span>TIPO DE ORGANIZACIÓN</span>
+                <select name="orgTipo">
+                  <option value="">ELIGE UNA</option>
+                  <option value="asociacion_civil">Asociación civil (A.C.)</option>
+                  <option value="empresa">Empresa</option>
+                  <option value="colectivo">Comunidad o colectivo</option>
+                  <option value="gobierno">Dependencia de gobierno</option>
+                  <option value="otra">Otra</option>
+                </select></label>
+              <label class="crew__campo crew__campo--ancho"><span>NOMBRE DE LA ORGANIZACIÓN</span>
+                <input type="text" name="organizacion" maxlength="80" autocomplete="organization" placeholder="P. EJ. «ROBÓTICA PARA TODOS, A.C.»"></label>
+            </div>
           </div>
           <datalist id="carreras">
             <option>Ingeniería en Software</option>
